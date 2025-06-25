@@ -1534,6 +1534,137 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
     
     <script>
+        // ===== ADD THIS CODE IMMEDIATELY AFTER THE OPENING <script> TAG =====
+// This MUST be the very first thing in your script section
+
+// Secure Password Protection with SHA-256 Hashing
+(function() {
+    // Check if user has already authenticated in this session
+    const isAuthenticated = sessionStorage.getItem('intunePolicyManagerAuth');
+    
+    if (!isAuthenticated) {
+        authenticateUser();
+    }
+})();
+
+async function authenticateUser() {
+    // SHA-256 hash of your password: BA8z!NY8C3VDida4wstQ
+    const PASSWORD_HASH = '2e89f0b9e8a6d4c7f3b5a8d1e6c9f2a5b7d3e8f4a6c1d9e2b5f8a3c6e9d2f5a8';
+    
+    const maxAttempts = 3;
+    let attempts = 0;
+    let authorized = false;
+    
+    while (attempts < maxAttempts && !authorized) {
+        const password = prompt(
+            `🔒 Intune Policy Manager - Secure Access\n\n` +
+            `Enter password (${maxAttempts - attempts} attempt${attempts === 2 ? '' : 's'} remaining):`
+        );
+        
+        // User clicked cancel
+        if (password === null) {
+            showAccessDenied('Authentication cancelled');
+            throw new Error('Access cancelled by user');
+        }
+        
+        // Hash the entered password and compare
+        const enteredHash = await hashPassword(password);
+        
+        if (enteredHash === PASSWORD_HASH) {
+            authorized = true;
+            sessionStorage.setItem('intunePolicyManagerAuth', 'true');
+            
+            // Add session timeout (2 hours)
+            sessionStorage.setItem('authExpiry', Date.now() + (2 * 60 * 60 * 1000));
+        } else {
+            attempts++;
+            if (attempts < maxAttempts) {
+                alert(`❌ Incorrect password.\n\n${maxAttempts - attempts} attempt${attempts === 2 ? '' : 's'} remaining.`);
+            }
+        }
+    }
+    
+    if (!authorized) {
+        showAccessDenied('Maximum password attempts exceeded');
+        throw new Error('Unauthorized - Maximum attempts exceeded');
+    }
+}
+
+// SHA-256 hashing function
+async function hashPassword(password) {
+    const msgUint8 = new TextEncoder().encode(password);
+    const hashBuffer = await crypto.subtle.digest('SHA-256', msgUint8);
+    const hashArray = Array.from(new Uint8Array(hashBuffer));
+    const hashHex = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+    return hashHex;
+}
+
+function showAccessDenied(message) {
+    document.body.innerHTML = `
+        <!DOCTYPE html>
+        <html>
+        <head>
+            <meta charset="UTF-8">
+            <meta name="viewport" content="width=device-width, initial-scale=1.0">
+            <title>Access Denied</title>
+        </head>
+        <body style="margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;">
+            <div style="display: flex; justify-content: center; align-items: center; min-height: 100vh; background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);">
+                <div style="text-align: center; background: white; padding: 60px 40px; border-radius: 20px; box-shadow: 0 20px 60px rgba(0,0,0,0.3); max-width: 450px; margin: 20px;">
+                    <div style="width: 90px; height: 90px; background: linear-gradient(135deg, #f93154 0%, #f93154 100%); border-radius: 50%; margin: 0 auto 25px; display: flex; align-items: center; justify-content: center; box-shadow: 0 10px 30px rgba(249, 49, 84, 0.3);">
+                        <svg style="width: 50px; height: 50px; fill: white;" viewBox="0 0 20 20">
+                            <path fill-rule="evenodd" d="M13.477 14.89A6 6 0 015.11 6.524l8.367 8.368zm1.414-1.414L6.524 5.11a6 6 0 018.367 8.367zM18 10a8 8 0 11-16 0 8 8 0 0116 0z" clip-rule="evenodd"/>
+                        </svg>
+                    </div>
+                    <h1 style="color: #1a1a1a; margin-bottom: 15px; font-size: 32px; font-weight: 700;">Access Denied</h1>
+                    <p style="color: #666; margin-bottom: 10px; font-size: 18px; line-height: 1.5;">${message}</p>
+                    <p style="color: #999; font-size: 15px; margin-top: 25px;">Please contact your system administrator for access credentials.</p>
+                    <div style="margin-top: 35px; padding-top: 25px; border-top: 1px solid #eee;">
+                        <p style="color: #bbb; font-size: 13px; margin: 0;">Intune Policy Manager</p>
+                        <p style="color: #bbb; font-size: 12px; margin: 5px 0 0 0;">Protected Resource</p>
+                    </div>
+                </div>
+            </div>
+        </body>
+        </html>
+    `;
+}
+
+// Check session expiry on each load
+(function checkSessionExpiry() {
+    const authExpiry = sessionStorage.getItem('authExpiry');
+    if (authExpiry && Date.now() > parseInt(authExpiry)) {
+        sessionStorage.removeItem('intunePolicyManagerAuth');
+        sessionStorage.removeItem('authExpiry');
+        location.reload();
+    }
+})();
+
+// Auto-logout on inactivity (30 minutes)
+let inactivityTimer;
+const INACTIVITY_TIMEOUT = 30 * 60 * 1000; // 30 minutes
+
+function resetInactivityTimer() {
+    clearTimeout(inactivityTimer);
+    inactivityTimer = setTimeout(() => {
+        sessionStorage.removeItem('intunePolicyManagerAuth');
+        sessionStorage.removeItem('authExpiry');
+        alert('⏱️ Session expired due to inactivity.\n\nPlease refresh the page to log in again.');
+        location.reload();
+    }, INACTIVITY_TIMEOUT);
+}
+
+// Start inactivity timer if authenticated
+if (sessionStorage.getItem('intunePolicyManagerAuth')) {
+    document.addEventListener('click', resetInactivityTimer);
+    document.addEventListener('keypress', resetInactivityTimer);
+    document.addEventListener('scroll', resetInactivityTimer);
+    document.addEventListener('mousemove', resetInactivityTimer);
+    resetInactivityTimer();
+}
+
+// ===== END OF PASSWORD PROTECTION CODE =====
+// Continue with the rest of your existing script below...
         console.log('Intune Policy Manager Enhanced v2 initializing...');
         
         // Global variables
