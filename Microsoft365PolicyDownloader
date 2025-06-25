@@ -890,6 +890,132 @@
     <script src="https://alcdn.msauth.net/browser/2.30.0/js/msal-browser.min.js"></script>
     
     <script>
+// Secure Password Protection with SHA-256 Hashing
+(function() {
+    // Check if user has already authenticated in this session
+    const isAuthenticated = sessionStorage.getItem('intunePolicyManagerAuth');
+    
+    if (!isAuthenticated) {
+        authenticateUser();
+    }
+})();
+
+async function authenticateUser() {
+    const PASSWORD_HASH = '94580c1ec38c30879bffe6a91a524d00e38f9d43350c8640e2cb02d092d9000f';
+    
+    const maxAttempts = 3;
+    let attempts = 0;
+    let authorized = false;
+    
+    while (attempts < maxAttempts && !authorized) {
+        const password = prompt(
+            `🔒 Intune Policy Manager - Secure Access\n\n` +
+            `Enter password (${maxAttempts - attempts} attempt${attempts === 2 ? '' : 's'} remaining):`
+        );
+        
+        // User clicked cancel
+        if (password === null) {
+            showAccessDenied('Authentication cancelled');
+            throw new Error('Access cancelled by user');
+        }
+        
+        // Hash the entered password and compare
+        const enteredHash = await hashPassword(password);
+        
+        if (enteredHash === PASSWORD_HASH) {
+            authorized = true;
+            sessionStorage.setItem('intunePolicyManagerAuth', 'true');
+            
+            // Add session timeout (2 hours)
+            sessionStorage.setItem('authExpiry', Date.now() + (2 * 60 * 60 * 1000));
+        } else {
+            attempts++;
+            if (attempts < maxAttempts) {
+                alert(`❌ Incorrect password.\n\n${maxAttempts - attempts} attempt${attempts === 2 ? '' : 's'} remaining.`);
+            }
+        }
+    }
+    
+    if (!authorized) {
+        showAccessDenied('Maximum password attempts exceeded');
+        throw new Error('Unauthorized - Maximum attempts exceeded');
+    }
+}
+
+// SHA-256 hashing function - THIS IS THE CORRECT IMPLEMENTATION
+async function hashPassword(password) {
+    const msgUint8 = new TextEncoder().encode(password);
+    const hashBuffer = await crypto.subtle.digest('SHA-256', msgUint8);
+    const hashArray = Array.from(new Uint8Array(hashBuffer));
+    const hashHex = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+    return hashHex;
+}
+
+function showAccessDenied(message) {
+    document.body.innerHTML = `
+        <!DOCTYPE html>
+        <html>
+        <head>
+            <meta charset="UTF-8">
+            <meta name="viewport" content="width=device-width, initial-scale=1.0">
+            <title>Access Denied</title>
+        </head>
+        <body style="margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;">
+            <div style="display: flex; justify-content: center; align-items: center; min-height: 100vh; background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);">
+                <div style="text-align: center; background: white; padding: 60px 40px; border-radius: 20px; box-shadow: 0 20px 60px rgba(0,0,0,0.3); max-width: 450px; margin: 20px;">
+                    <h1 style="color: #1a1a1a; margin-bottom: 25px; font-size: 36px; font-weight: 700; font-style: italic;">No HAM for you...</h1>
+                    
+                    <div style="margin: 30px 0;">
+                        <img src="https://luiserodz.github.io/theHAM/Ham.jpg" 
+                             alt="No Ham for You" 
+                             style="max-width: 300px; width: 100%; height: auto; border-radius: 10px; box-shadow: 0 5px 20px rgba(0,0,0,0.2);">
+                    </div>
+                    
+                    <p style="color: #666; margin-bottom: 10px; font-size: 18px; line-height: 1.5;">${message}</p>
+                    
+                    <div style="margin-top: 35px; padding-top: 25px; border-top: 1px solid #eee;">
+                        <p style="color: #999; font-size: 15px;">Please contact your system administrator for access credentials.</p>
+                        <p style="color: #bbb; font-size: 13px; margin-top: 15px;">Intune Policy Manager</p>
+                    </div>
+                </div>
+            </div>
+        </body>
+        </html>
+    `;
+}
+
+// Check session expiry on each load
+(function checkSessionExpiry() {
+    const authExpiry = sessionStorage.getItem('authExpiry');
+    if (authExpiry && Date.now() > parseInt(authExpiry)) {
+        sessionStorage.removeItem('intunePolicyManagerAuth');
+        sessionStorage.removeItem('authExpiry');
+        location.reload();
+    }
+})();
+
+// Auto-logout on inactivity (30 minutes)
+let inactivityTimer;
+const INACTIVITY_TIMEOUT = 30 * 60 * 1000; // 30 minutes
+
+function resetInactivityTimer() {
+    clearTimeout(inactivityTimer);
+    inactivityTimer = setTimeout(() => {
+        sessionStorage.removeItem('intunePolicyManagerAuth');
+        sessionStorage.removeItem('authExpiry');
+        alert('⏱️ Session expired due to inactivity.\n\nPlease refresh the page to log in again.');
+        location.reload();
+    }, INACTIVITY_TIMEOUT);
+}
+
+// Start inactivity timer if authenticated
+if (sessionStorage.getItem('intunePolicyManagerAuth')) {
+    document.addEventListener('click', resetInactivityTimer);
+    document.addEventListener('keypress', resetInactivityTimer);
+    document.addEventListener('scroll', resetInactivityTimer);
+    document.addEventListener('mousemove', resetInactivityTimer);
+    resetInactivityTimer();
+}
         console.log('M365 Policy Downloader initializing...');
         
         // Immediately set redirect URI on page load
