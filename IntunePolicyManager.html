@@ -1,0 +1,3325 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Intune Policy Manager - Enhanced v2</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
+            min-height: 100vh;
+            color: #1f2937;
+            line-height: 1.6;
+        }
+
+        .container {
+            max-width: 1280px;
+            margin: 0 auto;
+            padding: 2rem 1rem;
+        }
+
+        .header {
+            background-color: white;
+            border-radius: 0.5rem;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+            padding: 1.5rem;
+            margin-bottom: 2rem;
+            position: relative;
+        }
+
+        .header-title {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 1rem;
+        }
+
+        .header-title h1 {
+            font-size: 1.875rem;
+            font-weight: 700;
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
+
+        .icon {
+            width: 1.5rem;
+            height: 1.5rem;
+            display: inline-block;
+            vertical-align: middle;
+        }
+
+        .status-indicator {
+            position: absolute;
+            top: 1rem;
+            right: 1rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            font-size: 0.875rem;
+        }
+
+        .status-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: #dc3545;
+        }
+
+        .status-dot.connected {
+            background: #28a745;
+        }
+
+        .warning-box {
+            background-color: #fef3c7;
+            border: 1px solid #fbbf24;
+            border-radius: 0.5rem;
+            padding: 1rem;
+            margin-top: 1rem;
+        }
+
+        .warning-box ul {
+            margin-left: 1.5rem;
+            margin-top: 0.5rem;
+        }
+
+        .nav-tabs {
+            display: flex;
+            background-color: white;
+            border-radius: 0.5rem;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+            margin-bottom: 2rem;
+            overflow: hidden;
+        }
+
+        .nav-tab {
+            flex: 1;
+            padding: 1rem;
+            text-align: center;
+            background: none;
+            border: none;
+            cursor: pointer;
+            font-size: 0.875rem;
+            font-weight: 500;
+            color: #6b7280;
+            transition: all 0.2s;
+            position: relative;
+        }
+
+        .nav-tab:hover {
+            background-color: #f3f4f6;
+        }
+
+        .nav-tab.active {
+            color: #2563eb;
+            background-color: #eff6ff;
+        }
+
+        .nav-tab.active::after {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            height: 3px;
+            background-color: #2563eb;
+        }
+
+        .nav-tab .badge {
+            background: #ef4444;
+            color: white;
+            font-size: 0.75rem;
+            padding: 2px 6px;
+            border-radius: 10px;
+            margin-left: 4px;
+        }
+
+        .tab-content {
+            display: none;
+            background-color: white;
+            border-radius: 0.5rem;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+            padding: 1.5rem;
+            animation: fadeIn 0.3s ease;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .auth-section {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+
+        .auth-status {
+            padding: 10px 15px;
+            border-radius: 5px;
+            font-weight: 500;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .auth-status.connected {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+
+        .auth-status.disconnected {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+
+        .btn {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 5px;
+            font-size: 16px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .btn::before {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 0;
+            height: 0;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.3);
+            transform: translate(-50%, -50%);
+            transition: width 0.6s, height 0.6s;
+        }
+
+        .btn:active::before {
+            width: 300px;
+            height: 300px;
+        }
+
+        .btn-primary {
+            background: #2a5298;
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: #1e3c72;
+            transform: translateY(-1px);
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+        }
+
+        .btn-secondary {
+            background: #6c757d;
+            color: white;
+        }
+
+        .btn-secondary:hover {
+            background: #5a6268;
+        }
+
+        .btn-success {
+            background: #28a745;
+            color: white;
+        }
+
+        .btn-success:hover {
+            background: #218838;
+        }
+
+        .btn-danger {
+            background: #dc3545;
+            color: white;
+        }
+
+        .btn-danger:hover {
+            background: #c82333;
+        }
+
+        .btn-info {
+            background: #17a2b8;
+            color: white;
+        }
+
+        .btn-info:hover {
+            background: #138496;
+        }
+
+        .btn-warning {
+            background: #ffc107;
+            color: #212529;
+        }
+
+        .btn-warning:hover {
+            background: #e0a800;
+        }
+
+        .btn svg {
+            pointer-events: none;
+        }
+
+        .btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            pointer-events: none;
+        }
+
+        .btn.loading {
+            color: transparent;
+        }
+
+        .btn.loading::after {
+            content: '';
+            position: absolute;
+            width: 16px;
+            height: 16px;
+            margin: auto;
+            border: 2px solid transparent;
+            border-top-color: white;
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .policy-list {
+            max-height: 600px;
+            overflow-y: auto;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            padding: 10px;
+            position: relative;
+        }
+
+        .policy-list.loading::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(255, 255, 255, 0.8);
+            z-index: 10;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .policy-list.loading::after {
+            content: 'Loading...';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            z-index: 11;
+            font-weight: 500;
+        }
+
+        .policy-item {
+            padding: 12px;
+            margin: 8px 0;
+            border: 1px solid #e5e7eb;
+            border-radius: 6px;
+            transition: all 0.2s;
+            background: white;
+            cursor: pointer;
+        }
+
+        .policy-item:hover {
+            border-color: #3b82f6;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+
+        .policy-item.selected {
+            background: #eff6ff;
+            border-color: #2563eb;
+        }
+
+        .policy-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 8px;
+        }
+
+        .policy-name {
+            font-weight: 600;
+            color: #1f2937;
+            flex: 1;
+            margin-left: 10px;
+        }
+
+        .policy-actions {
+            display: flex;
+            gap: 8px;
+        }
+
+        .policy-details {
+            font-size: 0.875rem;
+            color: #6b7280;
+            display: flex;
+            gap: 16px;
+            flex-wrap: wrap;
+            margin-left: 30px;
+        }
+
+        .policy-type {
+            background: #e0e7ff;
+            color: #3730a3;
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-size: 0.75rem;
+            font-weight: 500;
+        }
+
+        .form-group {
+            margin-bottom: 15px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: 500;
+        }
+
+        .form-group input,
+        .form-group select,
+        .form-group textarea {
+            width: 100%;
+            padding: 8px 12px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 14px;
+            transition: all 0.2s;
+        }
+
+        .form-group input:focus,
+        .form-group select:focus,
+        .form-group textarea:focus {
+            outline: none;
+            border-color: #3b82f6;
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+        }
+
+        .form-group.error input {
+            border-color: #dc3545;
+        }
+
+        .form-group .error-message {
+            color: #dc3545;
+            font-size: 0.875rem;
+            margin-top: 5px;
+        }
+
+        .results-section {
+            display: none;
+            margin-top: 20px;
+            animation: fadeIn 0.3s ease;
+        }
+
+        .results-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 10px;
+        }
+
+        .results-table th,
+        .results-table td {
+            padding: 10px;
+            text-align: left;
+            border-bottom: 1px solid #ddd;
+        }
+
+        .results-table th {
+            background: #f8f9fa;
+            font-weight: 600;
+            position: sticky;
+            top: 0;
+            z-index: 1;
+        }
+
+        .status-success {
+            color: #28a745;
+            font-weight: 500;
+        }
+
+        .status-error {
+            color: #dc3545;
+            font-weight: 500;
+        }
+
+        .status-warning {
+            color: #ffc107;
+            font-weight: 500;
+        }
+
+        .progress-section {
+            margin-top: 20px;
+            padding: 15px;
+            background: #f8f9fa;
+            border-radius: 5px;
+            display: none;
+        }
+
+        .progress-bar {
+            width: 100%;
+            height: 25px;
+            background: #e0e0e0;
+            border-radius: 15px;
+            overflow: hidden;
+            margin-top: 10px;
+            box-shadow: inset 0 2px 4px rgba(0,0,0,0.1);
+            position: relative;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #28a745 0%, #20c997 100%);
+            width: 0%;
+            transition: width 0.5s ease;
+            position: relative;
+        }
+
+        .progress-fill.error {
+            background: linear-gradient(90deg, #dc3545 0%, #c82333 100%);
+        }
+
+        .progress-text {
+            position: absolute;
+            left: 50%;
+            top: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 12px;
+            font-weight: bold;
+            color: #333;
+            z-index: 1;
+        }
+
+        .file-input-wrapper {
+            position: relative;
+            overflow: hidden;
+            display: inline-block;
+        }
+
+        .file-input-wrapper input[type="file"] {
+            position: absolute;
+            left: -9999px;
+        }
+
+        .alert {
+            padding: 15px;
+            margin-bottom: 20px;
+            border-radius: 5px;
+            display: flex;
+            align-items: flex-start;
+            gap: 10px;
+        }
+
+        .alert-warning {
+            background: #fff3cd;
+            color: #856404;
+            border: 1px solid #ffeaa7;
+        }
+
+        .alert-danger {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+
+        .alert-info {
+            background: #d1ecf1;
+            color: #0c5460;
+            border: 1px solid #bee5eb;
+        }
+
+        .alert-success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+
+        .confirmation-modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.5);
+            animation: fadeIn 0.3s ease;
+        }
+
+        .modal-content {
+            background-color: white;
+            margin: 10% auto;
+            padding: 20px;
+            border-radius: 8px;
+            width: 80%;
+            max-width: 500px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            animation: slideIn 0.3s ease;
+        }
+
+        @keyframes slideIn {
+            from { transform: translateY(-50px); opacity: 0; }
+            to { transform: translateY(0); opacity: 1; }
+        }
+
+        .modal-header {
+            font-size: 1.25rem;
+            font-weight: 600;
+            margin-bottom: 15px;
+            color: #dc3545;
+        }
+
+        .modal-body {
+            margin-bottom: 20px;
+            line-height: 1.6;
+        }
+
+        .modal-footer {
+            display: flex;
+            justify-content: flex-end;
+            gap: 10px;
+        }
+
+        .filter-controls {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+
+        .filter-controls input[type="text"] {
+            flex: 1;
+            min-width: 200px;
+            padding: 8px 12px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+
+        .filter-stats {
+            font-size: 0.875rem;
+            color: #6b7280;
+            margin-left: auto;
+        }
+
+        .assignment-list {
+            margin-top: 8px;
+            padding-left: 20px;
+        }
+
+        .assignment-item {
+            font-size: 0.875rem;
+            color: #4b5563;
+            margin: 4px 0;
+        }
+
+        .collapsible {
+            cursor: pointer;
+            padding: 10px;
+            background: #2a5298;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            width: 100%;
+            text-align: left;
+            font-size: 16px;
+            font-weight: 500;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .collapsible:hover {
+            background: #1e3c72;
+        }
+
+        .collapsible-content {
+            max-height: 0;
+            overflow: hidden;
+            transition: max-height 0.3s ease-out;
+        }
+
+        .collapsible-content.active {
+            max-height: 3000px;
+            transition: max-height 0.5s ease-in;
+        }
+
+        .collapsible::after {
+            content: '\25BC';
+            font-size: 12px;
+            transition: transform 0.3s;
+        }
+
+        .collapsible.active::after {
+            transform: rotate(180deg);
+        }
+
+        .toast {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            padding: 15px 20px;
+            background: #333;
+            color: white;
+            border-radius: 5px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            z-index: 1001;
+            animation: slideInRight 0.3s ease;
+            max-width: 400px;
+        }
+
+        .toast.success {
+            background: #28a745;
+        }
+
+        .toast.error {
+            background: #dc3545;
+        }
+
+        .toast.info {
+            background: #17a2b8;
+        }
+
+        .toast.warning {
+            background: #ffc107;
+            color: #212529;
+        }
+
+        @keyframes slideInRight {
+            from { transform: translateX(100%); }
+            to { transform: translateX(0); }
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 60px 20px;
+            color: #6b7280;
+        }
+
+        .empty-state svg {
+            width: 64px;
+            height: 64px;
+            margin-bottom: 20px;
+            opacity: 0.3;
+        }
+
+        .empty-state h3 {
+            font-size: 1.25rem;
+            margin-bottom: 10px;
+            color: #4b5563;
+        }
+
+        .empty-state p {
+            margin-bottom: 20px;
+        }
+
+        .stats-cards {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+
+        .stats-card {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+            text-align: center;
+        }
+
+        .stats-card h4 {
+            font-size: 2rem;
+            font-weight: 700;
+            color: #2563eb;
+            margin-bottom: 5px;
+        }
+
+        .stats-card p {
+            color: #6b7280;
+            font-size: 0.875rem;
+        }
+
+        .action-buttons {
+            display: flex;
+            gap: 8px;
+            margin-left: auto;
+        }
+
+        .icon-btn {
+            padding: 6px 10px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 12px;
+            transition: all 0.2s;
+            background: #f3f4f6;
+            color: #374151;
+        }
+
+        .icon-btn:hover {
+            background: #e5e7eb;
+        }
+
+        .icon-btn.view {
+            background: #dbeafe;
+            color: #1e40af;
+        }
+
+        .icon-btn.view:hover {
+            background: #bfdbfe;
+        }
+
+        .icon-btn.duplicate {
+            background: #d1fae5;
+            color: #065f46;
+        }
+
+        .icon-btn.duplicate:hover {
+            background: #a7f3d0;
+        }
+
+        .policy-viewer {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.5);
+            display: none;
+            z-index: 1000;
+            padding: 20px;
+            overflow: auto;
+        }
+
+        .policy-viewer-content {
+            background: white;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            border-radius: 8px;
+            position: relative;
+        }
+
+        .policy-viewer-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .policy-viewer-body {
+            background: #f3f4f6;
+            padding: 15px;
+            border-radius: 6px;
+            overflow-x: auto;
+        }
+
+        .policy-viewer-body pre {
+            margin: 0;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                padding: 1rem 0.5rem;
+            }
+            
+            .nav-tabs {
+                flex-direction: column;
+            }
+            
+            .filter-controls {
+                flex-direction: column;
+            }
+            
+            .filter-controls input[type="text"] {
+                width: 100%;
+            }
+            
+            .stats-cards {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        /* Accessibility improvements */
+        .visually-hidden {
+            position: absolute;
+            width: 1px;
+            height: 1px;
+            padding: 0;
+            margin: -1px;
+            overflow: hidden;
+            clip: rect(0, 0, 0, 0);
+            white-space: nowrap;
+            border: 0;
+        }
+
+        /* Focus styles */
+        *:focus-visible {
+            outline: 2px solid #2563eb;
+            outline-offset: 2px;
+        }
+
+        /* Loading skeleton */
+        .skeleton {
+            background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
+            background-size: 200% 100%;
+            animation: loading 1.5s infinite;
+        }
+
+        @keyframes loading {
+            0% { background-position: 200% 0; }
+            100% { background-position: -200% 0; }
+        }
+
+        .skeleton-item {
+            height: 60px;
+            margin: 8px 0;
+            border-radius: 6px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <div class="status-indicator">
+                <span class="status-dot" id="statusDot"></span>
+                <span id="connectionStatus">Disconnected</span>
+            </div>
+            <div class="header-title">
+                <h1>
+                    <svg class="icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/>
+                    </svg>
+                    Intune Policy Manager
+                </h1>
+                <button id="signOutBtn" class="btn btn-danger" style="display: none;" aria-label="Sign out">
+                    <svg width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
+                        <path fill-rule="evenodd" d="M10 12.5a.5.5 0 0 1-.5.5h-8a.5.5 0 0 1-.5-.5v-9a.5.5 0 0 1 .5-.5h8a.5.5 0 0 1 .5.5v2a.5.5 0 0 0 1 0v-2A1.5 1.5 0 0 0 9.5 2h-8A1.5 1.5 0 0 0 0 3.5v9A1.5 1.5 0 0 0 1.5 14h8a1.5 1.5 0 0 0 1.5-1.5v-2a.5.5 0 0 0-1 0v2z"/>
+                        <path fill-rule="evenodd" d="M15.854 8.354a.5.5 0 0 0 0-.708l-3-3a.5.5 0 0 0-.708.708L14.293 7.5H5.5a.5.5 0 0 0 0 1h8.793l-2.147 2.146a.5.5 0 0 0 .708.708l3-3z"/>
+                    </svg>
+                    Sign Out
+                </button>
+            </div>
+            <p>Upload, manage, and delete Microsoft Intune configuration policies with enhanced controls</p>
+            
+            <div class="warning-box" style="background: #fff3cd; border: 2px solid #ffc107; border-radius: 8px; padding: 20px; margin-top: 15px;">
+                <style>
+                    .warning-content {
+                        display: flex;
+                        align-items: flex-start;
+                        gap: 15px;
+                    }
+                    .warning-icon {
+                        flex-shrink: 0;
+                        font-size: 2em;
+                        line-height: 1;
+                        margin-top: -5px;
+                    }
+                    .warning-details {
+                        flex: 1;
+                    }
+                    .warning-title {
+                        font-size: 1.2em;
+                        font-weight: 700;
+                        color: #856404;
+                        margin-bottom: 12px;
+                        display: flex;
+                        align-items: center;
+                        gap: 8px;
+                    }
+                    .warning-list {
+                        margin: 0;
+                        padding-left: 20px;
+                        line-height: 1.8;
+                    }
+                    .warning-list li {
+                        margin-bottom: 8px;
+                        color: #856404;
+                    }
+                    .warning-list li:last-child {
+                        margin-bottom: 0;
+                    }
+                    .warning-list li strong {
+                        color: #7c5a00;
+                        font-weight: 600;
+                    }
+                    .warning-highlight {
+                        background: #ffeaa7;
+                        padding: 2px 6px;
+                        border-radius: 3px;
+                        font-weight: 500;
+                    }
+                </style>
+                <div class="warning-content">
+                    <div class="warning-icon">⚠️</div>
+                    <div class="warning-details">
+                        <div class="warning-title">
+                            Critical Warning: This tool can modify and delete Intune policies
+                        </div>
+                        <ul class="warning-list">
+                            <li><strong>Always backup policies</strong> before making any changes</li>
+                            <li><strong>Test in a non-production environment</strong> first to avoid disrupting users</li>
+                            <li><strong>Deleted policies cannot be recovered</strong> - deletions are <span class="warning-highlight">permanent</span></li>
+                            <li><strong>Unassigning policies may affect device configurations</strong> immediately</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="nav-tabs" role="tablist">
+            <button class="nav-tab active" role="tab" aria-selected="true" aria-controls="uploadTab" onclick="switchTab('upload')">
+                Upload Policies
+                <span class="badge" id="uploadBadge" style="display: none;">0</span>
+            </button>
+            <button class="nav-tab" role="tab" aria-selected="false" aria-controls="manageTab" onclick="switchTab('manage')">
+                Manage Policies
+                <span class="badge" id="manageBadge" style="display: none;">0</span>
+            </button>
+        </div>
+
+        <!-- How to Get Client ID Section -->
+        <div style="background: white; border-radius: 8px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); padding: 0; margin-bottom: 20px;">
+            <button class="collapsible" id="howToToggle" aria-expanded="false" aria-controls="howToContent">
+                <span>How to Get Your Entra ID Client ID</span>
+            </button>
+            <div class="collapsible-content" id="howToContent">
+                <div style="padding: 20px; background: #f0f8ff; border: 2px solid #2a5298; border-radius: 0 0 8px 8px;">
+                    <h3 style="color: #2a5298; margin-bottom: 15px;">Step-by-Step Guide to Register Your Application</h3>
+                    
+                    <div class="alert alert-warning">
+                        <svg width="20" height="20" fill="currentColor" viewBox="0 0 16 16">
+                            <path d="M8.982 1.566a1.13 1.13 0 0 0-1.96 0L.165 13.233c-.457.778.091 1.767.98 1.767h13.713c.889 0 1.438-.99.98-1.767L8.982 1.566zM8 5c.535 0 .954.462.9.995l-.35 3.507a.552.552 0 0 1-1.1 0L7.1 5.995A.905.905 0 0 1 8 5zm.002 6a1 1 0 1 1 0 2 1 1 0 0 1 0-2z"/>
+                        </svg>
+                        <strong>Dynamic Environment Warning:</strong> If you're running this in Google Colab, JSFiddle, or similar platforms, the redirect URI changes each time. You'll need to update it in Entra ID before each use.
+                    </div>
+                    
+                    <style>
+                        .setup-section {
+                            margin-bottom: 30px;
+                        }
+                        .setup-section h4 {
+                            color: #1e3c72;
+                            margin-top: 25px;
+                            margin-bottom: 15px;
+                            font-size: 1.1em;
+                        }
+                        .setup-section ol {
+                            padding-left: 20px;
+                            margin-bottom: 0;
+                        }
+                        .setup-section ol li {
+                            margin-bottom: 10px;
+                            line-height: 1.6;
+                        }
+                        .setup-section ul {
+                            margin-top: 8px;
+                            margin-bottom: 8px;
+                            padding-left: 20px;
+                        }
+                        .setup-section ul li {
+                            margin-bottom: 6px;
+                            list-style-type: disc;
+                        }
+                        .setup-section ul ul {
+                            margin-top: 4px;
+                            padding-left: 20px;
+                        }
+                        .setup-section ul ul li {
+                            list-style-type: circle;
+                            font-size: 0.95em;
+                        }
+                        .setup-section code {
+                            background: #e9ecef;
+                            padding: 2px 6px;
+                            border-radius: 3px;
+                            font-family: 'Courier New', monospace;
+                            font-size: 0.9em;
+                            color: #d73502;
+                        }
+                        .setup-section strong {
+                            color: #2a5298;
+                        }
+                    </style>
+                    
+                    <div class="setup-section">
+                        <h4>Step 1: Register an Application in Entra ID</h4>
+                        <ol>
+                            <li>Go to the <a href="https://entra.microsoft.com" target="_blank" rel="noopener">Microsoft Entra Portal</a></li>
+                            <li>Navigate to <strong>Applications</strong> → <strong>App registrations</strong></li>
+                            <li>Click <strong>New registration</strong></li>
+                            <li>Configure the application:
+                                <ul>
+                                    <li><strong>Name:</strong> Intune Policy Manager</li>
+                                    <li><strong>Supported account types:</strong> Choose based on your needs:
+                                        <ul>
+                                            <li>"Accounts in this organizational directory only" (single tenant)</li>
+                                            <li>"Accounts in any organizational directory" (multi-tenant)</li>
+                                        </ul>
+                                    </li>
+                                    <li><strong>Redirect URI:</strong>
+                                        <ul>
+                                            <li>Platform: <code>Single-page application (SPA)</code></li>
+                                            <li>URI: <code id="redirectUriDisplay">Loading...</code> <button class="btn btn-info" style="padding: 5px 10px; font-size: 12px;" onclick="copyRedirectUri()">Copy</button></li>
+                                        </ul>
+                                    </li>
+                                </ul>
+                            </li>
+                            <li>Click <strong>Register</strong></li>
+                        </ol>
+                    </div>
+
+                    <div class="setup-section">
+                        <h4>Step 2: Configure API Permissions</h4>
+                        <ol>
+                            <li>In your app registration, go to <strong>API permissions</strong></li>
+                            <li>Click <strong>Add a permission</strong> → <strong>Microsoft Graph</strong> → <strong>Delegated permissions</strong></li>
+                            <li>Search for and add these permissions:
+                                <ul>
+                                    <li><code>DeviceManagementConfiguration.ReadWrite.All</code> - Required for managing policies</li>
+                                    <li><code>DeviceManagementApps.ReadWrite.All</code> - For app policies</li>
+                                    <li><code>DeviceManagementServiceConfig.ReadWrite.All</code> - For service configurations</li>
+                                    <li><code>Group.Read.All</code> - To read group names for assignments</li>
+                                    <li><code>User.Read</code> - To sign in</li>
+                                </ul>
+                            </li>
+                            <li><strong style="color: red;">Important:</strong> Click <strong>Grant admin consent</strong></li>
+                            <li>Ensure all permissions show a green checkmark under "Status"</li>
+                        </ol>
+                    </div>
+
+                    <div class="setup-section">
+                        <h4>Step 3: Get Your Client ID</h4>
+                        <ol>
+                            <li>Go to the <strong>Overview</strong> page</li>
+                            <li>Copy the <strong>Application (client) ID</strong> (it looks like: <code>xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx</code>)</li>
+                            <li>Paste it in the Client ID field below</li>
+                        </ol>
+                    </div>
+
+                    <div class="setup-section">
+                        <h4>Step 4: Managing Dynamic Redirect URIs</h4>
+                        <ol>
+                            <li>If using this tool in a dynamic environment (like Google Colab), you'll need to update the redirect URI each time</li>
+                            <li>Go to <strong>Authentication</strong> in your app registration</li>
+                            <li>Under <strong>Single-page application</strong>, add the new redirect URI shown above</li>
+                            <li>Remove old redirect URIs that are no longer needed</li>
+                            <li>Click <strong>Save</strong></li>
+                        </ol>
+                    </div>
+
+                    <div class="setup-section" style="background: #fff3cd; padding: 15px; border-radius: 5px; margin-top: 20px;">
+                        <h4 style="margin-top: 0;">Alternative: Use a Static Hosting Service</h4>
+                        <p style="margin-bottom: 10px;">To avoid changing the redirect URI each time, consider hosting this HTML file on:</p>
+                        <ul style="margin-bottom: 10px;">
+                            <li>GitHub Pages (free)</li>
+                            <li>Netlify (free tier available)</li>
+                            <li>Microsoft Azure Static Web Apps (free tier available)</li>
+                            <li>Your own web server</li>
+                        </ul>
+                        <p style="margin-bottom: 0;">This way, you'll have a permanent URL that doesn't change.</p>
+                    </div>
+
+                    <div class="setup-section" style="background: #d1ecf1; padding: 15px; border-radius: 5px; margin-top: 20px;">
+                        <h4 style="margin-top: 0; color: #0c5460;">Important Notes:</h4>
+                        <ul style="margin-bottom: 0;">
+                            <li>The redirect URI must match <strong>exactly</strong> - including protocol (http/https) and any trailing slashes</li>
+                            <li>Admin consent is required for the Graph API permissions</li>
+                            <li>The Client ID is safe to share - authentication still requires user credentials</li>
+                            <li>For production use, always use HTTPS</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Alert for sandboxed environments -->
+        <div class="alert alert-warning" id="sandboxWarning" style="display: none;">
+            <svg width="20" height="20" fill="currentColor" viewBox="0 0 16 16">
+                <path d="M8.982 1.566a1.13 1.13 0 0 0-1.96 0L.165 13.233c-.457.778.091 1.767.98 1.767h13.713c.889 0 1.438-.99.98-1.767L8.982 1.566zM8 5c.535 0 .954.462.9.995l-.35 3.507a.552.552 0 0 1-1.1 0L7.1 5.995A.905.905 0 0 1 8 5zm.002 6a1 1 0 1 1 0 2 1 1 0 0 1 0-2z"/>
+            </svg>
+            <div>
+                <strong>Sandboxed Environment Detected!</strong>
+                <p>Some features may not work in this environment:</p>
+                <ul>
+                    <li>Authentication popups may be blocked</li>
+                    <li>Download this HTML file and run it locally for full functionality</li>
+                </ul>
+            </div>
+        </div>
+
+        <!-- Upload Tab -->
+        <div class="tab-content active" id="uploadTab" role="tabpanel">
+            <div class="auth-section">
+                <h3>Authentication</h3>
+                <div class="form-group">
+                    <label for="clientId">Entra ID Client ID:</label>
+                    <input type="text" id="clientId" placeholder="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx" 
+                           pattern="[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}"
+                           aria-describedby="clientIdHelp">
+                    <small id="clientIdHelp" class="visually-hidden">Enter your Azure AD application client ID in GUID format</small>
+                </div>
+                <div id="authStatus" class="auth-status disconnected" role="status">
+                    <span>Not connected to Microsoft Graph</span>
+                    <span id="tokenExpiry" style="font-size: 0.875rem;"></span>
+                </div>
+                <button id="loginBtn" class="btn btn-primary" disabled aria-label="Sign in with Microsoft">
+                    <svg width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
+                        <path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.012 8.012 0 0 0 16 8c0-4.42-3.58-8-8-8z"/>
+                    </svg>
+                    Sign in with Microsoft
+                </button>
+                <div id="userInfo" style="display: none;">
+                    <strong>Signed in as:</strong> <span id="userEmail"></span>
+                </div>
+            </div>
+
+            <div style="margin-top: 30px;">
+                <h3>Upload Policies from JSON</h3>
+                <div class="form-group">
+                    <div class="file-input-wrapper">
+                        <button class="btn btn-secondary" aria-label="Choose policy files">
+                            <svg width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
+                                <path d="M.5 9.9a.5.5 0 0 1 .5.5v2.5a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-2.5a.5.5 0 0 1 1 0v2.5a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2v-2.5a.5.5 0 0 1 .5-.5z"/>
+                                <path d="M7.646 1.146a.5.5 0 0 1 .708 0l3 3a.5.5 0 0 1-.708.708L8.5 2.707V11.5a.5.5 0 0 1-1 0V2.707L5.354 4.854a.5.5 0 1 1-.708-.708l3-3z"/>
+                            </svg>
+                            Load Policy JSON Files
+                        </button>
+                        <input type="file" id="policyFiles" multiple accept=".json" aria-label="Select policy files">
+                    </div>
+                    <small style="display: block; margin-top: 5px; color: #666;">Select one or more JSON policy files</small>
+                </div>
+
+                <div id="uploadList" style="display: none; margin-top: 20px;">
+                    <h4>Policies to Upload: <span id="uploadCount">0</span></h4>
+                    <div id="uploadPolicyList" class="policy-list" style="max-height: 300px;"></div>
+                    
+                    <div class="form-group" style="margin-top: 20px;">
+                        <label for="policyPrefix">Name Prefix (optional):</label>
+                        <input type="text" id="policyPrefix" placeholder="e.g., 'TEST - '">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label>Assignment Target:</label>
+                        <div style="display: flex; gap: 15px; flex-wrap: wrap;">
+                            <label style="display: flex; align-items: center; gap: 5px; cursor: pointer;">
+                                <input type="radio" name="assignmentTarget" value="none" checked>
+                                No Assignment
+                            </label>
+                            <label style="display: flex; align-items: center; gap: 5px; cursor: pointer;">
+                                <input type="radio" name="assignmentTarget" value="allUsers">
+                                All Users
+                            </label>
+                            <label style="display: flex; align-items: center; gap: 5px; cursor: pointer;">
+                                <input type="radio" name="assignmentTarget" value="allDevices">
+                                All Devices
+                            </label>
+                            <label style="display: flex; align-items: center; gap: 5px; cursor: pointer;">
+                                <input type="radio" name="assignmentTarget" value="group">
+                                Specific Group
+                            </label>
+                        </div>
+                    </div>
+                    
+                    <div class="form-group" id="groupSelectionContainer" style="display: none;">
+                        <label for="groupSearch">Search for Group:</label>
+                        <div style="display: flex; gap: 10px;">
+                            <input type="text" id="groupSearch" placeholder="Enter group name...">
+                            <button class="btn btn-info" onclick="searchGroups()">Search</button>
+                        </div>
+                        <select id="groupSelect" style="margin-top: 10px; display: none;">
+                            <option value="">Select a group...</option>
+                        </select>
+                        <div id="selectedGroupInfo" style="margin-top: 10px; padding: 10px; background: #e3f2fd; border-radius: 5px; display: none;">
+                            <strong>Selected Group:</strong> <span id="selectedGroupName"></span>
+                        </div>
+                    </div>
+                    
+                    <div style="display: flex; gap: 10px; flex-wrap: wrap; margin-top: 20px;">
+                        <button class="btn btn-secondary" onclick="selectAllUpload()">Select All</button>
+                        <button class="btn btn-secondary" onclick="deselectAllUpload()">Deselect All</button>
+                        <button id="uploadSelectedBtn" class="btn btn-success" disabled>
+                            <svg width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
+                                <path d="M7.646 1.146a.5.5 0 0 1 .708 0l3 3a.5.5 0 0 1-.708.708L8.5 2.707V11.5a.5.5 0 0 1-1 0V2.707L5.354 4.854a.5.5 0 1 1-.708-.708l3-3z"/>
+                            </svg>
+                            Upload Selected Policies
+                        </button>
+                    </div>
+                </div>
+
+                <div class="progress-section" id="uploadProgress">
+                    <h3>Upload Progress</h3>
+                    <div class="progress-bar">
+                        <div class="progress-fill" id="uploadProgressFill"></div>
+                        <div class="progress-text" id="uploadProgressText">0%</div>
+                    </div>
+                    <p id="uploadProgressDetails" style="margin-top: 10px; text-align: center;">Preparing upload...</p>
+                </div>
+
+                <div class="results-section" id="uploadResults">
+                    <h3>Upload Results</h3>
+                    <div style="margin-bottom: 10px;">
+                        <button class="btn btn-secondary" onclick="exportResults('upload')">Export Results</button>
+                        <button class="btn btn-secondary" onclick="clearResults('upload')">Clear Results</button>
+                    </div>
+                    <div style="max-height: 400px; overflow-y: auto;">
+                        <table class="results-table">
+                            <thead>
+                                <tr>
+                                    <th>Policy Name</th>
+                                    <th>Status</th>
+                                    <th>Details</th>
+                                </tr>
+                            </thead>
+                            <tbody id="uploadResultsTableBody"></tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Manage Tab -->
+        <div class="tab-content" id="manageTab" role="tabpanel">
+            <h3>Manage Existing Policies</h3>
+            
+            <div class="stats-cards" id="policyStats" style="display: none;">
+                <div class="stats-card">
+                    <h4 id="totalPoliciesCount">0</h4>
+                    <p>Total Policies</p>
+                </div>
+                <div class="stats-card">
+                    <h4 id="configPoliciesCount">0</h4>
+                    <p>Configuration Policies</p>
+                </div>
+                <div class="stats-card">
+                    <h4 id="compliancePoliciesCount">0</h4>
+                    <p>Compliance Policies</p>
+                </div>
+                <div class="stats-card">
+                    <h4 id="selectedPoliciesCount">0</h4>
+                    <p>Selected</p>
+                </div>
+            </div>
+            
+            <div class="filter-controls">
+                <input type="text" id="manageSearchInput" placeholder="Search policies..." aria-label="Search policies">
+                <select id="policyTypeFilter" aria-label="Filter by policy type">
+                    <option value="">All Types</option>
+                    <option value="configurationPolicies">Configuration Policies</option>
+                    <option value="deviceConfigurations">Device Configurations</option>
+                    <option value="compliancePolicies">Compliance Policies</option>
+                    <option value="groupPolicyConfigurations">Group Policies</option>
+                    <option value="intentPolicies">Intent Policies</option>
+                </select>
+                <label style="display: flex; align-items: center; gap: 5px; margin-left: 10px;">
+                    <input type="checkbox" id="showAssignmentsOnly">
+                    Show only policies with assignments
+                </label>
+                <button class="btn btn-info" onclick="refreshPolicies()">
+                    <svg width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
+                        <path fill-rule="evenodd" d="M8 3a5 5 0 1 0 4.546 2.914.5.5 0 0 1 .908-.417A6 6 0 1 1 8 2v1z"/>
+                        <path d="M8 4.466V.534a.25.25 0 0 1 .41-.192l2.36 1.966c.12.1.12.284 0 .384L8.41 4.658A.25.25 0 0 1 8 4.466z"/>
+                    </svg>
+                    Refresh
+                </button>
+                <span class="filter-stats" id="manageFilterStats"></span>
+            </div>
+
+            <div id="managePolicyList" class="policy-list">
+                <div class="empty-state">
+                    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                    </svg>
+                    <h3>No Policies Loaded</h3>
+                    <p>Sign in and click "Refresh" to load existing policies</p>
+                </div>
+            </div>
+
+            <div style="margin-top: 20px; background: #f8f9fa; padding: 20px; border-radius: 8px;">
+                <h4 style="margin-bottom: 15px;">Actions for Selected Policies</h4>
+                <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+                    <button class="btn btn-secondary" onclick="selectAllManage()">Select All</button>
+                    <button class="btn btn-secondary" onclick="deselectAllManage()">Deselect All</button>
+                    <div style="width: 100%; height: 1px; background: #dee2e6; margin: 10px 0;"></div>
+                    <button class="btn btn-primary" onclick="exportSelected()" disabled id="exportSelectedBtn">
+                        <svg width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
+                            <path d="M.5 9.9a.5.5 0 0 1 .5.5v2.5a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-2.5a.5.5 0 0 1 1 0v2.5a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2v-2.5a.5.5 0 0 1 .5-.5z"/>
+                            <path d="M7.646 1.146a.5.5 0 0 1 .708 0l3 3a.5.5 0 0 1-.708.708L8.5 2.707V11.5a.5.5 0 0 1-1 0V2.707L5.354 4.854a.5.5 0 1 1-.708-.708l3-3z"/>
+                        </svg>
+                        Export Selected
+                    </button>
+                    <button class="btn btn-success" onclick="duplicateSelected()" disabled id="duplicateSelectedBtn">
+                        <svg width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
+                            <path d="M4 2a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V2zm2 0v8h8V2H6zM2 6a2 2 0 0 0-2 2v6a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2v-2h-2v2H2V8h2V6H2z"/>
+                        </svg>
+                        Duplicate Selected
+                    </button>
+                    <button class="btn btn-info" onclick="assignSelected()" disabled id="assignBtn">
+                        <svg width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
+                            <path d="M12.166 8.94c-.524 1.062-1.234 2.12-1.96 3.07A31.493 31.493 0 0 1 8 14.58a31.481 31.481 0 0 1-2.206-2.57c-.726-.95-1.436-2.008-1.96-3.07C3.304 7.867 3 6.862 3 6a5 5 0 0 1 10 0c0 .862-.305 1.867-.834 2.94zM8 16s6-5.686 6-10A6 6 0 0 0 2 6c0 4.314 6 10 6 10z"/>
+                            <path d="M8 8a2 2 0 1 1 0-4 2 2 0 0 1 0 4zm0 1a3 3 0 1 0 0-6 3 3 0 0 0 0 6z"/>
+                        </svg>
+                        Assign Selected
+                    </button>
+                    <button class="btn btn-warning" onclick="unassignSelected()" disabled id="unassignBtn">
+                        <svg width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
+                            <path d="M12.354 4.354a.5.5 0 0 0-.708-.708L8 7.293 4.354 3.646a.5.5 0 1 0-.708.708L7.293 8l-3.647 3.646a.5.5 0 0 0 .708.708L8 8.707l3.646 3.647a.5.5 0 0 0 .708-.708L8.707 8l3.647-3.646z"/>
+                        </svg>
+                        Remove All Assignments
+                    </button>
+                    <button class="btn btn-danger" onclick="deleteSelected()" disabled id="deleteSelectedBtn">
+                        <svg width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
+                            <path d="M2.5 1a1 1 0 0 0-1 1v1a1 1 0 0 0 1 1H3v9a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2V4h.5a1 1 0 0 0 1-1V2a1 1 0 0 0-1-1H10a1 1 0 0 0-1-1H7a1 1 0 0 0-1 1H2.5zm3 4a.5.5 0 0 1 .5.5v7a.5.5 0 0 1-1 0v-7a.5.5 0 0 1 .5-.5zM8 5a.5.5 0 0 1 .5.5v7a.5.5 0 0 1-1 0v-7A.5.5 0 0 1 8 5zm3 .5v7a.5.5 0 0 1-1 0v-7a.5.5 0 0 1 1 0z"/>
+                        </svg>
+                        Delete Selected
+                    </button>
+                </div>
+                <div class="alert alert-warning" style="margin-top: 15px;">
+                    <svg width="20" height="20" fill="currentColor" viewBox="0 0 16 16">
+                        <path d="M8.982 1.566a1.13 1.13 0 0 0-1.96 0L.165 13.233c-.457.778.091 1.767.98 1.767h13.713c.889 0 1.438-.99.98-1.767L8.982 1.566zM8 5c.535 0 .954.462.9.995l-.35 3.507a.552.552 0 0 1-1.1 0L7.1 5.995A.905.905 0 0 1 8 5zm.002 6a1 1 0 1 1 0 2 1 1 0 0 1 0-2z"/>
+                    </svg>
+                    <div>
+                        <strong>Warning:</strong> Delete and unassign actions cannot be undone. Always backup policies before making changes.
+                    </div>
+                </div>
+            </div>
+
+            <div class="progress-section" id="deleteProgress">
+                <h3>Operation Progress</h3>
+                <div class="progress-bar">
+                    <div class="progress-fill" id="deleteProgressFill"></div>
+                    <div class="progress-text" id="deleteProgressText">0%</div>
+                </div>
+                <p id="deleteProgressDetails" style="margin-top: 10px; text-align: center;">Processing...</p>
+            </div>
+
+            <div class="results-section" id="deleteResults">
+                <h3>Operation Results</h3>
+                <div style="margin-bottom: 10px;">
+                    <button class="btn btn-secondary" onclick="exportResults('delete')">Export Results</button>
+                    <button class="btn btn-secondary" onclick="clearResults('delete')">Clear Results</button>
+                </div>
+                <div style="max-height: 400px; overflow-y: auto;">
+                    <table class="results-table">
+                        <thead>
+                            <tr>
+                                <th>Policy Name</th>
+                                <th>Status</th>
+                                <th>Details</th>
+                            </tr>
+                        </thead>
+                        <tbody id="deleteResultsTableBody"></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Assignment Modal -->
+    <div id="assignmentModal" class="confirmation-modal" aria-hidden="true" role="dialog">
+        <div class="modal-content" style="max-width: 600px;">
+            <div class="modal-header" style="font-weight: 600; color: #1e3c72;">Assign Policies to Target</div>
+            <div class="modal-body">
+                <p style="margin-bottom: 20px;">Select assignment target for <span id="assignmentPolicyCount">0</span> selected policies:</p>
+                
+                <div class="form-group">
+                    <label>Assignment Target:</label>
+                    <div style="display: flex; gap: 15px; flex-wrap: wrap; margin-top: 10px;">
+                        <label style="display: flex; align-items: center; gap: 5px; cursor: pointer;">
+                            <input type="radio" name="manageAssignmentTarget" value="allUsers" checked>
+                            All Users
+                        </label>
+                        <label style="display: flex; align-items: center; gap: 5px; cursor: pointer;">
+                            <input type="radio" name="manageAssignmentTarget" value="allDevices">
+                            All Devices
+                        </label>
+                        <label style="display: flex; align-items: center; gap: 5px; cursor: pointer;">
+                            <input type="radio" name="manageAssignmentTarget" value="group">
+                            Specific Group
+                        </label>
+                    </div>
+                </div>
+                
+                <div class="form-group" id="manageGroupSelectionContainer" style="display: none; margin-top: 20px;">
+                    <label for="manageGroupSearch">Search for Group:</label>
+                    <div style="display: flex; gap: 10px;">
+                        <input type="text" id="manageGroupSearch" placeholder="Enter group name..." style="flex: 1;">
+                        <button class="btn btn-info" onclick="searchManageGroups()">Search</button>
+                    </div>
+                    <select id="manageGroupSelect" style="margin-top: 10px; display: none; width: 100%;">
+                        <option value="">Select a group...</option>
+                    </select>
+                    <div id="manageSelectedGroupInfo" style="margin-top: 10px; padding: 10px; background: #e3f2fd; border-radius: 5px; display: none;">
+                        <strong>Selected Group:</strong> <span id="manageSelectedGroupName"></span>
+                    </div>
+                </div>
+                
+                <div class="alert alert-info" style="margin-top: 20px;">
+                    <svg width="20" height="20" fill="currentColor" viewBox="0 0 16 16">
+                        <path d="M8 16A8 8 0 1 0 8 0a8 8 0 0 0 0 16zm.93-9.412-1 4.705c-.07.34.029.533.304.533.194 0 .487-.07.686-.246l-.088.416c-.287.346-.92.598-1.465.598-.703 0-1.002-.422-.808-1.319l.738-3.468c.064-.293.006-.399-.287-.47l-.451-.081.082-.381 2.29-.287zM8 5.5a1 1 0 1 1 0-2 1 1 0 0 1 0 2z"/>
+                    </svg>
+                    <div>
+                        <strong>Note:</strong> This will add the selected assignment to existing policies. It will not replace existing assignments.
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="closeAssignmentModal()">Cancel</button>
+                <button class="btn btn-success" id="confirmAssignBtn" onclick="confirmAssignment()">Assign Policies</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Confirmation Modal -->
+    <div id="confirmModal" class="confirmation-modal" aria-hidden="true" role="dialog" aria-labelledby="modalHeader">
+        <div class="modal-content">
+            <div class="modal-header" id="modalHeader">Confirm Action</div>
+            <div class="modal-body" id="modalBody">Are you sure you want to proceed?</div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" id="cancelModalBtn">Cancel</button>
+                <button class="btn btn-danger" id="confirmBtn">Confirm</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Policy Viewer Modal -->
+    <div id="policyViewer" class="policy-viewer">
+        <div class="policy-viewer-content">
+            <div class="policy-viewer-header">
+                <h3 id="policyViewerTitle">Policy Details</h3>
+                <button class="btn btn-secondary" onclick="closePolicyViewer()">Close</button>
+            </div>
+            <div class="policy-viewer-body">
+                <pre id="policyViewerContent"></pre>
+            </div>
+        </div>
+    </div>
+
+    <!-- Include MSAL library -->
+    <script src="https://alcdn.msauth.net/browser/2.30.0/js/msal-browser.min.js"></script>
+    
+    <!-- Include JSZip library -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+    
+    <script>
+        console.log('Intune Policy Manager Enhanced v2 initializing...');
+        
+        // Global variables
+        let msalInstance = null;
+        let accessToken = null;
+        let tokenExpiresAt = null;
+        let currentAction = null;
+        let selectedPolicies = {
+            upload: new Set(),
+            manage: new Set()
+        };
+        let allPolicies = [];
+        let policiesForUpload = [];
+        let rateLimitDelay = 100;
+        const MAX_RETRY_ATTEMPTS = 3;
+        let selectedGroupId = null;
+        let selectedGroupName = null;
+        let manageSelectedGroupId = null;
+        let manageSelectedGroupName = null;
+
+        // Policy type endpoints mapping
+        const policyEndpoints = {
+            configurationPolicies: {
+                list: '/deviceManagement/configurationPolicies',
+                delete: '/deviceManagement/configurationPolicies/',
+                assignments: '/deviceManagement/configurationPolicies/{id}/assignments',
+                assign: '/deviceManagement/configurationPolicies/{id}/assign'
+            },
+            deviceConfigurations: {
+                list: '/deviceManagement/deviceConfigurations',
+                delete: '/deviceManagement/deviceConfigurations/',
+                assignments: '/deviceManagement/deviceConfigurations/{id}/assignments',
+                assign: '/deviceManagement/deviceConfigurations/{id}/assign'
+            },
+            compliancePolicies: {
+                list: '/deviceManagement/deviceCompliancePolicies',
+                delete: '/deviceManagement/deviceCompliancePolicies/',
+                assignments: '/deviceManagement/deviceCompliancePolicies/{id}/assignments',
+                assign: '/deviceManagement/deviceCompliancePolicies/{id}/assign'
+            },
+            groupPolicyConfigurations: {
+                list: '/deviceManagement/groupPolicyConfigurations',
+                delete: '/deviceManagement/groupPolicyConfigurations/',
+                assignments: '/deviceManagement/groupPolicyConfigurations/{id}/assignments',
+                assign: '/deviceManagement/groupPolicyConfigurations/{id}/assign'
+            },
+            intentPolicies: {
+                list: '/deviceManagement/intents',
+                delete: '/deviceManagement/intents/',
+                assignments: '/deviceManagement/intents/{id}/assignments',
+                assign: '/deviceManagement/intents/{id}/assign'
+            }
+        };
+
+        // Tab switching
+        function switchTab(tabName) {
+            // Hide all tab contents
+            document.querySelectorAll('.tab-content').forEach(content => {
+                content.classList.remove('active');
+                content.setAttribute('aria-hidden', 'true');
+            });
+            
+            // Remove active class from all tabs
+            document.querySelectorAll('.nav-tab').forEach(tab => {
+                tab.classList.remove('active');
+                tab.setAttribute('aria-selected', 'false');
+            });
+            
+            // Show selected tab content
+            const selectedContent = document.getElementById(tabName + 'Tab');
+            if (selectedContent) {
+                selectedContent.classList.add('active');
+                selectedContent.setAttribute('aria-hidden', 'false');
+            }
+            
+            // Find and activate the corresponding tab button
+            document.querySelectorAll('.nav-tab').forEach(tab => {
+                if (tab.textContent.toLowerCase().includes(tabName)) {
+                    tab.classList.add('active');
+                    tab.setAttribute('aria-selected', 'true');
+                }
+            });
+        }
+
+        // Toast notification system
+        function showToast(message, type = 'info', duration = 3000) {
+            const toast = document.createElement('div');
+            toast.className = `toast ${type}`;
+            toast.textContent = message;
+            document.body.appendChild(toast);
+            
+            setTimeout(() => {
+                toast.style.animation = 'slideOutRight 0.3s ease';
+                setTimeout(() => {
+                    if (document.body.contains(toast)) {
+                        document.body.removeChild(toast);
+                    }
+                }, 300);
+            }, duration);
+        }
+
+        // Copy redirect URI
+        function copyRedirectUri() {
+            const uri = document.getElementById('redirectUriDisplay').textContent;
+            navigator.clipboard.writeText(uri).then(() => {
+                showToast('Redirect URI copied to clipboard', 'success');
+            }).catch(() => {
+                // Fallback
+                const textArea = document.createElement('textarea');
+                textArea.value = uri;
+                document.body.appendChild(textArea);
+                textArea.select();
+                document.execCommand('copy');
+                document.body.removeChild(textArea);
+                showToast('Redirect URI copied to clipboard', 'success');
+            });
+        }
+
+        // API request with retry logic
+        async function makeApiRequest(url, options = {}, retryCount = 0) {
+            try {
+                const headers = {
+                    'Authorization': `Bearer ${accessToken}`,
+                    'Content-Type': 'application/json',
+                    ...options.headers
+                };
+                
+                const requestOptions = {
+                    ...options,
+                    headers: headers
+                };
+                
+                const response = await fetch(url, requestOptions);
+                
+                if (response.status === 429) {
+                    const retryAfter = response.headers.get('Retry-After') || Math.pow(2, retryCount + 1);
+                    rateLimitDelay = Math.min(rateLimitDelay * 2, 5000);
+                    console.log(`Rate limited. Waiting ${retryAfter} seconds...`);
+                    await new Promise(resolve => setTimeout(resolve, retryAfter * 1000));
+                    
+                    if (retryCount < MAX_RETRY_ATTEMPTS) {
+                        return makeApiRequest(url, options, retryCount + 1);
+                    }
+                }
+                
+                if (response.status === 401) {
+                    await refreshToken();
+                    if (retryCount < 1) {
+                        return makeApiRequest(url, options, retryCount + 1);
+                    }
+                }
+                
+                rateLimitDelay = Math.max(rateLimitDelay * 0.9, 100);
+                
+                return response;
+            } catch (error) {
+                if (retryCount < MAX_RETRY_ATTEMPTS) {
+                    await new Promise(resolve => setTimeout(resolve, Math.pow(2, retryCount + 1) * 1000));
+                    return makeApiRequest(url, options, retryCount + 1);
+                }
+                throw error;
+            }
+        }
+
+        // Initialize the application
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('DOM loaded, initializing...');
+            
+            // Set up collapsible
+            const howToToggle = document.getElementById('howToToggle');
+            howToToggle.addEventListener('click', function() {
+                this.classList.toggle('active');
+                const content = document.getElementById('howToContent');
+                content.classList.toggle('active');
+                this.setAttribute('aria-expanded', this.classList.contains('active'));
+            });
+            
+            // Display current redirect URI
+            const currentUrl = window.location.href.split('#')[0].split('?')[0];
+            document.getElementById('redirectUriDisplay').textContent = currentUrl;
+            
+            // Check for sandboxed environment
+            if (window.location.hostname.includes('googleusercontent.com') || 
+                window.location.hostname.includes('jsfiddle.net') ||
+                window.location.hostname.includes('codepen.io')) {
+                document.getElementById('sandboxWarning').style.display = 'flex';
+            }
+            
+            // Set up file input
+            const fileButton = document.querySelector('.file-input-wrapper button');
+            const fileInput = document.getElementById('policyFiles');
+            fileButton.addEventListener('click', () => fileInput.click());
+            fileInput.addEventListener('change', handleFileSelection);
+            
+            // Setup authentication
+            setupAuthentication();
+            
+            // Setup event listeners
+            setupEventListeners();
+        });
+
+        // Setup authentication
+        function setupAuthentication() {
+            const clientIdInput = document.getElementById('clientId');
+            const loginBtn = document.getElementById('loginBtn');
+            
+            clientIdInput.addEventListener('input', (e) => {
+                const clientId = e.target.value.trim();
+                const guidPattern = /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/;
+                
+                if (guidPattern.test(clientId)) {
+                    loginBtn.disabled = false;
+                    clientIdInput.style.borderColor = '#28a745';
+                    initializeMsal(clientId);
+                } else {
+                    loginBtn.disabled = true;
+                    clientIdInput.style.borderColor = clientId ? '#dc3545' : '#ddd';
+                }
+            });
+            
+            loginBtn.addEventListener('click', signIn);
+            document.getElementById('signOutBtn').addEventListener('click', signOut);
+        }
+
+        // Initialize MSAL
+        function initializeMsal(clientId) {
+            const msalConfig = {
+                auth: {
+                    clientId: clientId,
+                    authority: 'https://login.microsoftonline.com/common',
+                    redirectUri: window.location.href.split('#')[0].split('?')[0]
+                },
+                cache: {
+                    cacheLocation: 'sessionStorage',
+                    storeAuthStateInCookie: false
+                }
+            };
+            
+            try {
+                msalInstance = new msal.PublicClientApplication(msalConfig);
+                console.log('MSAL initialized successfully');
+            } catch (error) {
+                console.error('Error initializing MSAL:', error);
+                showToast('Error initializing authentication', 'error');
+            }
+        }
+
+        // Sign in
+        async function signIn() {
+            if (!msalInstance) {
+                showToast('Please enter a valid Client ID first', 'error');
+                return;
+            }
+            
+            const loginRequest = {
+                scopes: [
+                    'User.Read',
+                    'DeviceManagementConfiguration.ReadWrite.All',
+                    'DeviceManagementApps.ReadWrite.All',
+                    'DeviceManagementServiceConfig.ReadWrite.All',
+                    'Group.Read.All'
+                ]
+            };
+            
+            try {
+                const loginResponse = await msalInstance.loginPopup(loginRequest);
+                console.log('Login successful:', loginResponse);
+                
+                accessToken = loginResponse.accessToken;
+                tokenExpiresAt = new Date(loginResponse.expiresOn);
+                
+                updateAuthUI(loginResponse.account);
+                showToast('Successfully signed in', 'success');
+                
+                setTimeout(() => {
+                    refreshPolicies();
+                }, 1000);
+                
+            } catch (error) {
+                console.error('Login failed:', error);
+                showToast('Authentication failed: ' + error.message, 'error');
+            }
+        }
+
+        // Sign out
+        async function signOut() {
+            if (!msalInstance) return;
+            
+            try {
+                await msalInstance.logoutPopup();
+                accessToken = null;
+                tokenExpiresAt = null;
+                updateAuthUI(null);
+                showToast('Successfully signed out', 'success');
+                
+                allPolicies = [];
+                policiesForUpload = [];
+                selectedPolicies = {
+                    upload: new Set(),
+                    manage: new Set()
+                };
+                
+                location.reload();
+            } catch (error) {
+                console.error('Logout failed:', error);
+                showToast('Sign out failed', 'error');
+            }
+        }
+
+        // Update auth UI
+        function updateAuthUI(account) {
+            const authStatus = document.getElementById('authStatus');
+            const userInfo = document.getElementById('userInfo');
+            const userEmail = document.getElementById('userEmail');
+            const loginBtn = document.getElementById('loginBtn');
+            const signOutBtn = document.getElementById('signOutBtn');
+            const statusDot = document.getElementById('statusDot');
+            const connectionStatus = document.getElementById('connectionStatus');
+            
+            if (account) {
+                authStatus.className = 'auth-status connected';
+                authStatus.innerHTML = '<span>Connected to Microsoft Graph</span><span id="tokenExpiry" style="font-size: 0.875rem;"></span>';
+                userInfo.style.display = 'block';
+                userEmail.textContent = account.username;
+                loginBtn.style.display = 'none';
+                signOutBtn.style.display = 'inline-flex';
+                statusDot.classList.add('connected');
+                connectionStatus.textContent = 'Connected';
+                
+                updateTokenExpiry();
+            } else {
+                authStatus.className = 'auth-status disconnected';
+                authStatus.innerHTML = '<span>Not connected to Microsoft Graph</span>';
+                userInfo.style.display = 'none';
+                loginBtn.style.display = 'inline-flex';
+                signOutBtn.style.display = 'none';
+                statusDot.classList.remove('connected');
+                connectionStatus.textContent = 'Disconnected';
+            }
+        }
+
+        // Update token expiry display
+        function updateTokenExpiry() {
+            if (!tokenExpiresAt) return;
+            
+            const tokenExpiry = document.getElementById('tokenExpiry');
+            if (!tokenExpiry) return;
+            
+            const now = new Date();
+            const expiresIn = Math.round((tokenExpiresAt - now) / 1000 / 60);
+            
+            if (expiresIn > 0) {
+                tokenExpiry.textContent = `Token expires in ${expiresIn} min`;
+            } else {
+                tokenExpiry.textContent = 'Token expired';
+            }
+        }
+
+        // Refresh token
+        async function refreshToken() {
+            if (!msalInstance) return;
+            
+            try {
+                const accounts = msalInstance.getAllAccounts();
+                if (accounts.length === 0) throw new Error('No accounts found');
+                
+                const silentRequest = {
+                    scopes: [
+                        'User.Read',
+                        'DeviceManagementConfiguration.ReadWrite.All',
+                        'DeviceManagementApps.ReadWrite.All',
+                        'DeviceManagementServiceConfig.ReadWrite.All',
+                        'Group.Read.All'
+                    ],
+                    account: accounts[0]
+                };
+                
+                const response = await msalInstance.acquireTokenSilent(silentRequest);
+                accessToken = response.accessToken;
+                tokenExpiresAt = new Date(response.expiresOn);
+                updateTokenExpiry();
+                
+                console.log('Token refreshed successfully');
+            } catch (error) {
+                console.error('Token refresh failed:', error);
+                showToast('Session expired. Please sign in again.', 'error');
+                await signOut();
+            }
+        }
+
+        // Setup event listeners
+        function setupEventListeners() {
+            document.getElementById('uploadSelectedBtn').addEventListener('click', uploadSelectedPolicies);
+            
+            // Modal button event listeners
+            document.getElementById('confirmBtn').addEventListener('click', confirmAction);
+            document.getElementById('cancelModalBtn').addEventListener('click', closeModal);
+            
+            // Assignment modal radio buttons
+            document.querySelectorAll('input[name="manageAssignmentTarget"]').forEach(radio => {
+                radio.addEventListener('change', (e) => {
+                    const groupContainer = document.getElementById('manageGroupSelectionContainer');
+                    if (e.target.value === 'group') {
+                        groupContainer.style.display = 'block';
+                    } else {
+                        groupContainer.style.display = 'none';
+                        manageSelectedGroupId = null;
+                        manageSelectedGroupName = null;
+                    }
+                });
+            });
+            
+            // Manage group select
+            document.getElementById('manageGroupSelect').addEventListener('change', (e) => {
+                if (e.target.value) {
+                    const selectedOption = e.target.options[e.target.selectedIndex];
+                    manageSelectedGroupId = e.target.value;
+                    manageSelectedGroupName = selectedOption.textContent;
+                    
+                    document.getElementById('manageSelectedGroupInfo').style.display = 'block';
+                    document.getElementById('manageSelectedGroupName').textContent = manageSelectedGroupName;
+                } else {
+                    manageSelectedGroupId = null;
+                    manageSelectedGroupName = null;
+                    document.getElementById('manageSelectedGroupInfo').style.display = 'none';
+                }
+            });
+            
+            document.querySelectorAll('input[name="assignmentTarget"]').forEach(radio => {
+                radio.addEventListener('change', (e) => {
+                    const groupContainer = document.getElementById('groupSelectionContainer');
+                    if (e.target.value === 'group') {
+                        groupContainer.style.display = 'block';
+                    } else {
+                        groupContainer.style.display = 'none';
+                        selectedGroupId = null;
+                        selectedGroupName = null;
+                    }
+                });
+            });
+            
+            document.getElementById('groupSelect').addEventListener('change', (e) => {
+                if (e.target.value) {
+                    const selectedOption = e.target.options[e.target.selectedIndex];
+                    selectedGroupId = e.target.value;
+                    selectedGroupName = selectedOption.textContent;
+                    
+                    document.getElementById('selectedGroupInfo').style.display = 'block';
+                    document.getElementById('selectedGroupName').textContent = selectedGroupName;
+                } else {
+                    selectedGroupId = null;
+                    selectedGroupName = null;
+                    document.getElementById('selectedGroupInfo').style.display = 'none';
+                }
+            });
+            
+            document.getElementById('manageSearchInput').addEventListener('input', filterPolicies);
+            document.getElementById('policyTypeFilter').addEventListener('change', filterPolicies);
+            document.getElementById('showAssignmentsOnly').addEventListener('change', filterPolicies);
+            
+            setInterval(updateTokenExpiry, 60000);
+        }
+
+        // Handle file selection
+        function handleFileSelection(event) {
+            const files = event.target.files;
+            if (files.length === 0) return;
+            
+            policiesForUpload = [];
+            const uploadList = document.getElementById('uploadList');
+            const uploadPolicyList = document.getElementById('uploadPolicyList');
+            
+            selectedPolicies.upload.clear();
+            uploadPolicyList.innerHTML = '';
+            
+            Array.from(files).forEach((file, index) => {
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    try {
+                        const policy = JSON.parse(e.target.result);
+                        policy._fileName = file.name;
+                        policy._index = index;
+                        policiesForUpload.push(policy);
+                        
+                        const policyItem = createPolicyItem(policy, 'upload');
+                        uploadPolicyList.appendChild(policyItem);
+                        
+                        if (policiesForUpload.length === files.length) {
+                            uploadList.style.display = 'block';
+                            updateUploadCount();
+                        }
+                    } catch (error) {
+                        console.error('Error parsing file:', file.name, error);
+                        showToast(`Error parsing ${file.name}: Invalid JSON`, 'error');
+                    }
+                };
+                reader.readAsText(file);
+            });
+        }
+
+        // Create policy item element
+        function createPolicyItem(policy, context) {
+            const item = document.createElement('div');
+            item.className = 'policy-item';
+            
+            const identifier = context === 'upload' ? policy._index : policy.id;
+            item.dataset.policyId = identifier;
+            
+            const header = document.createElement('div');
+            header.className = 'policy-header';
+            
+            const checkbox = document.createElement('input');
+            checkbox.type = 'checkbox';
+            checkbox.id = `${context}-${identifier}`;
+            checkbox.addEventListener('change', (e) => {
+                if (e.target.checked) {
+                    if (context === 'upload') {
+                        selectedPolicies[context].add(policy._index);
+                    } else {
+                        selectedPolicies[context].add(policy.id);
+                    }
+                    item.classList.add('selected');
+                } else {
+                    if (context === 'upload') {
+                        selectedPolicies[context].delete(policy._index);
+                    } else {
+                        selectedPolicies[context].delete(policy.id);
+                    }
+                    item.classList.remove('selected');
+                }
+                updateButtonStates(context);
+            });
+            
+            const name = document.createElement('label');
+            name.className = 'policy-name';
+            name.htmlFor = checkbox.id;
+            name.textContent = policy.displayName || policy.name || 'Unnamed Policy';
+            
+            const actions = document.createElement('div');
+            actions.className = 'action-buttons';
+            
+            if (context === 'manage') {
+                const viewBtn = document.createElement('button');
+                viewBtn.className = 'icon-btn view';
+                viewBtn.textContent = 'View';
+                viewBtn.onclick = () => viewPolicy(policy);
+                actions.appendChild(viewBtn);
+            }
+            
+            header.appendChild(checkbox);
+            header.appendChild(name);
+            header.appendChild(actions);
+            
+            const details = document.createElement('div');
+            details.className = 'policy-details';
+            
+            if (policy['@odata.type']) {
+                const type = document.createElement('span');
+                type.className = 'policy-type';
+                type.textContent = policy['@odata.type'].split('.').pop();
+                details.appendChild(type);
+            }
+            
+            if (policy.description) {
+                const desc = document.createElement('span');
+                desc.textContent = policy.description.substring(0, 100) + (policy.description.length > 100 ? '...' : '');
+                details.appendChild(desc);
+            }
+            
+            if (context === 'manage' && policy._assignments && policy._assignments.length > 0) {
+                const assignmentList = document.createElement('div');
+                assignmentList.className = 'assignment-list';
+                assignmentList.style.marginTop = '8px';
+                
+                policy._assignments.forEach(assignment => {
+                    const assignItem = document.createElement('div');
+                    assignItem.className = 'assignment-item';
+                    
+                    let targetName = 'Unknown';
+                    if (assignment.target['@odata.type'].includes('allDevices')) {
+                        targetName = '🌐 All Devices';
+                    } else if (assignment.target['@odata.type'].includes('allUsers')) {
+                        targetName = '👥 All Users';
+                    } else if (assignment.target.groupId) {
+                        targetName = `👥 Group: ${assignment.target.groupId}`;
+                    }
+                    
+                    assignItem.textContent = targetName;
+                    assignmentList.appendChild(assignItem);
+                });
+                
+                details.appendChild(assignmentList);
+            }
+            
+            item.appendChild(header);
+            item.appendChild(details);
+            
+            return item;
+        }
+
+        // View policy details
+        function viewPolicy(policy) {
+            const viewer = document.getElementById('policyViewer');
+            const title = document.getElementById('policyViewerTitle');
+            const content = document.getElementById('policyViewerContent');
+            
+            title.textContent = policy.displayName || policy.name || 'Policy Details';
+            content.textContent = JSON.stringify(policy, null, 2);
+            
+            viewer.style.display = 'block';
+        }
+
+        // Close policy viewer
+        function closePolicyViewer() {
+            document.getElementById('policyViewer').style.display = 'none';
+        }
+
+        // Update button states
+        function updateButtonStates(context) {
+            const count = selectedPolicies[context].size;
+            
+            if (context === 'upload') {
+                document.getElementById('uploadSelectedBtn').disabled = count === 0;
+                document.getElementById('uploadCount').textContent = count;
+            } else if (context === 'manage') {
+                document.getElementById('exportSelectedBtn').disabled = count === 0;
+                document.getElementById('duplicateSelectedBtn').disabled = count === 0;
+                document.getElementById('assignBtn').disabled = count === 0;
+                document.getElementById('unassignBtn').disabled = count === 0;
+                document.getElementById('deleteSelectedBtn').disabled = count === 0;
+                document.getElementById('selectedPoliciesCount').textContent = count;
+            }
+        }
+
+        // Select all functions
+        function selectAllUpload() {
+            selectedPolicies.upload.clear();
+            policiesForUpload.forEach((policy, index) => {
+                selectedPolicies.upload.add(index);
+            });
+            updateCheckboxes('upload', true);
+            updateButtonStates('upload');
+        }
+
+        function deselectAllUpload() {
+            deselectAll('upload');
+        }
+
+        function selectAllManage() {
+            const filtered = filterPoliciesList(allPolicies);
+            selectedPolicies.manage.clear();
+            filtered.forEach(policy => {
+                selectedPolicies.manage.add(policy.id);
+            });
+            updateCheckboxes('manage', true);
+            updateButtonStates('manage');
+        }
+
+        function deselectAllManage() {
+            deselectAll('manage');
+        }
+
+        function deselectAll(context) {
+            selectedPolicies[context].clear();
+            updateCheckboxes(context, false);
+            updateButtonStates(context);
+        }
+
+        function updateCheckboxes(context, checked) {
+            const container = context === 'upload' ? 'uploadPolicyList' : 'managePolicyList';
+            
+            document.querySelectorAll(`#${container} input[type="checkbox"]`).forEach(cb => {
+                cb.checked = checked;
+                cb.closest('.policy-item').classList.toggle('selected', checked);
+            });
+        }
+
+        // Update counts
+        function updateUploadCount() {
+            document.getElementById('uploadCount').textContent = policiesForUpload.length;
+        }
+
+        // Search for groups
+        async function searchGroups() {
+            if (!accessToken) {
+                showToast('Please sign in first', 'error');
+                return;
+            }
+            
+            const searchTerm = document.getElementById('groupSearch').value.trim();
+            if (!searchTerm) {
+                showToast('Please enter a group name to search', 'warning');
+                return;
+            }
+            
+            try {
+                const response = await makeApiRequest(
+                    `https://graph.microsoft.com/v1.0/groups?$filter=startswith(displayName,'${searchTerm}')&$select=id,displayName,description&$top=50`
+                );
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    const groupSelect = document.getElementById('groupSelect');
+                    
+                    groupSelect.innerHTML = '<option value="">Select a group...</option>';
+                    
+                    if (data.value && data.value.length > 0) {
+                        data.value.forEach(group => {
+                            const option = document.createElement('option');
+                            option.value = group.id;
+                            option.textContent = group.displayName;
+                            option.title = group.description || '';
+                            groupSelect.appendChild(option);
+                        });
+                        
+                        groupSelect.style.display = 'block';
+                        showToast(`Found ${data.value.length} groups`, 'success');
+                    } else {
+                        showToast('No groups found matching your search', 'info');
+                        groupSelect.style.display = 'none';
+                    }
+                } else {
+                    showToast('Error searching for groups', 'error');
+                }
+            } catch (error) {
+                console.error('Error searching groups:', error);
+                showToast('Error searching for groups', 'error');
+            }
+        }
+
+        // Refresh policies
+        async function refreshPolicies() {
+            if (!accessToken) {
+                showToast('Please sign in first', 'error');
+                return;
+            }
+            
+            const managePolicyList = document.getElementById('managePolicyList');
+            managePolicyList.innerHTML = '<div class="skeleton skeleton-item"></div>'.repeat(5);
+            managePolicyList.classList.add('loading');
+            
+            try {
+                allPolicies = [];
+                
+                for (const [type, endpoints] of Object.entries(policyEndpoints)) {
+                    try {
+                        const response = await makeApiRequest(`https://graph.microsoft.com/beta${endpoints.list}`);
+                        const data = await response.json();
+                        
+                        if (data.value) {
+                            data.value.forEach(policy => {
+                                policy._type = type;
+                                allPolicies.push(policy);
+                            });
+                        }
+                    } catch (error) {
+                        console.error(`Error fetching ${type}:`, error);
+                    }
+                }
+                
+                for (const policy of allPolicies) {
+                    const endpoint = policyEndpoints[policy._type];
+                    if (!endpoint || !endpoint.assignments) continue;
+                    
+                    try {
+                        const url = `https://graph.microsoft.com/beta${endpoint.assignments.replace('{id}', policy.id)}`;
+                        const response = await makeApiRequest(url);
+                        
+                        if (response.ok) {
+                            const data = await response.json();
+                            if (data.value && data.value.length > 0) {
+                                policy._assignments = data.value;
+                            }
+                        }
+                    } catch (error) {
+                        console.error(`Error fetching assignments for ${policy.displayName}:`, error);
+                    }
+                }
+                
+                showToast(`Loaded ${allPolicies.length} policies`, 'success');
+                displayPolicies();
+                updatePolicyStats();
+                
+            } catch (error) {
+                console.error('Error refreshing policies:', error);
+                showToast('Error loading policies', 'error');
+            } finally {
+                managePolicyList.classList.remove('loading');
+            }
+        }
+
+        // Display policies
+        function displayPolicies() {
+            const managePolicyList = document.getElementById('managePolicyList');
+            const filtered = filterPoliciesList(allPolicies);
+            
+            if (filtered.length === 0) {
+                managePolicyList.innerHTML = `
+                    <div class="empty-state">
+                        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                        </svg>
+                        <h3>No Policies Found</h3>
+                        <p>No policies match your search criteria</p>
+                    </div>
+                `;
+                return;
+            }
+            
+            managePolicyList.innerHTML = '';
+            filtered.forEach(policy => {
+                const item = createPolicyItem(policy, 'manage');
+                managePolicyList.appendChild(item);
+            });
+            
+            document.getElementById('manageFilterStats').textContent = `Showing ${filtered.length} of ${allPolicies.length} policies`;
+        }
+
+        // Filter policies
+        function filterPolicies() {
+            displayPolicies();
+        }
+
+        function filterPoliciesList(policies) {
+            const searchTerm = document.getElementById('manageSearchInput').value.toLowerCase();
+            const typeFilter = document.getElementById('policyTypeFilter').value;
+            const showAssignmentsOnly = document.getElementById('showAssignmentsOnly').checked;
+            
+            return policies.filter(policy => {
+                const matchesSearch = !searchTerm || 
+                    (policy.displayName || policy.name || '').toLowerCase().includes(searchTerm) ||
+                    (policy.description || '').toLowerCase().includes(searchTerm);
+                
+                const matchesType = !typeFilter || policy._type === typeFilter;
+                
+                const matchesAssignment = !showAssignmentsOnly || (policy._assignments && policy._assignments.length > 0);
+                
+                return matchesSearch && matchesType && matchesAssignment;
+            });
+        }
+
+        // Update policy stats
+        function updatePolicyStats() {
+            document.getElementById('policyStats').style.display = 'grid';
+            document.getElementById('totalPoliciesCount').textContent = allPolicies.length;
+            
+            const configCount = allPolicies.filter(p => p._type === 'configurationPolicies').length;
+            const complianceCount = allPolicies.filter(p => p._type === 'compliancePolicies').length;
+            
+            document.getElementById('configPoliciesCount').textContent = configCount;
+            document.getElementById('compliancePoliciesCount').textContent = complianceCount;
+        }
+
+        // Upload selected policies
+        async function uploadSelectedPolicies() {
+            if (!accessToken) {
+                showToast('Please sign in first', 'error');
+                return;
+            }
+            
+            const selected = Array.from(selectedPolicies.upload);
+            if (selected.length === 0) {
+                showToast('No policies selected', 'warning');
+                return;
+            }
+            
+            const assignmentTarget = document.querySelector('input[name="assignmentTarget"]:checked').value;
+            if (assignmentTarget === 'group' && !selectedGroupId) {
+                showToast('Please select a group for assignment', 'error');
+                return;
+            }
+            
+            const uploadProgress = document.getElementById('uploadProgress');
+            const uploadResults = document.getElementById('uploadResults');
+            const progressFill = document.getElementById('uploadProgressFill');
+            const progressText = document.getElementById('uploadProgressText');
+            const progressDetails = document.getElementById('uploadProgressDetails');
+            const resultsTableBody = document.getElementById('uploadResultsTableBody');
+            
+            uploadProgress.style.display = 'block';
+            uploadResults.style.display = 'none';
+            resultsTableBody.innerHTML = '';
+            
+            const prefix = document.getElementById('policyPrefix').value;
+            const results = [];
+            
+            for (let i = 0; i < selected.length; i++) {
+                const policyIndex = selected[i];
+                const policy = policiesForUpload[policyIndex];
+                
+                if (!policy) {
+                    console.error('Policy not found at index:', policyIndex);
+                    results.push({
+                        name: `Unknown policy at index ${policyIndex}`,
+                        status: 'Error',
+                        details: 'Policy data not found'
+                    });
+                    continue;
+                }
+                
+                const progress = Math.round(((i + 1) / selected.length) * 100);
+                
+                progressFill.style.width = `${progress}%`;
+                progressText.textContent = `${progress}%`;
+                progressDetails.textContent = `Uploading ${policy.displayName || policy.name || 'policy'}...`;
+                
+                try {
+                    const uploadPolicy = JSON.parse(JSON.stringify(policy));
+                    
+                    const propertiesToRemove = [
+                        '_fileName', '_index', 'id', 'createdDateTime', 'lastModifiedDateTime',
+                        'version', 'referencedConfigurationPolicyCount', 'roleScopeTagIds',
+                        'supportsScopeTags', 'deviceManagementApplicabilityRuleOsEdition',
+                        'deviceManagementApplicabilityRuleOsVersion', 'deviceManagementApplicabilityRuleDeviceMode',
+                        'creationSource', 'isAssigned', 'settingCount', 'templateReference', 'platformType'
+                    ];
+                    
+                    propertiesToRemove.forEach(prop => {
+                        delete uploadPolicy[prop];
+                    });
+                    
+                    if (prefix) {
+                        uploadPolicy.displayName = prefix + (uploadPolicy.displayName || uploadPolicy.name || '');
+                        if (uploadPolicy.name) {
+                            uploadPolicy.name = prefix + uploadPolicy.name;
+                        }
+                    }
+                    
+                    if (!uploadPolicy.displayName && !uploadPolicy.name) {
+                        uploadPolicy.displayName = 'Unnamed Policy';
+                    }
+                    
+                    if (!uploadPolicy['@odata.type']) {
+                        if (uploadPolicy.settings) {
+                            uploadPolicy['@odata.type'] = '#microsoft.graph.deviceManagementConfigurationPolicy';
+                        } else if (uploadPolicy.scheduledActionsForRule) {
+                            uploadPolicy['@odata.type'] = '#microsoft.graph.deviceCompliancePolicy';
+                        } else {
+                            uploadPolicy['@odata.type'] = '#microsoft.graph.deviceConfiguration';
+                        }
+                    }
+                    
+                    let endpoint = '/deviceManagement/deviceConfigurations';
+                    const odataType = uploadPolicy['@odata.type'] || '';
+                    
+                    if (odataType && typeof odataType === 'string') {
+                        if (odataType.includes('deviceManagementConfigurationPolicy') || odataType.includes('configurationPolicy')) {
+                            endpoint = '/deviceManagement/configurationPolicies';
+                            if (!uploadPolicy.platforms) {
+                                uploadPolicy.platforms = 'windows10';
+                            }
+                            if (!uploadPolicy.technologies) {
+                                uploadPolicy.technologies = 'mdm';
+                            }
+                            if (!uploadPolicy.settings) {
+                                uploadPolicy.settings = [];
+                            }
+                        } else if (odataType.includes('deviceCompliancePolicy') || odataType.includes('compliancePolicy')) {
+                            endpoint = '/deviceManagement/deviceCompliancePolicies';
+                        } else if (odataType.includes('groupPolicyConfiguration')) {
+                            endpoint = '/deviceManagement/groupPolicyConfigurations';
+                        } else if (odataType.includes('deviceManagementIntent') || odataType.includes('intent')) {
+                            endpoint = '/deviceManagement/intents';
+                        }
+                    }
+                    
+                    const response = await makeApiRequest(
+                        `https://graph.microsoft.com/beta${endpoint}`,
+                        {
+                            method: 'POST',
+                            body: JSON.stringify(uploadPolicy),
+                            headers: {
+                                'Content-Type': 'application/json'
+                            }
+                        }
+                    );
+                    
+                    if (response.ok) {
+                        const createdPolicy = await response.json();
+                        
+                        if (assignmentTarget !== 'none' && createdPolicy.id) {
+                            progressDetails.textContent = `Assigning ${policy.displayName || policy.name || 'policy'}...`;
+                            
+                            try {
+                                await assignPolicyDuringUpload(createdPolicy, endpoint, assignmentTarget);
+                                
+                                results.push({
+                                    name: uploadPolicy.displayName || uploadPolicy.name,
+                                    status: 'Success',
+                                    details: `Policy uploaded and assigned to ${assignmentTarget === 'group' ? selectedGroupName : assignmentTarget}`
+                                });
+                            } catch (assignError) {
+                                console.error('Assignment error:', assignError);
+                                results.push({
+                                    name: uploadPolicy.displayName || uploadPolicy.name,
+                                    status: 'Warning',
+                                    details: `Policy uploaded but assignment failed: ${assignError.message}`
+                                });
+                            }
+                        } else {
+                            results.push({
+                                name: uploadPolicy.displayName || uploadPolicy.name,
+                                status: 'Success',
+                                details: 'Policy uploaded successfully'
+                            });
+                        }
+                    } else {
+                        const errorText = await response.text();
+                        console.error('Upload failed:', errorText);
+                        results.push({
+                            name: uploadPolicy.displayName || uploadPolicy.name,
+                            status: 'Error',
+                            details: errorText || `HTTP ${response.status}`
+                        });
+                    }
+                } catch (error) {
+                    console.error('Upload error:', error);
+                    results.push({
+                        name: policy.displayName || policy.name,
+                        status: 'Error',
+                        details: error.message
+                    });
+                }
+                
+                if (i < selected.length - 1) {
+                    await new Promise(resolve => setTimeout(resolve, rateLimitDelay));
+                }
+            }
+            
+            uploadProgress.style.display = 'none';
+            uploadResults.style.display = 'block';
+            
+            results.forEach(result => {
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td>${result.name}</td>
+                    <td class="status-${result.status.toLowerCase()}">${result.status}</td>
+                    <td>${result.details}</td>
+                `;
+                resultsTableBody.appendChild(row);
+            });
+            
+            const successCount = results.filter(r => r.status === 'Success').length;
+            showToast(`Upload complete: ${successCount}/${results.length} successful`, 
+                successCount === results.length ? 'success' : 'warning');
+        }
+
+        // Assign policy during upload
+        async function assignPolicyDuringUpload(policy, endpoint, assignmentTarget) {
+            let assignEndpoint = '';
+            
+            if (endpoint.includes('configurationPolicies')) {
+                assignEndpoint = `/deviceManagement/configurationPolicies/${policy.id}/assign`;
+            } else if (endpoint.includes('deviceConfigurations')) {
+                assignEndpoint = `/deviceManagement/deviceConfigurations/${policy.id}/assign`;
+            } else if (endpoint.includes('deviceCompliancePolicies')) {
+                assignEndpoint = `/deviceManagement/deviceCompliancePolicies/${policy.id}/assign`;
+            } else if (endpoint.includes('groupPolicyConfigurations')) {
+                assignEndpoint = `/deviceManagement/groupPolicyConfigurations/${policy.id}/assign`;
+            }
+            
+            if (!assignEndpoint) {
+                throw new Error('Cannot determine assignment endpoint for this policy type');
+            }
+            
+            const assignments = [];
+            
+            if (assignmentTarget === 'allDevices') {
+                assignments.push({
+                    target: {
+                        '@odata.type': '#microsoft.graph.allDevicesAssignmentTarget'
+                    }
+                });
+            } else if (assignmentTarget === 'allUsers') {
+                assignments.push({
+                    target: {
+                        '@odata.type': '#microsoft.graph.allLicensedUsersAssignmentTarget'
+                    }
+                });
+            } else if (assignmentTarget === 'group' && selectedGroupId) {
+                assignments.push({
+                    target: {
+                        '@odata.type': '#microsoft.graph.groupAssignmentTarget',
+                        groupId: selectedGroupId
+                    }
+                });
+            }
+            
+            const response = await makeApiRequest(
+                `https://graph.microsoft.com/beta${assignEndpoint}`,
+                {
+                    method: 'POST',
+                    body: JSON.stringify({ assignments })
+                }
+            );
+            
+            if (!response.ok) {
+                const error = await response.text();
+                throw new Error(error || `Assignment failed with status ${response.status}`);
+            }
+        }
+
+        // Export results
+        function exportResults(context) {
+            const table = document.getElementById(`${context}ResultsTableBody`);
+            const rows = Array.from(table.querySelectorAll('tr'));
+            
+            const csv = [
+                ['Policy Name', 'Status', 'Details'],
+                ...rows.map(row => {
+                    const cells = row.querySelectorAll('td');
+                    return [cells[0].textContent, cells[1].textContent, cells[2].textContent];
+                })
+            ].map(row => row.map(cell => `"${cell}"`).join(',')).join('\n');
+            
+            const blob = new Blob([csv], { type: 'text/csv' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `intune-${context}-results-${new Date().toISOString().split('T')[0]}.csv`;
+            a.click();
+            URL.revokeObjectURL(url);
+        }
+
+        // Clear results
+        function clearResults(context) {
+            document.getElementById(`${context}Results`).style.display = 'none';
+            document.getElementById(`${context}ResultsTableBody`).innerHTML = '';
+        }
+
+        // Export selected policies
+        async function exportSelected() {
+            const selected = Array.from(selectedPolicies.manage);
+            if (selected.length === 0) {
+                showToast('No policies selected', 'warning');
+                return;
+            }
+            
+            const policies = selected.map(id => allPolicies.find(p => p.id === id)).filter(Boolean);
+            
+            const zip = new JSZip();
+            policies.forEach(policy => {
+                const fileName = `${policy.displayName || policy.name || policy.id}.json`;
+                zip.file(fileName, JSON.stringify(policy, null, 2));
+            });
+            
+            const content = await zip.generateAsync({ type: 'blob' });
+            const url = URL.createObjectURL(content);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `intune-policies-export-${new Date().toISOString().split('T')[0]}.zip`;
+            a.click();
+            URL.revokeObjectURL(url);
+            
+            showToast(`Exported ${policies.length} policies`, 'success');
+        }
+
+        // Duplicate selected policies
+        async function duplicateSelected() {
+            const selected = Array.from(selectedPolicies.manage);
+            if (selected.length === 0) {
+                showToast('No policies selected', 'warning');
+                return;
+            }
+            
+            let successCount = 0;
+            
+            for (const policyId of selected) {
+                const policy = allPolicies.find(p => p.id === policyId);
+                if (!policy) continue;
+                
+                try {
+                    const duplicate = JSON.parse(JSON.stringify(policy));
+                    
+                    const propertiesToRemove = [
+                        'id', 'createdDateTime', 'lastModifiedDateTime', 'version',
+                        'referencedConfigurationPolicyCount', 'roleScopeTagIds',
+                        'supportsScopeTags', 'deviceManagementApplicabilityRuleOsEdition',
+                        'deviceManagementApplicabilityRuleOsVersion', 'deviceManagementApplicabilityRuleDeviceMode',
+                        'creationSource', 'isAssigned', 'settingCount', 'templateReference',
+                        'platformType', '_type', '_assignments'
+                    ];
+                    
+                    propertiesToRemove.forEach(prop => {
+                        delete duplicate[prop];
+                    });
+                    
+                    duplicate.displayName = `Copy of ${duplicate.displayName || duplicate.name}`;
+                    if (duplicate.name) {
+                        duplicate.name = `Copy of ${duplicate.name}`;
+                    }
+                    
+                    const endpoint = policyEndpoints[policy._type];
+                    if (!endpoint || !endpoint.list) continue;
+                    
+                    const response = await makeApiRequest(
+                        `https://graph.microsoft.com/beta${endpoint.list}`,
+                        {
+                            method: 'POST',
+                            body: JSON.stringify(duplicate)
+                        }
+                    );
+                    
+                    if (response.ok) {
+                        successCount++;
+                    }
+                } catch (error) {
+                    console.error('Error duplicating policy:', error);
+                }
+            }
+            
+            showToast(`Duplicated ${successCount}/${selected.length} policies`, 
+                successCount === selected.length ? 'success' : 'warning');
+            
+            if (successCount > 0) {
+                setTimeout(refreshPolicies, 1000);
+            }
+        }
+
+        // Assign selected policies
+        function assignSelected() {
+            const selected = Array.from(selectedPolicies.manage);
+            if (selected.length === 0) {
+                showToast('No policies selected', 'warning');
+                return;
+            }
+            
+            console.log('Assign selected called with', selected.length, 'policies');
+            
+            // Show assignment modal
+            const modal = document.getElementById('assignmentModal');
+            document.getElementById('assignmentPolicyCount').textContent = selected.length;
+            
+            modal.style.display = 'block';
+            modal.setAttribute('aria-hidden', 'false');
+            
+            // Reset selection
+            document.querySelector('input[name="manageAssignmentTarget"][value="allUsers"]').checked = true;
+            document.getElementById('manageGroupSelectionContainer').style.display = 'none';
+            document.getElementById('manageGroupSelect').style.display = 'none';
+            document.getElementById('manageSelectedGroupInfo').style.display = 'none';
+            manageSelectedGroupId = null;
+            manageSelectedGroupName = null;
+        }
+        
+        // Close assignment modal
+        function closeAssignmentModal() {
+            const modal = document.getElementById('assignmentModal');
+            modal.style.display = 'none';
+            modal.setAttribute('aria-hidden', 'true');
+        }
+        
+        // Search for groups in manage assignment
+        async function searchManageGroups() {
+            if (!accessToken) {
+                showToast('Please sign in first', 'error');
+                return;
+            }
+            
+            const searchTerm = document.getElementById('manageGroupSearch').value.trim();
+            if (!searchTerm) {
+                showToast('Please enter a group name to search', 'warning');
+                return;
+            }
+            
+            try {
+                const response = await makeApiRequest(
+                    `https://graph.microsoft.com/v1.0/groups?$filter=startswith(displayName,'${searchTerm}')&$select=id,displayName,description&$top=50`
+                );
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    const groupSelect = document.getElementById('manageGroupSelect');
+                    
+                    groupSelect.innerHTML = '<option value="">Select a group...</option>';
+                    
+                    if (data.value && data.value.length > 0) {
+                        data.value.forEach(group => {
+                            const option = document.createElement('option');
+                            option.value = group.id;
+                            option.textContent = group.displayName;
+                            option.title = group.description || '';
+                            groupSelect.appendChild(option);
+                        });
+                        
+                        groupSelect.style.display = 'block';
+                        showToast(`Found ${data.value.length} groups`, 'success');
+                    } else {
+                        showToast('No groups found matching your search', 'info');
+                        groupSelect.style.display = 'none';
+                    }
+                } else {
+                    showToast('Error searching for groups', 'error');
+                }
+            } catch (error) {
+                console.error('Error searching groups:', error);
+                showToast('Error searching for groups', 'error');
+            }
+        }
+        
+        // Confirm assignment
+        async function confirmAssignment() {
+            const assignmentTarget = document.querySelector('input[name="manageAssignmentTarget"]:checked').value;
+            
+            if (assignmentTarget === 'group' && !manageSelectedGroupId) {
+                showToast('Please select a group for assignment', 'error');
+                return;
+            }
+            
+            closeAssignmentModal();
+            
+            const selected = Array.from(selectedPolicies.manage);
+            
+            console.log('Confirming assignment for', selected.length, 'policies to', assignmentTarget);
+            
+            // Execute assignment
+            const deleteProgress = document.getElementById('deleteProgress');
+            const deleteResults = document.getElementById('deleteResults');
+            const progressFill = document.getElementById('deleteProgressFill');
+            const progressText = document.getElementById('deleteProgressText');
+            const progressDetails = document.getElementById('deleteProgressDetails');
+            const resultsTableBody = document.getElementById('deleteResultsTableBody');
+            
+            // Show progress, hide results
+            deleteProgress.style.display = 'block';
+            deleteResults.style.display = 'none';
+            resultsTableBody.innerHTML = '';
+            
+            // Reset progress
+            progressFill.style.width = '0%';
+            progressText.textContent = '0%';
+            
+            const results = [];
+            let successCount = 0;
+            
+            for (let i = 0; i < selected.length; i++) {
+                const policyId = selected[i];
+                const policy = allPolicies.find(p => p.id === policyId);
+                if (!policy) continue;
+                
+                const progress = Math.round(((i + 1) / selected.length) * 100);
+                progressFill.style.width = `${progress}%`;
+                progressText.textContent = `${progress}%`;
+                progressDetails.textContent = `Assigning ${policy.displayName || policy.name}...`;
+                
+                console.log(`Assigning policy ${i + 1}/${selected.length}: ${policy.displayName}`);
+                
+                const endpoint = policyEndpoints[policy._type];
+                if (!endpoint || !endpoint.assign) {
+                    results.push({
+                        name: policy.displayName || policy.name,
+                        status: 'Error',
+                        details: 'Unknown policy type'
+                    });
+                    continue;
+                }
+                
+                try {
+                    // Build assignment object
+                    const assignments = [];
+                    
+                    if (assignmentTarget === 'allDevices') {
+                        assignments.push({
+                            target: {
+                                '@odata.type': '#microsoft.graph.allDevicesAssignmentTarget'
+                            }
+                        });
+                    } else if (assignmentTarget === 'allUsers') {
+                        assignments.push({
+                            target: {
+                                '@odata.type': '#microsoft.graph.allLicensedUsersAssignmentTarget'
+                            }
+                        });
+                    } else if (assignmentTarget === 'group' && manageSelectedGroupId) {
+                        assignments.push({
+                            target: {
+                                '@odata.type': '#microsoft.graph.groupAssignmentTarget',
+                                groupId: manageSelectedGroupId
+                            }
+                        });
+                    }
+                    
+                    const url = `https://graph.microsoft.com/beta${endpoint.assign.replace('{id}', policy.id)}`;
+                    console.log('POST request to:', url, 'with assignments:', assignments);
+                    
+                    const response = await makeApiRequest(url, {
+                        method: 'POST',
+                        body: JSON.stringify({ assignments })
+                    });
+                    
+                    if (response.ok || response.status === 204) {
+                        successCount++;
+                        const targetName = assignmentTarget === 'group' ? manageSelectedGroupName : assignmentTarget;
+                        results.push({
+                            name: policy.displayName || policy.name,
+                            status: 'Success',
+                            details: `Assigned to ${targetName}`
+                        });
+                    } else {
+                        const error = await response.text();
+                        results.push({
+                            name: policy.displayName || policy.name,
+                            status: 'Error',
+                            details: error || `HTTP ${response.status}`
+                        });
+                    }
+                } catch (error) {
+                    console.error(`Error assigning ${policy.displayName}:`, error);
+                    results.push({
+                        name: policy.displayName || policy.name,
+                        status: 'Error',
+                        details: error.message
+                    });
+                }
+                
+                if (i < selected.length - 1) {
+                    await new Promise(resolve => setTimeout(resolve, rateLimitDelay));
+                }
+            }
+            
+            // Hide progress, show results
+            deleteProgress.style.display = 'none';
+            deleteResults.style.display = 'block';
+            
+            results.forEach(result => {
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td>${result.name}</td>
+                    <td class="status-${result.status.toLowerCase()}">${result.status}</td>
+                    <td>${result.details}</td>
+                `;
+                resultsTableBody.appendChild(row);
+            });
+            
+            showToast(`Assigned ${successCount}/${selected.length} policies`, 
+                successCount === selected.length ? 'success' : 'warning');
+            
+            if (successCount > 0) {
+                setTimeout(refreshPolicies, 1000);
+            }
+        }
+
+        // Unassign selected policies
+        async function unassignSelected() {
+            const selected = Array.from(selectedPolicies.manage);
+            if (selected.length === 0) {
+                showToast('No policies selected', 'warning');
+                return;
+            }
+            
+            const policiesWithAssignments = selected
+                .map(id => allPolicies.find(p => p.id === id))
+                .filter(p => p && p._assignments && p._assignments.length > 0);
+            
+            if (policiesWithAssignments.length === 0) {
+                showToast('Selected policies have no assignments', 'info');
+                return;
+            }
+            
+            console.log('Unassign selected called with', policiesWithAssignments.length, 'policies');
+            
+            // Show confirmation modal
+            const modal = document.getElementById('confirmModal');
+            const modalHeader = document.getElementById('modalHeader');
+            const modalBody = document.getElementById('modalBody');
+            const confirmBtn = document.getElementById('confirmBtn');
+            
+            modalHeader.textContent = 'Remove All Assignments?';
+            modalBody.textContent = `This will remove all assignments from ${policiesWithAssignments.length} policies. Devices will no longer receive these configurations.`;
+            confirmBtn.className = 'btn btn-warning';
+            
+            modal.style.display = 'block';
+            modal.setAttribute('aria-hidden', 'false');
+            
+            // Set the action to execute when confirmed
+            currentAction = async () => {
+                console.log('Executing unassign action');
+                
+                const deleteProgress = document.getElementById('deleteProgress');
+                const deleteResults = document.getElementById('deleteResults');
+                const progressFill = document.getElementById('deleteProgressFill');
+                const progressText = document.getElementById('deleteProgressText');
+                const progressDetails = document.getElementById('deleteProgressDetails');
+                const resultsTableBody = document.getElementById('deleteResultsTableBody');
+                
+                // Ensure elements exist
+                if (!deleteProgress || !progressFill) {
+                    console.error('Progress elements not found');
+                    showToast('Error: Progress elements not found', 'error');
+                    return;
+                }
+                
+                // Show progress, hide results
+                deleteProgress.style.display = 'block';
+                deleteResults.style.display = 'none';
+                resultsTableBody.innerHTML = '';
+                
+                // Reset progress
+                progressFill.style.width = '0%';
+                progressText.textContent = '0%';
+                
+                const results = [];
+                let successCount = 0;
+                
+                for (let i = 0; i < policiesWithAssignments.length; i++) {
+                    const policy = policiesWithAssignments[i];
+                    const progress = Math.round(((i + 1) / policiesWithAssignments.length) * 100);
+                    
+                    progressFill.style.width = `${progress}%`;
+                    progressText.textContent = `${progress}%`;
+                    progressDetails.textContent = `Removing assignments from ${policy.displayName || policy.name}...`;
+                    
+                    console.log(`Unassigning policy ${i + 1}/${policiesWithAssignments.length}: ${policy.displayName}`);
+                    
+                    const endpoint = policyEndpoints[policy._type];
+                    if (!endpoint || !endpoint.assign) {
+                        results.push({
+                            name: policy.displayName || policy.name,
+                            status: 'Error',
+                            details: 'Unknown policy type'
+                        });
+                        continue;
+                    }
+                    
+                    try {
+                        const url = `https://graph.microsoft.com/beta${endpoint.assign.replace('{id}', policy.id)}`;
+                        console.log('POST request to:', url, 'with empty assignments');
+                        
+                        const response = await makeApiRequest(url, {
+                            method: 'POST',
+                            body: JSON.stringify({ assignments: [] })
+                        });
+                        
+                        if (response.ok || response.status === 204) {
+                            successCount++;
+                            results.push({
+                                name: policy.displayName || policy.name,
+                                status: 'Success',
+                                details: 'All assignments removed'
+                            });
+                        } else {
+                            const error = await response.text();
+                            results.push({
+                                name: policy.displayName || policy.name,
+                                status: 'Error',
+                                details: error || `HTTP ${response.status}`
+                            });
+                        }
+                    } catch (error) {
+                        console.error(`Error unassigning ${policy.displayName}:`, error);
+                        results.push({
+                            name: policy.displayName || policy.name,
+                            status: 'Error',
+                            details: error.message
+                        });
+                    }
+                    
+                    if (i < policiesWithAssignments.length - 1) {
+                        await new Promise(resolve => setTimeout(resolve, rateLimitDelay));
+                    }
+                }
+                
+                // Hide progress, show results
+                deleteProgress.style.display = 'none';
+                deleteResults.style.display = 'block';
+                
+                results.forEach(result => {
+                    const row = document.createElement('tr');
+                    row.innerHTML = `
+                        <td>${result.name}</td>
+                        <td class="status-${result.status.toLowerCase()}">${result.status}</td>
+                        <td>${result.details}</td>
+                    `;
+                    resultsTableBody.appendChild(row);
+                });
+                
+                showToast(`Removed assignments from ${successCount}/${policiesWithAssignments.length} policies`, 
+                    successCount === policiesWithAssignments.length ? 'success' : 'warning');
+                
+                if (successCount > 0) {
+                    setTimeout(refreshPolicies, 1000);
+                }
+            };
+            
+            console.log('Current action set, waiting for confirmation');
+        }
+
+        // Delete selected policies
+        function deleteSelected() {
+            const selected = Array.from(selectedPolicies.manage);
+            if (selected.length === 0) {
+                showToast('No policies selected', 'warning');
+                return;
+            }
+            
+            console.log('Delete selected called with', selected.length, 'policies');
+            
+            // Show confirmation modal
+            const modal = document.getElementById('confirmModal');
+            const modalHeader = document.getElementById('modalHeader');
+            const modalBody = document.getElementById('modalBody');
+            const confirmBtn = document.getElementById('confirmBtn');
+            
+            modalHeader.textContent = 'Delete Selected Policies?';
+            modalBody.textContent = `This will permanently delete ${selected.length} policies. This action cannot be undone!`;
+            confirmBtn.className = 'btn btn-danger';
+            
+            modal.style.display = 'block';
+            modal.setAttribute('aria-hidden', 'false');
+            
+            // Set the action to execute when confirmed
+            currentAction = async () => {
+                console.log('Executing delete action');
+                
+                const deleteProgress = document.getElementById('deleteProgress');
+                const deleteResults = document.getElementById('deleteResults');
+                const progressFill = document.getElementById('deleteProgressFill');
+                const progressText = document.getElementById('deleteProgressText');
+                const progressDetails = document.getElementById('deleteProgressDetails');
+                const resultsTableBody = document.getElementById('deleteResultsTableBody');
+                
+                // Ensure elements exist
+                if (!deleteProgress || !progressFill) {
+                    console.error('Progress elements not found');
+                    showToast('Error: Progress elements not found', 'error');
+                    return;
+                }
+                
+                // Show progress, hide results
+                deleteProgress.style.display = 'block';
+                deleteResults.style.display = 'none';
+                resultsTableBody.innerHTML = '';
+                
+                // Reset progress
+                progressFill.style.width = '0%';
+                progressText.textContent = '0%';
+                
+                const results = [];
+                
+                for (let i = 0; i < selected.length; i++) {
+                    const policyId = selected[i];
+                    const policy = allPolicies.find(p => p.id === policyId);
+                    if (!policy) {
+                        console.log('Policy not found:', policyId);
+                        continue;
+                    }
+                    
+                    const progress = Math.round(((i + 1) / selected.length) * 100);
+                    progressFill.style.width = `${progress}%`;
+                    progressText.textContent = `${progress}%`;
+                    progressDetails.textContent = `Deleting ${policy.displayName || policy.name}...`;
+                    
+                    console.log(`Deleting policy ${i + 1}/${selected.length}: ${policy.displayName}`);
+                    
+                    const endpoint = policyEndpoints[policy._type];
+                    if (!endpoint || !endpoint.delete) {
+                        results.push({
+                            name: policy.displayName || policy.name,
+                            status: 'Error',
+                            details: 'Unknown policy type'
+                        });
+                        continue;
+                    }
+                    
+                    try {
+                        const url = `https://graph.microsoft.com/beta${endpoint.delete}${policy.id}`;
+                        console.log('DELETE request to:', url);
+                        
+                        const response = await makeApiRequest(url, { method: 'DELETE' });
+                        
+                        if (response.ok || response.status === 204) {
+                            results.push({
+                                name: policy.displayName || policy.name,
+                                status: 'Success',
+                                details: 'Policy deleted successfully'
+                            });
+                        } else {
+                            const error = await response.text();
+                            results.push({
+                                name: policy.displayName || policy.name,
+                                status: 'Error',
+                                details: error || `HTTP ${response.status}`
+                            });
+                        }
+                    } catch (error) {
+                        console.error('Delete error:', error);
+                        results.push({
+                            name: policy.displayName || policy.name,
+                            status: 'Error',
+                            details: error.message
+                        });
+                    }
+                    
+                    if (i < selected.length - 1) {
+                        await new Promise(resolve => setTimeout(resolve, rateLimitDelay));
+                    }
+                }
+                
+                // Hide progress, show results
+                deleteProgress.style.display = 'none';
+                deleteResults.style.display = 'block';
+                
+                results.forEach(result => {
+                    const row = document.createElement('tr');
+                    row.innerHTML = `
+                        <td>${result.name}</td>
+                        <td class="status-${result.status.toLowerCase()}">${result.status}</td>
+                        <td>${result.details}</td>
+                    `;
+                    resultsTableBody.appendChild(row);
+                });
+                
+                const successCount = results.filter(r => r.status === 'Success').length;
+                showToast(`Delete complete: ${successCount}/${results.length} successful`, 
+                    successCount === results.length ? 'success' : 'warning');
+                
+                if (successCount > 0) {
+                    setTimeout(refreshPolicies, 1000);
+                }
+            };
+            
+            console.log('Current action set, waiting for confirmation');
+        }
+
+        // Show confirmation modal
+        function showConfirmation(title, message, type = 'danger') {
+            const modal = document.getElementById('confirmModal');
+            const modalHeader = document.getElementById('modalHeader');
+            const modalBody = document.getElementById('modalBody');
+            const confirmBtn = document.getElementById('confirmBtn');
+            
+            modalHeader.textContent = title;
+            modalBody.textContent = message;
+            confirmBtn.className = `btn btn-${type}`;
+            
+            modal.style.display = 'block';
+            modal.setAttribute('aria-hidden', 'false');
+        }
+
+        // Close modal
+        function closeModal() {
+            const modal = document.getElementById('confirmModal');
+            modal.style.display = 'none';
+            modal.setAttribute('aria-hidden', 'true');
+            currentAction = null;
+        }
+
+        // Confirm action
+        async function confirmAction() {
+            console.log('Confirm action called');
+            const modal = document.getElementById('confirmModal');
+            modal.style.display = 'none';
+            modal.setAttribute('aria-hidden', 'true');
+            
+            if (currentAction && typeof currentAction === 'function') {
+                console.log('Executing current action');
+                try {
+                    await currentAction();
+                } catch (error) {
+                    console.error('Error executing action:', error);
+                    showToast('Error executing action: ' + error.message, 'error');
+                }
+                currentAction = null;
+            } else {
+                console.log('No current action to execute');
+            }
+        }
+
+        // Modal click outside to close
+        window.onclick = function(event) {
+            const confirmModal = document.getElementById('confirmModal');
+            const assignmentModal = document.getElementById('assignmentModal');
+            const viewer = document.getElementById('policyViewer');
+            
+            if (event.target === confirmModal) {
+                closeModal();
+            }
+            if (event.target === assignmentModal) {
+                closeAssignmentModal();
+            }
+            if (event.target === viewer) {
+                closePolicyViewer();
+            }
+        };
+
+        console.log('Intune Policy Manager ready');
+    </script>
+</body>
+</html>
