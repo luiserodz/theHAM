@@ -1534,9 +1534,6 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
     
     <script>
-        // ===== ADD THIS CODE IMMEDIATELY AFTER THE OPENING <script> TAG =====
-// This MUST be the very first thing in your script section
-
 // Secure Password Protection with SHA-256 Hashing
 (function() {
     // Check if user has already authenticated in this session
@@ -1590,7 +1587,7 @@ async function authenticateUser() {
     }
 }
 
-// SHA-256 hashing function
+// SHA-256 hashing function - THIS IS THE CORRECT IMPLEMENTATION
 async function hashPassword(password) {
     const msgUint8 = new TextEncoder().encode(password);
     const hashBuffer = await crypto.subtle.digest('SHA-256', msgUint8);
@@ -1662,9 +1659,6 @@ if (sessionStorage.getItem('intunePolicyManagerAuth')) {
     document.addEventListener('mousemove', resetInactivityTimer);
     resetInactivityTimer();
 }
-
-// ===== END OF PASSWORD PROTECTION CODE =====
-// Continue with the rest of your existing script below...
         console.log('Intune Policy Manager Enhanced v2 initializing...');
         
         // Global variables
