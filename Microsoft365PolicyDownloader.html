@@ -367,6 +367,8 @@
             max-height: 0;
             overflow: hidden;
             transition: max-height 0.3s ease-out;
+            background: white;
+            border-radius: 0 0 5px 5px;
         }
 
         .collapsible-content.active {
@@ -732,18 +734,18 @@
         </div>
 
         <div class="nav-tabs" role="tablist">
-            <button class="nav-tab active" role="tab" aria-selected="true" onclick="switchTab('overview')">Overview</button>
-            <button class="nav-tab" role="tab" aria-selected="false" onclick="switchTab('intune')">Intune</button>
-            <button class="nav-tab" role="tab" aria-selected="false" onclick="switchTab('exchange')">Exchange</button>
-            <button class="nav-tab" role="tab" aria-selected="false" onclick="switchTab('sharepoint')">SharePoint</button>
-            <button class="nav-tab" role="tab" aria-selected="false" onclick="switchTab('teams')">Teams</button>
-            <button class="nav-tab" role="tab" aria-selected="false" onclick="switchTab('aad')">Azure AD</button>
-            <button class="nav-tab" role="tab" aria-selected="false" onclick="switchTab('compliance')">Compliance</button>
-            <button class="nav-tab" role="tab" aria-selected="false" onclick="switchTab('export')">Export</button>
+            <button class="nav-tab active" role="tab" aria-selected="true" onclick="switchTab('overview', this)">Overview</button>
+            <button class="nav-tab" role="tab" aria-selected="false" onclick="switchTab('intune', this)">Intune</button>
+            <button class="nav-tab" role="tab" aria-selected="false" onclick="switchTab('exchange', this)">Exchange</button>
+            <button class="nav-tab" role="tab" aria-selected="false" onclick="switchTab('sharepoint', this)">SharePoint</button>
+            <button class="nav-tab" role="tab" aria-selected="false" onclick="switchTab('teams', this)">Teams</button>
+            <button class="nav-tab" role="tab" aria-selected="false" onclick="switchTab('aad', this)">Azure AD</button>
+            <button class="nav-tab" role="tab" aria-selected="false" onclick="switchTab('compliance', this)">Compliance</button>
+            <button class="nav-tab" role="tab" aria-selected="false" onclick="switchTab('export', this)">Export</button>
         </div>
 
         <!-- Dynamic Redirect URI Alert -->
-        <div class="alert alert-danger" id="redirectUriAlert" style="margin: 0 0 20px 0;">
+        <div class="alert alert-danger" id="redirectUriAlert" style="margin: 0 0 20px 0; display: none;">
             <svg width="20" height="20" fill="currentColor" viewBox="0 0 16 16">
                 <path d="M8.982 1.566a1.13 1.13 0 0 0-1.96 0L.165 13.233c-.457.778.091 1.767.98 1.767h13.713c.889 0 1.438-.99.98-1.767L8.982 1.566zM8 5c.535 0 .954.462.9.995l-.35 3.507a.552.552 0 0 1-1.1 0L7.1 5.995A.905.905 0 0 1 8 5zm.002 6a1 1 0 1 1 0 2 1 1 0 0 1 0-2z"/>
             </svg>
@@ -752,15 +754,7 @@
                 <div class="redirect-uri-box">
                     <h4>Your current redirect URI is:</h4>
                     <div class="redirect-uri-display" id="currentRedirectUri">Loading...</div>
-                    <script>
-                        // Immediately populate redirect URI
-                        (function() {
-                            const url = window.location.href.split('#')[0].split('?')[0];
-                            const el = document.getElementById('currentRedirectUri');
-                            if (el) el.textContent = url;
-                        })();
-                    </script>
-                    <button class="copy-btn" onclick="window.copyRedirectUri ? window.copyRedirectUri() : alert('Function not loaded yet, please try again')">Copy to Clipboard</button>
+                    <button class="copy-btn" onclick="copyRedirectUri(this)">Copy to Clipboard</button>
                     <p style="margin-top: 10px;">
                         <strong>You must add this exact URI to your Entra ID app registration before signing in!</strong><br>
                         This URI changes each time you load the page in an embedded environment.
@@ -771,7 +765,7 @@
 
         <!-- How to Get Client ID Section -->
         <div style="background: white; border-radius: 8px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); padding: 0; margin-bottom: 20px;">
-            <button class="collapsible" id="howToToggle" aria-expanded="false" aria-controls="howToContent">
+            <button class="collapsible" id="howToToggle">
                 <span>How to Get Your Entra ID Client ID</span>
             </button>
             <div class="collapsible-content" id="howToContent">
@@ -1148,7 +1142,7 @@
                 </div>
 
                 <div style="margin-top: 20px;">
-                    <button class="btn btn-success" onclick="exportSelected()" id="exportBtn">
+                    <button class="btn btn-success" onclick="exportSelected()">
                         <svg width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
                             <path d="M.5 9.9a.5.5 0 0 1 .5.5v2.5a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-2.5a.5.5 0 0 1 1 0v2.5a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2v-2.5a.5.5 0 0 1 .5-.5z"/>
                             <path d="M7.646 11.854a.5.5 0 0 0 .708 0l3 3a.5.5 0 0 0 .708-.708L8.5 11.707V5.5a.5.5 0 0 0-1 0v6.207l-1.646-1.646a.5.5 0 0 0-.708.708z"/>
@@ -1193,245 +1187,6 @@
     <script src="https://alcdn.msauth.net/browser/2.30.0/js/msal-browser.min.js"></script>
     
     <script>
-// Secure Password Protection with SHA-256 Hashing
-(function() {
-    // Check if user has already authenticated in this session
-    const isAuthenticated = sessionStorage.getItem('intunePolicyManagerAuth');
-    
-    if (!isAuthenticated) {
-        authenticateUser();
-    }
-})();
-
-async function authenticateUser() {
-    const PASSWORD_HASH = '9e5c3ce7906db8e6f333df0e10deed2263b0a8738a9abe3f3612b8f52846689e';
-    
-    const maxAttempts = 3;
-    let attempts = 0;
-    let authorized = false;
-    
-    while (attempts < maxAttempts && !authorized) {
-        const password = prompt(
-            `🔒 Intune Policy Manager - Secure Access\n\n` +
-            `Enter password (${maxAttempts - attempts} attempt${attempts === 2 ? '' : 's'} remaining):`
-        );
-        
-        // User clicked cancel
-        if (password === null) {
-            showAccessDenied('Authentication cancelled');
-            throw new Error('Access cancelled by user');
-        }
-        
-        // Hash the entered password and compare
-        const enteredHash = await hashPassword(password);
-        
-        if (enteredHash === PASSWORD_HASH) {
-            authorized = true;
-            sessionStorage.setItem('intunePolicyManagerAuth', 'true');
-            
-            // Add session timeout (2 hours)
-            sessionStorage.setItem('authExpiry', Date.now() + (2 * 60 * 60 * 1000));
-        } else {
-            attempts++;
-            if (attempts < maxAttempts) {
-                alert(`❌ Incorrect password.\n\n${maxAttempts - attempts} attempt${attempts === 2 ? '' : 's'} remaining.`);
-            }
-        }
-    }
-    
-    if (!authorized) {
-        showAccessDenied('Maximum password attempts exceeded');
-        throw new Error('Unauthorized - Maximum attempts exceeded');
-    }
-}
-
-// SHA-256 hashing function
-async function hashPassword(password) {
-    const msgUint8 = new TextEncoder().encode(password);
-    const hashBuffer = await crypto.subtle.digest('SHA-256', msgUint8);
-    const hashArray = Array.from(new Uint8Array(hashBuffer));
-    const hashHex = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
-    return hashHex;
-}
-
-function showAccessDenied(message) {
-    document.body.innerHTML = `
-        <!DOCTYPE html>
-        <html>
-        <head>
-            <meta charset="UTF-8">
-            <meta name="viewport" content="width=device-width, initial-scale=1.0">
-            <title>Access Denied</title>
-        </head>
-        <body style="margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;">
-            <div style="display: flex; justify-content: center; align-items: center; min-height: 100vh; background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);">
-                <div style="text-align: center; background: white; padding: 60px 40px; border-radius: 20px; box-shadow: 0 20px 60px rgba(0,0,0,0.3); max-width: 450px; margin: 20px;">
-                    <h1 style="color: #1a1a1a; margin-bottom: 25px; font-size: 36px; font-weight: 700; font-style: italic;">No HAM for you...</h1>
-                    
-                    <div style="margin: 30px 0;">
-                        <img src="https://luiserodz.github.io/theHAM/Ham.jpg" 
-                             alt="No Ham for You" 
-                             style="max-width: 300px; width: 100%; height: auto; border-radius: 10px; box-shadow: 0 5px 20px rgba(0,0,0,0.2);">
-                    </div>
-                    
-                    <p style="color: #666; margin-bottom: 10px; font-size: 18px; line-height: 1.5;">${message}</p>
-                    
-                    <div style="margin-top: 35px; padding-top: 25px; border-top: 1px solid #eee;">
-                        <p style="color: #999; font-size: 15px;">Please contact your system administrator for access credentials.</p>
-                        <p style="color: #bbb; font-size: 13px; margin-top: 15px;">Intune Policy Manager</p>
-                    </div>
-                </div>
-            </div>
-        </body>
-        </html>
-    `;
-}
-
-// Check session expiry on each load
-(function checkSessionExpiry() {
-    const authExpiry = sessionStorage.getItem('authExpiry');
-    if (authExpiry && Date.now() > parseInt(authExpiry)) {
-        sessionStorage.removeItem('intunePolicyManagerAuth');
-        sessionStorage.removeItem('authExpiry');
-        location.reload();
-    }
-})();
-
-// Auto-logout on inactivity (30 minutes)
-let inactivityTimer;
-const INACTIVITY_TIMEOUT = 30 * 60 * 1000; // 30 minutes
-
-function resetInactivityTimer() {
-    clearTimeout(inactivityTimer);
-    inactivityTimer = setTimeout(() => {
-        sessionStorage.removeItem('intunePolicyManagerAuth');
-        sessionStorage.removeItem('authExpiry');
-        alert('⏱️ Session expired due to inactivity.\n\nPlease refresh the page to log in again.');
-        location.reload();
-    }, INACTIVITY_TIMEOUT);
-}
-
-// Start inactivity timer if authenticated
-if (sessionStorage.getItem('intunePolicyManagerAuth')) {
-    document.addEventListener('click', resetInactivityTimer);
-    document.addEventListener('keypress', resetInactivityTimer);
-    document.addEventListener('scroll', resetInactivityTimer);
-    document.addEventListener('mousemove', resetInactivityTimer);
-    resetInactivityTimer();
-}
-        console.log('M365 Policy Downloader initializing...');
-        
-        // Immediately set redirect URI on page load
-        window.currentUrl = window.location.href.split('#')[0].split('?')[0];
-        
-        // Try to set redirect URI immediately if DOM is ready
-        if (document.readyState === 'complete' || document.readyState === 'interactive') {
-            const el = document.getElementById('currentRedirectUri');
-            if (el) el.textContent = window.currentUrl;
-        }
-        
-        // Wait for DOM to be fully loaded
-        document.addEventListener('DOMContentLoaded', function() {
-            console.log('DOM Content Loaded - Initializing M365 Policy Downloader');
-            
-            // Detect and display current redirect URI
-            const currentUrl = window.currentUrl;
-            
-            const redirectUriElement = document.getElementById('currentRedirectUri');
-            if (redirectUriElement) {
-                redirectUriElement.textContent = currentUrl;
-                console.log('Redirect URI set to:', currentUrl);
-            } else {
-                console.error('Redirect URI element not found!');
-            }
-
-            // Force display redirect URI (backup method)
-            setTimeout(() => {
-                const uriEl = document.getElementById('currentRedirectUri');
-                if (uriEl) {
-                    uriEl.textContent = window.currentUrl;
-                }
-            }, 500);
-
-            // Check if we're in a dynamic environment
-            const isDynamicEnvironment = currentUrl.includes('googleusercontent.com') || 
-                                         currentUrl.includes('jsfiddle.net') || 
-                                         currentUrl.includes('codepen.io') ||
-                                         currentUrl.includes('stackblitz.com') ||
-                                         currentUrl.includes('codesandbox.io') ||
-                                         currentUrl.includes('colab') ||
-                                         currentUrl.includes('localhost') ||
-                                         currentUrl.includes('127.0.0.1') ||
-                                         currentUrl.includes('file://');
-
-            // Detect sandboxed environment (where modals are blocked)
-            const isSandboxed = currentUrl.includes('googleusercontent.com') ||
-                               currentUrl.includes('google.com') ||
-                               currentUrl.includes('googlesites.com') ||
-                               currentUrl.includes('sites.google.com') ||
-                               currentUrl.includes('colab') ||
-                               currentUrl.includes('jsfiddle') ||
-                               currentUrl.includes('codepen') ||
-                               currentUrl.includes('stackblitz') ||
-                               currentUrl.includes('codesandbox') ||
-                               document.querySelector('iframe') !== null; // Basic iframe detection
-
-            window.isSandboxed = isSandboxed;
-
-            // Force display the redirect URI alert initially
-            const redirectAlert = document.getElementById('redirectUriAlert');
-            if (redirectAlert) {
-                redirectAlert.style.display = 'block';
-            }
-
-            // Only hide redirect URI alert if we're very sure it's not needed
-            // (i.e., it's a production domain or local file that's not from file://)
-            const isDefinitelyStatic = (
-                currentUrl.includes('.com') || 
-                currentUrl.includes('.org') || 
-                currentUrl.includes('.net')
-            ) && !isDynamicEnvironment;
-            
-            if (isDefinitelyStatic) {
-                setTimeout(() => {
-                    if (redirectAlert) {
-                        redirectAlert.style.display = 'none';
-                    }
-                }, 2000);
-            }
-
-            // Show sandboxed warning if in sandboxed environment
-            if (isSandboxed) {
-                const sandboxWarning = document.getElementById('sandboxWarning');
-                if (sandboxWarning) {
-                    sandboxWarning.style.display = 'block';
-                }
-            }
-
-            // Always ensure redirect URI is displayed
-            setTimeout(() => {
-                if (redirectUriElement && !redirectUriElement.textContent.trim()) {
-                    redirectUriElement.textContent = currentUrl;
-                }
-            }, 100);
-
-            // Setup collapsible how-to section
-            const howToToggle = document.getElementById('howToToggle');
-            const howToContent = document.getElementById('howToContent');
-
-            if (howToToggle && howToContent) {
-                howToToggle.addEventListener('click', () => {
-                    howToToggle.classList.toggle('active');
-                    howToContent.style.display = howToContent.style.display === 'block' ? 'none' : 'block';
-                });
-
-                // Auto-expand for dynamic environments
-                if (isDynamicEnvironment) {
-                    howToToggle.classList.add('active');
-                    howToContent.style.display = 'block';
-                }
-            }
-
         // Global variables
         let msalInstance = null;
         let accessToken = null;
@@ -1444,31 +1199,117 @@ if (sessionStorage.getItem('intunePolicyManagerAuth')) {
             compliance: []
         };
         let selectedPolicies = new Set();
+        let isSandboxed = false;
 
-        // Copy redirect URI function
-        window.copyRedirectUri = function() {
-            const redirectUri = document.getElementById('currentRedirectUri').textContent;
-            const btn = event.target;
+        // Set current URL immediately
+        window.currentUrl = window.location.href.split('#')[0].split('?')[0];
+        
+        // Initialize on page load
+        window.addEventListener('DOMContentLoaded', function() {
+            console.log('DOM loaded - initializing M365 Policy Downloader');
             
-            if (!window.isSandboxed && navigator.clipboard && navigator.clipboard.writeText) {
+            // Set redirect URI
+            const redirectUriElement = document.getElementById('currentRedirectUri');
+            if (redirectUriElement) {
+                redirectUriElement.textContent = window.currentUrl;
+            }
+            
+            // Check environment
+            const isDynamicEnvironment = window.currentUrl.includes('googleusercontent.com') || 
+                                       window.currentUrl.includes('jsfiddle.net') || 
+                                       window.currentUrl.includes('codepen.io') ||
+                                       window.currentUrl.includes('stackblitz.com') ||
+                                       window.currentUrl.includes('codesandbox.io') ||
+                                       window.currentUrl.includes('colab') ||
+                                       window.currentUrl.includes('localhost') ||
+                                       window.currentUrl.includes('127.0.0.1') ||
+                                       window.currentUrl.includes('file://');
+            
+            isSandboxed = isDynamicEnvironment;
+            
+            // Show/hide alerts based on environment
+            const redirectAlert = document.getElementById('redirectUriAlert');
+            if (redirectAlert) {
+                redirectAlert.style.display = isDynamicEnvironment ? 'block' : 'none';
+            }
+            
+            if (isSandboxed) {
+                const sandboxWarning = document.getElementById('sandboxWarning');
+                if (sandboxWarning) {
+                    sandboxWarning.style.display = 'block';
+                }
+            }
+
+            // Setup how-to toggle
+            const howToToggle = document.getElementById('howToToggle');
+            const howToContent = document.getElementById('howToContent');
+            
+            if (howToToggle && howToContent) {
+                howToToggle.addEventListener('click', function() {
+                    howToToggle.classList.toggle('active');
+                    howToContent.classList.toggle('active');
+                });
+            }
+            
+            // Initialize all components
+            initializeAuth();
+            initializeFilters();
+            initializeExport();
+            
+            // Initial stats update
+            updateStats();
+        });
+
+        // Tab switching - Fixed version
+        function switchTab(tabName, buttonElement) {
+            console.log('Switching to tab:', tabName);
+            
+            // Hide all tabs
+            document.querySelectorAll('.tab-content').forEach(content => {
+                content.classList.remove('active');
+            });
+            
+            // Remove active from all nav tabs
+            document.querySelectorAll('.nav-tab').forEach(tab => {
+                tab.classList.remove('active');
+                tab.setAttribute('aria-selected', 'false');
+            });
+            
+            // Show selected tab
+            const selectedTab = document.getElementById(tabName + 'Tab');
+            if (selectedTab) {
+                selectedTab.classList.add('active');
+            }
+            
+            // Mark nav tab as active
+            if (buttonElement) {
+                buttonElement.classList.add('active');
+                buttonElement.setAttribute('aria-selected', 'true');
+            }
+        }
+
+        // Copy redirect URI - Fixed version
+        function copyRedirectUri(buttonElement) {
+            const redirectUri = document.getElementById('currentRedirectUri').textContent;
+            
+            if (!isSandboxed && navigator.clipboard && navigator.clipboard.writeText) {
                 navigator.clipboard.writeText(redirectUri).then(() => {
-                    const originalText = btn.textContent;
-                    btn.textContent = 'Copied!';
-                    btn.style.background = '#28a745';
+                    const originalText = buttonElement.textContent;
+                    buttonElement.textContent = 'Copied!';
+                    buttonElement.style.background = '#28a745';
                     setTimeout(() => {
-                        btn.textContent = originalText;
-                        btn.style.background = '';
+                        buttonElement.textContent = originalText;
+                        buttonElement.style.background = '';
                     }, 2000);
                 }).catch(() => {
-                    fallbackCopyToClipboard(redirectUri, btn);
+                    fallbackCopyToClipboard(redirectUri, buttonElement);
                 });
             } else {
-                fallbackCopyToClipboard(redirectUri, btn);
+                fallbackCopyToClipboard(redirectUri, buttonElement);
             }
-        };
+        }
 
-        // Fallback copy method for sandboxed environments
-        function fallbackCopyToClipboard(text, btn) {
+        function fallbackCopyToClipboard(text, buttonElement) {
             const textArea = document.createElement("textarea");
             textArea.value = text;
             textArea.style.position = "fixed";
@@ -1479,1533 +1320,636 @@ if (sessionStorage.getItem('intunePolicyManagerAuth')) {
             
             try {
                 document.execCommand('copy');
-                if (btn) {
-                    const originalText = btn.textContent;
-                    btn.textContent = 'Copied!';
-                    btn.style.background = '#28a745';
+                if (buttonElement) {
+                    const originalText = buttonElement.textContent;
+                    buttonElement.textContent = 'Copied!';
+                    buttonElement.style.background = '#28a745';
                     setTimeout(() => {
-                        btn.textContent = originalText;
-                        btn.style.background = '';
+                        buttonElement.textContent = originalText;
+                        buttonElement.style.background = '';
                     }, 2000);
                 }
             } catch (err) {
                 console.error('Fallback copy failed:', err);
-                alert('Copy failed. Please manually copy the redirect URI:\n\n' + text);
+                alert('Copy failed. Please manually copy the URI: ' + text);
             }
             
             document.body.removeChild(textArea);
         }
 
-        // Tab switching
-        window.switchTab = function(tabName) {
-            document.querySelectorAll('.tab-content').forEach(content => {
-                content.classList.remove('active');
-            });
-            document.querySelectorAll('.nav-tab').forEach(tab => {
-                tab.classList.remove('active');
-            });
+        // Initialize authentication
+        function initializeAuth() {
+            const clientIdInput = document.getElementById('clientId');
+            const loginBtn = document.getElementById('loginBtn');
+            const signOutBtn = document.getElementById('signOutBtn');
+            const fetchAllBtn = document.getElementById('fetchAllBtn');
             
-            document.getElementById(tabName + 'Tab').classList.add('active');
-            event.target.classList.add('active');
-        };
-
-        // Initialize MSAL
-        document.getElementById('clientId').addEventListener('input', (e) => {
-            const clientId = e.target.value.trim();
-            const guidPattern = /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/;
-            
-            if (guidPattern.test(clientId)) {
-                document.getElementById('loginBtn').disabled = false;
+            // Client ID validation
+            clientIdInput.addEventListener('input', function(e) {
+                const clientId = e.target.value.trim();
+                const guidPattern = /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/;
                 
-                const msalConfig = {
-                    auth: {
-                        clientId: clientId,
-                        authority: 'https://login.microsoftonline.com/common',
-                        redirectUri: window.currentUrl
-                    },
-                    cache: {
-                        cacheLocation: 'sessionStorage',
-                        storeAuthStateInCookie: true
-                    }
-                };
-                
-                try {
-                    msalInstance = new msal.PublicClientApplication(msalConfig);
-                    console.log('MSAL instance created successfully');
+                if (guidPattern.test(clientId)) {
+                    loginBtn.disabled = false;
+                    clientIdInput.style.borderColor = '#28a745';
                     
-                    // Check for existing session
-                    checkExistingSession();
-                } catch (error) {
-                    console.error('Error creating MSAL instance:', error);
-                    if (!window.isSandboxed) {
+                    // Initialize MSAL
+                    const msalConfig = {
+                        auth: {
+                            clientId: clientId,
+                            authority: 'https://login.microsoftonline.com/common',
+                            redirectUri: window.currentUrl
+                        },
+                        cache: {
+                            cacheLocation: 'sessionStorage',
+                            storeAuthStateInCookie: true
+                        }
+                    };
+                    
+                    try {
+                        msalInstance = new msal.PublicClientApplication(msalConfig);
+                        console.log('MSAL instance created successfully');
+                    } catch (error) {
+                        console.error('Error creating MSAL instance:', error);
                         alert('Error initializing authentication. Please check your Client ID.');
                     }
-                }
-            } else {
-                document.getElementById('loginBtn').disabled = true;
-            }
-        });
-
-        // Authentication
-        document.getElementById('loginBtn').addEventListener('click', async () => {
-            if (!msalInstance) {
-                alert('Please enter a valid Client ID first');
-                return;
-            }
-
-            try {
-                const loginRequest = {
-                    scopes: [
-                        'DeviceManagementConfiguration.Read.All',
-                        'Policy.Read.All',
-                        'Directory.Read.All',
-                        'Group.Read.All',
-                        'Sites.Read.All',
-                        'User.Read'
-                    ]
-                };
-
-                const loginResponse = await msalInstance.loginPopup(loginRequest);
-                handleAuthentication(loginResponse);
-            } catch (error) {
-                console.error('Login failed:', error);
-                let errorMessage = 'Authentication failed.\n\n';
-                
-                if (error.message && error.message.includes('AADSTS50011')) {
-                    errorMessage += `Redirect URI mismatch!\n\nAdd this URI to your Entra ID app:\n${window.currentUrl}\n\n`;
                 } else {
-                    errorMessage += 'Error: ' + error.message + '\n\n';
+                    loginBtn.disabled = true;
+                    clientIdInput.style.borderColor = clientId ? '#dc3545' : '#ddd';
                 }
-                
-                if (window.isSandboxed) {
-                    errorMessage += 'Try downloading and running this HTML file locally for better compatibility.';
-                }
-                
-                alert(errorMessage);
-            }
-        });
-
-        // Sign out functionality
-        document.getElementById('signOutBtn').addEventListener('click', async () => {
-            if (!msalInstance) return;
+            });
             
-            try {
-                // Clear all policies and selections
-                allPolicies = {
-                    intune: [],
-                    exchange: [],
-                    sharepoint: [],
-                    teams: [],
-                    aad: [],
-                    compliance: []
-                };
-                selectedPolicies.clear();
-                
-                // Reset all policy displays
-                ['intune', 'exchange', 'sharepoint', 'teams', 'aad', 'compliance'].forEach(service => {
-                    const container = document.getElementById(`${service}Policies`);
-                    if (container) {
-                        container.innerHTML = `<div class="alert alert-info">Sign in and click "Fetch All Policies" to load ${service.charAt(0).toUpperCase() + service.slice(1)} policies</div>`;
-                    }
-                    const count = document.getElementById(`${service}Count`);
-                    if (count) {
-                        count.textContent = '0';
-                    }
-                });
-                
-                // Reset stats
-                updateStats();
-                
-                // Hide fetch summary
-                const fetchSummary = document.getElementById('fetchSummary');
-                if (fetchSummary) {
-                    fetchSummary.style.display = 'none';
+            // Login button handler
+            loginBtn.addEventListener('click', async function() {
+                if (!msalInstance) {
+                    alert('Please enter a valid Client ID first');
+                    return;
                 }
                 
-                // Clear MSAL cache and sign out
-                const accounts = msalInstance.getAllAccounts();
-                if (accounts.length > 0) {
-                    await msalInstance.logoutPopup({
-                        account: accounts[0]
-                    });
-                }
-                
-                // Reset UI
-                accessToken = null;
-                document.getElementById('authStatus').textContent = 'Not connected';
-                document.getElementById('authStatus').className = 'status-indicator status-disconnected';
-                document.getElementById('loginBtn').style.display = 'inline-flex';
-                document.getElementById('signOutBtn').style.display = 'none';
-                document.getElementById('userInfo').style.display = 'none';
-                document.getElementById('userEmail').textContent = '';
-                document.getElementById('fetchAllBtn').disabled = true;
-                document.getElementById('clientId').disabled = false;
-                
-                console.log('Signed out successfully');
-            } catch (error) {
-                console.error('Sign out error:', error);
-                // Even if sign out fails, reset the UI
-                accessToken = null;
-                document.getElementById('authStatus').textContent = 'Not connected';
-                document.getElementById('authStatus').className = 'status-indicator status-disconnected';
-                document.getElementById('loginBtn').style.display = 'inline-flex';
-                document.getElementById('signOutBtn').style.display = 'none';
-                document.getElementById('userInfo').style.display = 'none';
-                document.getElementById('fetchAllBtn').disabled = true;
-                document.getElementById('clientId').disabled = false;
-            }
-        });
-
-        function handleAuthentication(response) {
-            accessToken = response.accessToken;
-            document.getElementById('authStatus').textContent = 'Connected';
-            document.getElementById('authStatus').className = 'status-indicator status-connected';
-            document.getElementById('loginBtn').style.display = 'none';
-            document.getElementById('signOutBtn').style.display = 'inline-flex';
-            document.getElementById('userInfo').style.display = 'inline';
-            document.getElementById('userEmail').textContent = response.account.username;
-            document.getElementById('fetchAllBtn').disabled = false;
-            document.getElementById('clientId').disabled = true;
-            
-            console.log('Authentication successful');
-            console.log('Account:', response.account.username);
-            console.log('Scopes granted:', response.scopes);
-        }
-
-        // Check for existing session
-        async function checkExistingSession() {
-            if (!msalInstance) return;
-            
-            const accounts = msalInstance.getAllAccounts();
-            if (accounts.length > 0) {
                 try {
-                    const response = await msalInstance.acquireTokenSilent({
+                    const loginRequest = {
                         scopes: [
+                            'User.Read',
                             'DeviceManagementConfiguration.Read.All',
                             'Policy.Read.All',
                             'Directory.Read.All',
                             'Group.Read.All',
-                            'Sites.Read.All',
-                            'User.Read'
-                        ],
-                        account: accounts[0]
-                    });
-                    handleAuthentication(response);
+                            'Sites.Read.All'
+                        ]
+                    };
+                    
+                    const loginResponse = await msalInstance.loginPopup(loginRequest);
+                    handleAuthentication(loginResponse);
                 } catch (error) {
-                    console.log('Silent token acquisition failed:', error);
+                    console.error('Login failed:', error);
+                    alert('Authentication failed: ' + error.message);
                 }
-            }
-        }
-
-        // Fetch all policies
-        document.getElementById('fetchAllBtn').addEventListener('click', async () => {
-            const progress = document.getElementById('overviewProgress');
-            const summaryDiv = document.getElementById('fetchSummary');
-            
-            // Hide previous summary and show progress
-            summaryDiv.style.display = 'none';
-            progress.style.display = 'block';
-            
-            const services = [
-                { name: 'Intune', fn: fetchIntunePolicies },
-                { name: 'Exchange', fn: fetchExchangePolicies },
-                { name: 'SharePoint', fn: fetchSharePointPolicies },
-                { name: 'Teams', fn: fetchTeamsPolicies },
-                { name: 'Azure AD', fn: fetchAADPolicies },
-                { name: 'Compliance', fn: fetchCompliancePolicies }
-            ];
-
-            let completed = 0;
-            for (const service of services) {
-                document.getElementById('currentService').textContent = `Fetching ${service.name} policies...`;
-                
-                try {
-                    await service.fn();
-                } catch (error) {
-                    console.error(`Error fetching ${service.name} policies:`, error);
-                }
-                
-                completed++;
-                const progress = Math.round((completed / services.length) * 100);
-                document.getElementById('overviewProgressFill').style.width = progress + '%';
-                document.getElementById('overviewProgressText').textContent = progress + '%';
-            }
-
-            updateStats();
-            document.getElementById('currentService').textContent = 'All policies fetched successfully!';
-            
-            // Show a summary of what was fetched
-            const totalPolicies = Object.values(allPolicies).reduce((sum, policies) => sum + policies.length, 0);
-            const summaryHtml = `
-                <div class="alert alert-info">
-                    <strong>✅ Fetch Complete!</strong> Found <strong>${totalPolicies}</strong> total policies:
-                    <ul style="margin-top: 10px;">
-                        <li><strong>Intune:</strong> ${allPolicies.intune.length} policies with assignments</li>
-                        <li><strong>Azure AD:</strong> ${allPolicies.aad.length} policies (Conditional Access, Auth Methods, etc.)</li>
-                        <li><strong>SharePoint:</strong> ${allPolicies.sharepoint.length} tenant-level settings</li>
-                        <li><strong>Exchange:</strong> ${allPolicies.exchange.length} policies ${allPolicies.exchange.length < 2 ? '(limited via Graph API)' : ''}</li>
-                        <li><strong>Teams:</strong> ${allPolicies.teams.length} policies ${allPolicies.teams.length < 2 ? '(limited via Graph API)' : ''}</li>
-                        <li><strong>Compliance:</strong> ${allPolicies.compliance.length} policies</li>
-                    </ul>
-                    <p style="margin-top: 10px;">
-                        <strong>Note:</strong> For complete policy export, Exchange and Teams require their respective PowerShell modules.
-                    </p>
-                    <p style="margin-top: 10px;">
-                        💡 <strong>Tip:</strong> Switch to each tab to view and select specific policies, or use the Export tab to download all/selected policies.
-                    </p>
-                </div>
-            `;
-            
-            summaryDiv.innerHTML = summaryHtml;
-            summaryDiv.style.display = 'block';
-            
-            setTimeout(() => {
-                progress.style.display = 'none';
-            }, 3000);
-        });
-
-        // Intune policies
-        async function fetchIntunePolicies() {
-            try {
-                const endpoints = [
-                    { path: '/deviceManagement/configurationPolicies', assignmentPath: '/assignments' },
-                    { path: '/deviceManagement/deviceConfigurations', assignmentPath: '/assignments' },
-                    { path: '/deviceManagement/groupPolicyConfigurations', assignmentPath: '/assignments' },
-                    { path: '/deviceManagement/intents', assignmentPath: '/assignments' },
-                    { path: '/deviceManagement/compliancePolicies', assignmentPath: '/assignments' }
-                ];
-
-                allPolicies.intune = [];
-                
-                for (const endpoint of endpoints) {
-                    try {
-                        const response = await fetch(`https://graph.microsoft.com/beta${endpoint.path}`, {
-                            headers: { 'Authorization': `Bearer ${accessToken}` }
-                        });
-                        
-                        if (response.ok) {
-                            const data = await response.json();
-                            const policies = data.value || [];
-                            
-                            console.log(`Fetched ${policies.length} policies from ${endpoint.path}`);
-                            
-                            for (const policy of policies) {
-                                // Fetch assignments for each policy
-                                let assignments = [];
-                                try {
-                                    const assignmentResponse = await fetch(`https://graph.microsoft.com/beta${endpoint.path}/${policy.id}${endpoint.assignmentPath}`, {
-                                        headers: { 'Authorization': `Bearer ${accessToken}` }
-                                    });
-                                    
-                                    if (assignmentResponse.ok) {
-                                        const assignmentData = await assignmentResponse.json();
-                                        assignments = assignmentData.value || [];
-                                        console.log(`Found ${assignments.length} assignments for policy: ${policy.name || policy.displayName}`);
-                                    }
-                                } catch (assignError) {
-                                    console.error(`Error fetching assignments for ${policy.id}:`, assignError);
-                                }
-                                
-                                // Process assignments
-                                const assignmentSummary = await processAssignments(assignments);
-                                
-                                allPolicies.intune.push({
-                                    id: policy.id,
-                                    name: policy.name || policy.displayName,
-                                    type: endpoint.path.split('/').pop(),
-                                    description: policy.description || '',
-                                    created: policy.createdDateTime,
-                                    modified: policy.lastModifiedDateTime,
-                                    platform: policy.platforms,
-                                    service: 'intune',
-                                    assignments: assignmentSummary,
-                                    raw: policy,
-                                    rawAssignments: assignments
-                                });
-                            }
-                        }
-                    } catch (error) {
-                        console.error(`Error fetching ${endpoint.path}:`, error);
-                    }
-                }
-
-                displayIntunePolicies();
-            } catch (error) {
-                console.error('Error fetching Intune policies:', error);
-            }
-        }
-        
-        // Process assignments and get group names
-        async function processAssignments(assignments) {
-            const summary = {
-                allUsers: false,
-                allDevices: false,
-                groups: [],
-                exclusions: []
-            };
-            
-            for (const assignment of assignments) {
-                const target = assignment.target;
-                
-                if (target['@odata.type'] === '#microsoft.graph.allLicensedUsersAssignmentTarget') {
-                    summary.allUsers = true;
-                } else if (target['@odata.type'] === '#microsoft.graph.allDevicesAssignmentTarget') {
-                    summary.allDevices = true;
-                } else if (target['@odata.type'] === '#microsoft.graph.groupAssignmentTarget') {
-                    try {
-                        // Fetch group name
-                        const groupResponse = await fetch(`https://graph.microsoft.com/v1.0/groups/${target.groupId}`, {
-                            headers: { 'Authorization': `Bearer ${accessToken}` }
-                        });
-                        
-                        if (groupResponse.ok) {
-                            const group = await groupResponse.json();
-                            summary.groups.push({
-                                id: target.groupId,
-                                name: group.displayName,
-                                type: 'Include'
-                            });
-                        } else {
-                            summary.groups.push({
-                                id: target.groupId,
-                                name: 'Unknown Group',
-                                type: 'Include'
-                            });
-                        }
-                    } catch (error) {
-                        summary.groups.push({
-                            id: target.groupId,
-                            name: 'Unknown Group',
-                            type: 'Include'
-                        });
-                    }
-                } else if (target['@odata.type'] === '#microsoft.graph.exclusionGroupAssignmentTarget') {
-                    try {
-                        const groupResponse = await fetch(`https://graph.microsoft.com/v1.0/groups/${target.groupId}`, {
-                            headers: { 'Authorization': `Bearer ${accessToken}` }
-                        });
-                        
-                        if (groupResponse.ok) {
-                            const group = await groupResponse.json();
-                            summary.exclusions.push({
-                                id: target.groupId,
-                                name: group.displayName
-                            });
-                        }
-                    } catch (error) {
-                        summary.exclusions.push({
-                            id: target.groupId,
-                            name: 'Unknown Group'
-                        });
-                    }
-                }
-            }
-            
-            return summary;
-        }
-
-        function displayIntunePolicies() {
-            const container = document.getElementById('intunePolicies');
-            container.innerHTML = '';
-            
-            document.getElementById('intuneCount').textContent = allPolicies.intune.length;
-            
-            allPolicies.intune.forEach(policy => {
-                const card = createPolicyCard(policy);
-                container.appendChild(card);
             });
-        }
-
-        // Exchange policies - try to get what's available through Graph
-        async function fetchExchangePolicies() {
-            try {
-                allPolicies.exchange = [];
-                
-                // Try to fetch mail flow rules (transport rules)
-                try {
-                    const transportRulesResponse = await fetch('https://graph.microsoft.com/beta/transportRules', {
-                        headers: { 'Authorization': `Bearer ${accessToken}` }
-                    });
-                    
-                    if (transportRulesResponse.ok) {
-                        const data = await transportRulesResponse.json();
-                        const rules = data.value || [];
-                        
-                        rules.forEach(rule => {
-                            allPolicies.exchange.push({
-                                id: rule.id,
-                                name: rule.displayName,
-                                type: 'MailFlowRule',
-                                description: rule.comments || 'Mail flow rule',
-                                enabled: rule.state === 'Enabled',
-                                priority: rule.priority,
-                                service: 'exchange',
-                                raw: rule
-                            });
-                        });
-                    }
-                } catch (error) {
-                    console.error('Error fetching mail flow rules:', error);
-                }
-                
-                // Try to fetch retention policies
-                try {
-                    const retentionResponse = await fetch('https://graph.microsoft.com/beta/security/retentionEvents', {
-                        headers: { 'Authorization': `Bearer ${accessToken}` }
-                    });
-                    
-                    if (retentionResponse.ok) {
-                        const data = await retentionResponse.json();
-                        const policies = data.value || [];
-                        
-                        policies.forEach(policy => {
-                            allPolicies.exchange.push({
-                                id: policy.id,
-                                name: policy.displayName || 'Retention Policy',
-                                type: 'RetentionPolicy',
-                                description: policy.description || 'Retention policy',
-                                service: 'exchange',
-                                raw: policy
-                            });
-                        });
-                    }
-                } catch (error) {
-                    console.error('Error fetching retention policies:', error);
-                }
-                
-                // Try to fetch organization configuration
-                try {
-                    const orgConfigResponse = await fetch('https://graph.microsoft.com/v1.0/organization', {
-                        headers: { 'Authorization': `Bearer ${accessToken}` }
-                    });
-                    
-                    if (orgConfigResponse.ok) {
-                        const data = await orgConfigResponse.json();
-                        const org = data.value?.[0];
-                        
-                        if (org) {
-                            allPolicies.exchange.push({
-                                id: 'org-config',
-                                name: 'Organization Configuration',
-                                type: 'OrganizationConfig',
-                                description: 'Organization-wide Exchange settings',
-                                service: 'exchange',
-                                raw: org
-                            });
-                        }
-                    }
-                } catch (error) {
-                    console.error('Error fetching org config:', error);
-                }
-                
-                // Add a note about PowerShell if we couldn't get much
-                if (allPolicies.exchange.length === 0) {
-                    allPolicies.exchange.push({
-                        id: 'ex-note-1',
-                        name: 'Limited Exchange Access',
-                        type: 'Note',
-                        description: 'Most Exchange policies require Exchange Online PowerShell',
-                        service: 'exchange',
-                        note: 'To access all Exchange policies, use Exchange Online PowerShell with Get-* cmdlets like Get-MalwareFilterPolicy, Get-HostedContentFilterPolicy, Get-TransportRule, etc.'
-                    });
-                }
-                
-                displayExchangePolicies();
-            } catch (error) {
-                console.error('Error fetching Exchange policies:', error);
-                displayExchangePolicies();
-            }
-        }
-
-        function displayExchangePolicies() {
-            const container = document.getElementById('exchangePolicies');
-            container.innerHTML = '';
             
-            if (allPolicies.exchange.length === 0 || (allPolicies.exchange.length === 1 && allPolicies.exchange[0].type === 'Note')) {
-                container.innerHTML = `
-                    <div class="alert alert-warning">
-                        <strong>Limited Exchange Access via Graph API</strong><br>
-                        Most Exchange policies require Exchange Online PowerShell for complete access.<br><br>
-                        <strong>To export Exchange policies:</strong>
-                        <ol style="margin-top: 10px; margin-left: 20px;">
-                            <li>Connect to Exchange Online PowerShell</li>
-                            <li>Run commands like:
-                                <ul>
-                                    <li><code>Get-MalwareFilterPolicy</code></li>
-                                    <li><code>Get-HostedContentFilterPolicy</code></li>
-                                    <li><code>Get-TransportRule</code></li>
-                                    <li><code>Get-RetentionPolicy</code></li>
-                                    <li><code>Get-DlpCompliancePolicy</code></li>
-                                </ul>
-                            </li>
-                        </ol>
-                        <a href="https://docs.microsoft.com/en-us/powershell/exchange/connect-to-exchange-online-powershell" target="_blank">Exchange Online PowerShell Documentation</a>
-                    </div>
-                `;
-            }
-            
-            document.getElementById('exchangeCount').textContent = allPolicies.exchange.length;
-            
-            allPolicies.exchange.forEach(policy => {
-                const card = createPolicyCard(policy);
-                container.appendChild(card);
+            // Sign out button handler
+            signOutBtn.addEventListener('click', function() {
+                if (msalInstance) {
+                    msalInstance.logoutPopup();
+                }
+                accessToken = null;
+                updateAuthUI(false);
             });
+            
+            // Fetch all button handler
+            fetchAllBtn.addEventListener('click', fetchAllPolicies);
         }
 
-        // SharePoint policies
-        async function fetchSharePointPolicies() {
-            try {
-                allPolicies.sharepoint = [];
-                
-                // Fetch tenant settings
-                try {
-                    const response = await fetch('https://graph.microsoft.com/v1.0/admin/sharepoint/settings', {
-                        headers: { 'Authorization': `Bearer ${accessToken}` }
-                    });
-                    
-                    if (response.ok) {
-                        const settings = await response.json();
-                        allPolicies.sharepoint.push({
-                            id: 'sp-tenant-settings',
-                            name: 'SharePoint Tenant Settings',
-                            type: 'TenantSettings',
-                            description: 'Organization-wide SharePoint settings',
-                            service: 'sharepoint',
-                            raw: settings
-                        });
-                    }
-                } catch (error) {
-                    console.error('Error fetching SharePoint settings:', error);
-                }
-                
-                // Try to fetch sharing settings
-                try {
-                    const sharingResponse = await fetch('https://graph.microsoft.com/beta/admin/sharepoint/settings', {
-                        headers: { 'Authorization': `Bearer ${accessToken}` }
-                    });
-                    
-                    if (sharingResponse.ok) {
-                        const settings = await sharingResponse.json();
-                        if (settings.sharingCapability) {
-                            allPolicies.sharepoint.push({
-                                id: 'sp-sharing-settings',
-                                name: 'SharePoint Sharing Settings',
-                                type: 'SharingSettings',
-                                description: `Sharing capability: ${settings.sharingCapability}`,
-                                service: 'sharepoint',
-                                raw: settings
-                            });
-                        }
-                    }
-                } catch (error) {
-                    console.error('Error fetching sharing settings:', error);
-                }
-                
-                // Try to fetch some sites to show site-level policies
-                try {
-                    const sitesResponse = await fetch('https://graph.microsoft.com/v1.0/sites?$top=5', {
-                        headers: { 'Authorization': `Bearer ${accessToken}` }
-                    });
-                    
-                    if (sitesResponse.ok) {
-                        const data = await sitesResponse.json();
-                        const sites = data.value || [];
-                        
-                        // Just add a summary policy to indicate sites exist
-                        if (sites.length > 0) {
-                            allPolicies.sharepoint.push({
-                                id: 'sp-sites-summary',
-                                name: 'SharePoint Sites Summary',
-                                type: 'SitesSummary',
-                                description: `${sites.length}+ sites found. Use SharePoint PowerShell for detailed site policies`,
-                                service: 'sharepoint',
-                                note: 'Individual site policies require SharePoint PowerShell',
-                                raw: { sitesFound: sites.length }
-                            });
-                        }
-                    }
-                } catch (error) {
-                    console.error('Error fetching sites:', error);
-                }
-                
-                displaySharePointPolicies();
-            } catch (error) {
-                console.error('Error fetching SharePoint policies:', error);
-                displaySharePointPolicies();
-            }
+        // Handle successful authentication
+        function handleAuthentication(response) {
+            accessToken = response.accessToken;
+            updateAuthUI(true);
+            
+            // Update user info
+            const userEmail = document.getElementById('userEmail');
+            userEmail.textContent = response.account.username;
+            
+            console.log('Authentication successful');
         }
 
-        function displaySharePointPolicies() {
-            const container = document.getElementById('sharepointPolicies');
-            container.innerHTML = '';
+        // Update authentication UI
+        function updateAuthUI(isAuthenticated) {
+            const authStatus = document.getElementById('authStatus');
+            const loginBtn = document.getElementById('loginBtn');
+            const signOutBtn = document.getElementById('signOutBtn');
+            const fetchAllBtn = document.getElementById('fetchAllBtn');
+            const userInfo = document.getElementById('userInfo');
+            const statusDot = document.getElementById('statusDot');
+            const connectionStatus = document.getElementById('connectionStatus');
             
-            document.getElementById('sharepointCount').textContent = allPolicies.sharepoint.length;
-            
-            if (allPolicies.sharepoint.length > 0) {
-                // Add note about additional policies
-                const noteDiv = document.createElement('div');
-                noteDiv.className = 'alert alert-info';
-                noteDiv.innerHTML = `
-                    <strong>Note:</strong> Additional SharePoint policies available through SharePoint PowerShell:
-                    <ul style="margin-top: 5px; margin-left: 20px;">
-                        <li><code>Get-SPOSite</code> - Site policies and configurations</li>
-                        <li><code>Get-SPOTenant</code> - Tenant-wide settings</li>
-                        <li><code>Get-SPOSiteDesign</code> - Site designs</li>
-                        <li><code>Get-SPOHubSite</code> - Hub site configurations</li>
-                        <li><code>Get-SPOSharingSettings</code> - Sharing policies</li>
-                    </ul>
-                `;
-                container.appendChild(noteDiv);
-            }
-            
-            allPolicies.sharepoint.forEach(policy => {
-                const card = createPolicyCard(policy);
-                container.appendChild(card);
-            });
-        }
-
-        // Teams policies - get what's available through Graph
-        async function fetchTeamsPolicies() {
-            try {
-                allPolicies.teams = [];
-                
-                // Try to fetch Teams app setup policies
-                try {
-                    const teamsAppsResponse = await fetch('https://graph.microsoft.com/beta/teamwork/teamsAppSettings', {
-                        headers: { 'Authorization': `Bearer ${accessToken}` }
-                    });
-                    
-                    if (teamsAppsResponse.ok) {
-                        const settings = await teamsAppsResponse.json();
-                        allPolicies.teams.push({
-                            id: 'teams-app-settings',
-                            name: 'Teams App Settings',
-                            type: 'AppSettings',
-                            description: 'Organization-wide Teams app settings',
-                            service: 'teams',
-                            raw: settings
-                        });
-                    }
-                } catch (error) {
-                    console.error('Error fetching Teams app settings:', error);
-                }
-                
-                // Try to fetch Teams meeting settings
-                try {
-                    const meetingSettingsResponse = await fetch('https://graph.microsoft.com/beta/teamwork/workforceIntegrations', {
-                        headers: { 'Authorization': `Bearer ${accessToken}` }
-                    });
-                    
-                    if (meetingSettingsResponse.ok) {
-                        const data = await meetingSettingsResponse.json();
-                        const integrations = data.value || [];
-                        
-                        integrations.forEach(integration => {
-                            allPolicies.teams.push({
-                                id: integration.id,
-                                name: integration.displayName || 'Workforce Integration',
-                                type: 'WorkforceIntegration',
-                                description: 'Teams workforce integration',
-                                service: 'teams',
-                                raw: integration
-                            });
-                        });
-                    }
-                } catch (error) {
-                    console.error('Error fetching workforce integrations:', error);
-                }
-                
-                // Try to fetch Teams templates
-                try {
-                    const templatesResponse = await fetch('https://graph.microsoft.com/beta/teamsTemplates', {
-                        headers: { 'Authorization': `Bearer ${accessToken}` }
-                    });
-                    
-                    if (templatesResponse.ok) {
-                        const data = await templatesResponse.json();
-                        const templates = data.value || [];
-                        
-                        // Only include custom templates (not built-in)
-                        const customTemplates = templates.filter(t => !t.id.startsWith('com.microsoft.'));
-                        
-                        customTemplates.forEach(template => {
-                            allPolicies.teams.push({
-                                id: template.id,
-                                name: template.displayName,
-                                type: 'TeamTemplate',
-                                description: template.shortDescription || 'Custom team template',
-                                service: 'teams',
-                                raw: template
-                            });
-                        });
-                    }
-                } catch (error) {
-                    console.error('Error fetching Teams templates:', error);
-                }
-                
-                // Add a note about PowerShell
-                if (allPolicies.teams.length === 0) {
-                    allPolicies.teams.push({
-                        id: 'teams-note-1',
-                        name: 'Limited Teams Access',
-                        type: 'Note',
-                        description: 'Most Teams policies require Teams PowerShell',
-                        service: 'teams',
-                        note: 'To access all Teams policies, use Teams PowerShell with Get-Cs* cmdlets like Get-CsTeamsMessagingPolicy, Get-CsTeamsMeetingPolicy, Get-CsTeamsCallingPolicy, etc.'
-                    });
-                }
-                
-                displayTeamsPolicies();
-            } catch (error) {
-                console.error('Error fetching Teams policies:', error);
-                displayTeamsPolicies();
-            }
-        }
-
-        function displayTeamsPolicies() {
-            const container = document.getElementById('teamsPolicies');
-            container.innerHTML = '';
-            
-            if (allPolicies.teams.length === 0 || (allPolicies.teams.length === 1 && allPolicies.teams[0].type === 'Note')) {
-                container.innerHTML = `
-                    <div class="alert alert-warning">
-                        <strong>Limited Teams Access via Graph API</strong><br>
-                        Most Teams policies require Teams PowerShell for complete access.<br><br>
-                        <strong>To export Teams policies:</strong>
-                        <ol style="margin-top: 10px; margin-left: 20px;">
-                            <li>Connect to Teams PowerShell</li>
-                            <li>Run commands like:
-                                <ul>
-                                    <li><code>Get-CsTeamsMessagingPolicy</code></li>
-                                    <li><code>Get-CsTeamsMeetingPolicy</code></li>
-                                    <li><code>Get-CsTeamsCallingPolicy</code></li>
-                                    <li><code>Get-CsTeamsChannelsPolicy</code></li>
-                                    <li><code>Get-CsTeamsAppPermissionPolicy</code></li>
-                                </ul>
-                            </li>
-                        </ol>
-                        <a href="https://docs.microsoft.com/en-us/microsoftteams/teams-powershell-overview" target="_blank">Teams PowerShell Documentation</a>
-                    </div>
-                `;
-            }
-            
-            document.getElementById('teamsCount').textContent = allPolicies.teams.length;
-            
-            allPolicies.teams.forEach(policy => {
-                const card = createPolicyCard(policy);
-                container.appendChild(card);
-            });
-        }
-
-        // Azure AD policies
-        async function fetchAADPolicies() {
-            try {
-                allPolicies.aad = [];
-                
-                // Conditional Access policies
-                try {
-                    const caResponse = await fetch('https://graph.microsoft.com/v1.0/identity/conditionalAccess/policies', {
-                        headers: { 'Authorization': `Bearer ${accessToken}` }
-                    });
-                    
-                    if (caResponse.ok) {
-                        const data = await caResponse.json();
-                        const policies = data.value || [];
-                        
-                        policies.forEach(policy => {
-                            allPolicies.aad.push({
-                                id: policy.id,
-                                name: policy.displayName,
-                                type: 'ConditionalAccess',
-                                description: `State: ${policy.state || 'Unknown'}`,
-                                created: policy.createdDateTime,
-                                modified: policy.modifiedDateTime,
-                                service: 'aad',
-                                raw: policy
-                            });
-                        });
-                    }
-                } catch (error) {
-                    console.error('Error fetching CA policies:', error);
-                }
-                
-                // Authentication methods policy
-                try {
-                    const authResponse = await fetch('https://graph.microsoft.com/beta/policies/authenticationMethodsPolicy', {
-                        headers: { 'Authorization': `Bearer ${accessToken}` }
-                    });
-                    
-                    if (authResponse.ok) {
-                        const policy = await authResponse.json();
-                        allPolicies.aad.push({
-                            id: policy.id,
-                            name: 'Authentication Methods Policy',
-                            type: 'AuthenticationMethods',
-                            description: 'Organization authentication methods configuration',
-                            service: 'aad',
-                            raw: policy
-                        });
-                    }
-                } catch (error) {
-                    console.error('Error fetching auth methods policy:', error);
-                }
-                
-                // Authorization policy
-                try {
-                    const authzResponse = await fetch('https://graph.microsoft.com/beta/policies/authorizationPolicy', {
-                        headers: { 'Authorization': `Bearer ${accessToken}` }
-                    });
-                    
-                    if (authzResponse.ok) {
-                        const policy = await authzResponse.json();
-                        allPolicies.aad.push({
-                            id: policy.id,
-                            name: 'Authorization Policy',
-                            type: 'Authorization',
-                            description: 'Default authorization settings',
-                            service: 'aad',
-                            raw: policy
-                        });
-                    }
-                } catch (error) {
-                    console.error('Error fetching authorization policy:', error);
-                }
-                
-                // Token lifetime policies
-                try {
-                    const tokenResponse = await fetch('https://graph.microsoft.com/v1.0/policies/tokenLifetimePolicies', {
-                        headers: { 'Authorization': `Bearer ${accessToken}` }
-                    });
-                    
-                    if (tokenResponse.ok) {
-                        const data = await tokenResponse.json();
-                        const policies = data.value || [];
-                        
-                        policies.forEach(policy => {
-                            allPolicies.aad.push({
-                                id: policy.id,
-                                name: policy.displayName,
-                                type: 'TokenLifetime',
-                                description: 'Token lifetime configuration',
-                                service: 'aad',
-                                raw: policy
-                            });
-                        });
-                    }
-                } catch (error) {
-                    console.error('Error fetching token lifetime policies:', error);
-                }
-                
-                // Identity security defaults
-                try {
-                    const defaultsResponse = await fetch('https://graph.microsoft.com/beta/policies/identitySecurityDefaultsEnforcementPolicy', {
-                        headers: { 'Authorization': `Bearer ${accessToken}` }
-                    });
-                    
-                    if (defaultsResponse.ok) {
-                        const policy = await defaultsResponse.json();
-                        allPolicies.aad.push({
-                            id: policy.id,
-                            name: 'Security Defaults',
-                            type: 'SecurityDefaults',
-                            description: policy.isEnabled ? 'Enabled' : 'Disabled',
-                            service: 'aad',
-                            raw: policy
-                        });
-                    }
-                } catch (error) {
-                    console.error('Error fetching security defaults:', error);
-                }
-                
-                displayAADPolicies();
-            } catch (error) {
-                console.error('Error fetching Azure AD policies:', error);
-            }
-        }
-
-        function displayAADPolicies() {
-            const container = document.getElementById('aadPolicies');
-            container.innerHTML = '';
-            
-            document.getElementById('aadCount').textContent = allPolicies.aad.length;
-            
-            allPolicies.aad.forEach(policy => {
-                const card = createPolicyCard(policy);
-                container.appendChild(card);
-            });
-        }
-
-        // Compliance policies
-        async function fetchCompliancePolicies() {
-            try {
-                allPolicies.compliance = [];
-                
-                // Device compliance policies from Intune
-                try {
-                    const complianceResponse = await fetch('https://graph.microsoft.com/beta/deviceManagement/deviceCompliancePolicies', {
-                        headers: { 'Authorization': `Bearer ${accessToken}` }
-                    });
-                    
-                    if (complianceResponse.ok) {
-                        const data = await complianceResponse.json();
-                        const policies = data.value || [];
-                        
-                        for (const policy of policies) {
-                            // Fetch assignments
-                            let assignments = [];
-                            try {
-                                const assignmentResponse = await fetch(`https://graph.microsoft.com/beta/deviceManagement/deviceCompliancePolicies/${policy.id}/assignments`, {
-                                    headers: { 'Authorization': `Bearer ${accessToken}` }
-                                });
-                                
-                                if (assignmentResponse.ok) {
-                                    const assignmentData = await assignmentResponse.json();
-                                    assignments = assignmentData.value || [];
-                                }
-                            } catch (assignError) {
-                                console.error(`Error fetching compliance policy assignments:`, assignError);
-                            }
-                            
-                            const assignmentSummary = await processAssignments(assignments);
-                            
-                            allPolicies.compliance.push({
-                                id: policy.id,
-                                name: policy.displayName,
-                                type: 'DeviceCompliance',
-                                description: policy.description || 'Device compliance policy',
-                                created: policy.createdDateTime,
-                                modified: policy.lastModifiedDateTime,
-                                service: 'compliance',
-                                assignments: assignmentSummary,
-                                raw: policy,
-                                rawAssignments: assignments
-                            });
-                        }
-                    }
-                } catch (error) {
-                    console.error('Error fetching device compliance policies:', error);
-                }
-                
-                // Data Loss Prevention policies
-                try {
-                    const dlpResponse = await fetch('https://graph.microsoft.com/beta/informationProtection/dataLossPreventionPolicies', {
-                        headers: { 'Authorization': `Bearer ${accessToken}` }
-                    });
-                    
-                    if (dlpResponse.ok) {
-                        const data = await dlpResponse.json();
-                        const policies = data.value || [];
-                        
-                        policies.forEach(policy => {
-                            allPolicies.compliance.push({
-                                id: policy.id,
-                                name: policy.name,
-                                type: 'DataLossPrevention',
-                                description: 'DLP policy',
-                                service: 'compliance',
-                                raw: policy
-                            });
-                        });
-                    }
-                } catch (error) {
-                    console.error('Error fetching DLP policies:', error);
-                }
-                
-                // Retention labels
-                try {
-                    const labelsResponse = await fetch('https://graph.microsoft.com/beta/security/labels/retentionLabels', {
-                        headers: { 'Authorization': `Bearer ${accessToken}` }
-                    });
-                    
-                    if (labelsResponse.ok) {
-                        const data = await labelsResponse.json();
-                        const labels = data.value || [];
-                        
-                        labels.forEach(label => {
-                            allPolicies.compliance.push({
-                                id: label.id,
-                                name: label.displayName,
-                                type: 'RetentionLabel',
-                                description: label.descriptionForUsers || 'Retention label',
-                                service: 'compliance',
-                                raw: label
-                            });
-                        });
-                    }
-                } catch (error) {
-                    console.error('Error fetching retention labels:', error);
-                }
-                
-                displayCompliancePolicies();
-            } catch (error) {
-                console.error('Error fetching Compliance policies:', error);
-            }
-        }
-
-        function displayCompliancePolicies() {
-            const container = document.getElementById('compliancePolicies');
-            container.innerHTML = '';
-            
-            document.getElementById('complianceCount').textContent = allPolicies.compliance.length;
-            
-            if (allPolicies.compliance.length === 0) {
-                container.innerHTML = `
-                    <div class="alert alert-info">
-                        <strong>No compliance policies found via Graph API</strong><br>
-                        This could mean:
-                        <ul style="margin-top: 10px; margin-left: 20px;">
-                            <li>No compliance policies are configured</li>
-                            <li>Additional permissions may be required</li>
-                            <li>Some policies require Security & Compliance PowerShell</li>
-                        </ul>
-                        <br>
-                        <strong>For complete compliance policy export, use:</strong>
-                        <ul style="margin-top: 10px; margin-left: 20px;">
-                            <li>Security & Compliance PowerShell for DLP, retention policies, etc.</li>
-                            <li>Intune portal for device compliance policies</li>
-                        </ul>
-                    </div>
-                `;
+            if (isAuthenticated) {
+                authStatus.className = 'auth-status connected';
+                authStatus.innerHTML = '<span>Connected to Microsoft Graph</span>';
+                loginBtn.style.display = 'none';
+                signOutBtn.style.display = 'inline-flex';
+                fetchAllBtn.disabled = false;
+                userInfo.style.display = 'block';
+                statusDot.classList.add('connected');
+                connectionStatus.textContent = 'Connected';
             } else {
-                // Add a note about additional policies
-                if (allPolicies.compliance.length > 0 && allPolicies.compliance.length < 5) {
-                    const noteDiv = document.createElement('div');
-                    noteDiv.className = 'alert alert-info';
-                    noteDiv.innerHTML = `
-                        <strong>Note:</strong> Additional compliance policies may be available through Security & Compliance PowerShell, including:
-                        <ul style="margin-top: 5px; margin-left: 20px;">
-                            <li>Advanced DLP policies</li>
-                            <li>Retention policies</li>
-                            <li>eDiscovery policies</li>
-                            <li>Alert policies</li>
-                        </ul>
-                    `;
-                    container.appendChild(noteDiv);
-                }
-                
-                allPolicies.compliance.forEach(policy => {
-                    const card = createPolicyCard(policy);
-                    container.appendChild(card);
-                });
+                authStatus.className = 'auth-status disconnected';
+                authStatus.innerHTML = '<span>Not connected to Microsoft Graph</span>';
+                loginBtn.style.display = 'inline-flex';
+                signOutBtn.style.display = 'none';
+                fetchAllBtn.disabled = true;
+                userInfo.style.display = 'none';
+                statusDot.classList.remove('connected');
+                connectionStatus.textContent = 'Disconnected';
             }
         }
 
-        // Create policy card
-        function createPolicyCard(policy) {
-            const card = document.createElement('div');
-            card.className = 'policy-card';
-            card.dataset.policyId = `${policy.service}-${policy.id}`;
+        // Initialize filters
+        function initializeFilters() {
+            // Setup search filters for each service
+            const services = ['intune', 'exchange', 'sharepoint', 'teams', 'aad', 'compliance'];
             
-            const isSelected = selectedPolicies.has(card.dataset.policyId);
-            if (isSelected) card.classList.add('selected');
-            
-            // Build assignment display
-            let assignmentHtml = '';
-            if (policy.assignments) {
-                const assignments = [];
-                if (policy.assignments.allUsers) assignments.push('<span style="color: #0056b3;">All Users</span>');
-                if (policy.assignments.allDevices) assignments.push('<span style="color: #0056b3;">All Devices</span>');
-                if (policy.assignments.groups && policy.assignments.groups.length > 0) {
-                    policy.assignments.groups.forEach(group => {
-                        assignments.push(`<span style="color: #28a745;">${group.name}</span>`);
+            services.forEach(service => {
+                const searchInput = document.getElementById(service + 'Search');
+                if (searchInput) {
+                    searchInput.addEventListener('input', function() {
+                        filterPolicies(service);
                     });
                 }
-                if (policy.assignments.exclusions && policy.assignments.exclusions.length > 0) {
-                    policy.assignments.exclusions.forEach(group => {
-                        assignments.push(`<span style="color: #dc3545;">Exclude: ${group.name}</span>`);
-                    });
-                }
-                
-                if (assignments.length > 0) {
-                    assignmentHtml = `<div style="margin-top: 8px; font-size: 13px;">
-                        <strong>Assigned to:</strong> ${assignments.join(', ')}
-                    </div>`;
-                }
-            }
+            });
+        }
+
+        // Filter policies based on search input
+        function filterPolicies(service) {
+            const searchInput = document.getElementById(service + 'Search');
+            const searchTerm = searchInput.value.toLowerCase();
+            const policyContainer = document.getElementById(service + 'Policies');
+            const policyCards = policyContainer.querySelectorAll('.policy-card');
             
-            card.innerHTML = `
-                <div class="policy-header">
-                    <input type="checkbox" id="check-${policy.service}-${policy.id}" ${isSelected ? 'checked' : ''}>
-                    <span class="policy-name">${policy.name || 'Unnamed Policy'}</span>
-                    ${policy.enabled !== undefined ? `<span style="font-size: 12px; color: ${policy.enabled ? '#28a745' : '#dc3545'};">${policy.enabled ? '● Enabled' : '● Disabled'}</span>` : ''}
-                    <span class="service-badge service-${policy.service}">${policy.service.toUpperCase()}</span>
-                    <span class="policy-type">${policy.type}</span>
-                </div>
-                ${policy.description ? `<div class="policy-details">${policy.description}</div>` : ''}
-                ${assignmentHtml}
-                <div class="policy-meta">
-                    ${policy.created ? `<span>Created: ${new Date(policy.created).toLocaleDateString()}</span>` : ''}
-                    ${policy.modified ? `<span>Modified: ${new Date(policy.modified).toLocaleDateString()}</span>` : ''}
-                </div>
-                ${policy.note ? `<div class="alert alert-info" style="margin-top: 10px; padding: 8px; font-size: 12px;">${policy.note}</div>` : ''}
-            `;
-            
-            const checkbox = card.querySelector('input[type="checkbox"]');
-            checkbox.addEventListener('change', (e) => {
-                const policyId = card.dataset.policyId;
-                if (e.target.checked) {
-                    selectedPolicies.add(policyId);
-                    card.classList.add('selected');
+            policyCards.forEach(card => {
+                const policyName = card.querySelector('.policy-name').textContent.toLowerCase();
+                if (policyName.includes(searchTerm)) {
+                    card.style.display = '';
                 } else {
-                    selectedPolicies.delete(policyId);
-                    card.classList.remove('selected');
+                    card.style.display = 'none';
                 }
-                updateStats();
             });
-            
-            return card;
         }
 
-        // Search functionality
-        ['intune', 'exchange', 'sharepoint', 'teams', 'aad', 'compliance'].forEach(service => {
-            document.getElementById(`${service}Search`).addEventListener('input', (e) => {
-                const searchTerm = e.target.value.toLowerCase();
-                const cards = document.querySelectorAll(`#${service}Policies .policy-card`);
-                
-                cards.forEach(card => {
-                    const name = card.querySelector('.policy-name').textContent.toLowerCase();
-                    const type = card.querySelector('.policy-type').textContent.toLowerCase();
-                    const visible = name.includes(searchTerm) || type.includes(searchTerm);
-                    card.style.display = visible ? '' : 'none';
-                });
-            });
-        });
+        // Select all policies for a service
+        window.selectAllIntune = () => selectAll('intune');
+        window.deselectAllIntune = () => deselectAll('intune');
+        window.selectAllExchange = () => selectAll('exchange');
+        window.deselectAllExchange = () => deselectAll('exchange');
+        window.selectAllSharePoint = () => selectAll('sharepoint');
+        window.deselectAllSharePoint = () => deselectAll('sharepoint');
+        window.selectAllTeams = () => selectAll('teams');
+        window.deselectAllTeams = () => deselectAll('teams');
+        window.selectAllAAD = () => selectAll('aad');
+        window.deselectAllAAD = () => deselectAll('aad');
+        window.selectAllCompliance = () => selectAll('compliance');
+        window.deselectAllCompliance = () => deselectAll('compliance');
 
-        // Select/Deselect all functions
-        window.selectAllIntune = function() { selectAllService('intune'); };
-        window.deselectAllIntune = function() { deselectAllService('intune'); };
-        window.selectAllExchange = function() { selectAllService('exchange'); };
-        window.deselectAllExchange = function() { deselectAllService('exchange'); };
-        window.selectAllSharePoint = function() { selectAllService('sharepoint'); };
-        window.deselectAllSharePoint = function() { deselectAllService('sharepoint'); };
-        window.selectAllTeams = function() { selectAllService('teams'); };
-        window.deselectAllTeams = function() { deselectAllService('teams'); };
-        window.selectAllAAD = function() { selectAllService('aad'); };
-        window.deselectAllAAD = function() { deselectAllService('aad'); };
-        window.selectAllCompliance = function() { selectAllService('compliance'); };
-        window.deselectAllCompliance = function() { deselectAllService('compliance'); };
-
-        function selectAllService(service) {
-            allPolicies[service].forEach(policy => {
-                const policyId = `${service}-${policy.id}`;
-                selectedPolicies.add(policyId);
-                const checkbox = document.getElementById(`check-${policyId}`);
-                if (checkbox) {
+        function selectAll(service) {
+            const policyContainer = document.getElementById(service + 'Policies');
+            const checkboxes = policyContainer.querySelectorAll('input[type="checkbox"]');
+            checkboxes.forEach(checkbox => {
+                if (checkbox.style.display !== 'none') {
                     checkbox.checked = true;
+                    const policyId = checkbox.value;
+                    selectedPolicies.add(policyId);
                     checkbox.closest('.policy-card').classList.add('selected');
                 }
             });
             updateStats();
         }
 
-        function deselectAllService(service) {
-            allPolicies[service].forEach(policy => {
-                const policyId = `${service}-${policy.id}`;
+        function deselectAll(service) {
+            const policyContainer = document.getElementById(service + 'Policies');
+            const checkboxes = policyContainer.querySelectorAll('input[type="checkbox"]');
+            checkboxes.forEach(checkbox => {
+                checkbox.checked = false;
+                const policyId = checkbox.value;
                 selectedPolicies.delete(policyId);
-                const checkbox = document.getElementById(`check-${policyId}`);
-                if (checkbox) {
-                    checkbox.checked = false;
-                    checkbox.closest('.policy-card').classList.remove('selected');
-                }
+                checkbox.closest('.policy-card').classList.remove('selected');
             });
             updateStats();
         }
 
-        // Refresh functions
-        window.refreshIntune = async function() { await fetchIntunePolicies(); };
-        window.refreshExchange = async function() { await fetchExchangePolicies(); };
-        window.refreshSharePoint = async function() { await fetchSharePointPolicies(); };
-        window.refreshTeams = async function() { await fetchTeamsPolicies(); };
-        window.refreshAAD = async function() { await fetchAADPolicies(); };
-        window.refreshCompliance = async function() { await fetchCompliancePolicies(); };
+        // Refresh functions for each service
+        window.refreshIntune = () => fetchServicePolicies('intune');
+        window.refreshExchange = () => fetchServicePolicies('exchange');
+        window.refreshSharePoint = () => fetchServicePolicies('sharepoint');
+        window.refreshTeams = () => fetchServicePolicies('teams');
+        window.refreshAAD = () => fetchServicePolicies('aad');
+        window.refreshCompliance = () => fetchServicePolicies('compliance');
 
         // Update statistics
         function updateStats() {
-            const total = Object.values(allPolicies).reduce((sum, policies) => sum + policies.length, 0);
-            document.getElementById('totalPolicies').textContent = total;
+            let totalCount = 0;
+            Object.values(allPolicies).forEach(policies => {
+                totalCount += policies.length;
+            });
+            
+            document.getElementById('totalPolicies').textContent = totalCount;
             document.getElementById('selectedPolicies').textContent = selectedPolicies.size;
             
-            const servicesWithPolicies = Object.entries(allPolicies).filter(([_, policies]) => policies.length > 0).length;
-            document.getElementById('servicesQueried').textContent = servicesWithPolicies;
+            // Update service counts
+            Object.keys(allPolicies).forEach(service => {
+                const countElement = document.getElementById(service + 'Count');
+                if (countElement) {
+                    countElement.textContent = allPolicies[service].length;
+                }
+            });
+        }
+
+        // Fetch all policies
+        async function fetchAllPolicies() {
+            if (!accessToken) {
+                alert('Please sign in first');
+                return;
+            }
             
-            if (total > 0) {
-                document.getElementById('lastFetch').textContent = new Date().toLocaleTimeString();
+            const progressSection = document.getElementById('overviewProgress');
+            const progressFill = document.getElementById('overviewProgressFill');
+            const progressText = document.getElementById('overviewProgressText');
+            const currentServiceElement = document.getElementById('currentService');
+            
+            progressSection.style.display = 'block';
+            
+            const services = [
+                { name: 'intune', display: 'Intune' },
+                { name: 'exchange', display: 'Exchange' },
+                { name: 'sharepoint', display: 'SharePoint' },
+                { name: 'teams', display: 'Teams' },
+                { name: 'aad', display: 'Azure AD' },
+                { name: 'compliance', display: 'Compliance' }
+            ];
+            
+            let completed = 0;
+            const total = services.length;
+            
+            for (const service of services) {
+                currentServiceElement.textContent = `Fetching ${service.display} policies...`;
+                
+                try {
+                    await fetchServicePolicies(service.name);
+                } catch (error) {
+                    console.error(`Error fetching ${service.display} policies:`, error);
+                }
+                
+                completed++;
+                const progress = Math.round((completed / total) * 100);
+                progressFill.style.width = progress + '%';
+                progressText.textContent = progress + '%';
+            }
+            
+            // Update last fetch time
+            const now = new Date();
+            document.getElementById('lastFetch').textContent = now.toLocaleTimeString();
+            document.getElementById('servicesQueried').textContent = total;
+            
+            // Hide progress
+            setTimeout(() => {
+                progressSection.style.display = 'none';
+            }, 1000);
+            
+            // Show summary
+            showFetchSummary();
+        }
+
+        // Fetch policies for a specific service
+        async function fetchServicePolicies(service) {
+            if (!accessToken) return;
+            
+            try {
+                let policies = [];
+                
+                switch(service) {
+                    case 'intune':
+                        policies = await fetchIntunePolicies();
+                        break;
+                    case 'exchange':
+                        policies = await fetchExchangePolicies();
+                        break;
+                    case 'sharepoint':
+                        policies = await fetchSharePointPolicies();
+                        break;
+                    case 'teams':
+                        policies = await fetchTeamsPolicies();
+                        break;
+                    case 'aad':
+                        policies = await fetchAADPolicies();
+                        break;
+                    case 'compliance':
+                        policies = await fetchCompliancePolicies();
+                        break;
+                }
+                
+                allPolicies[service] = policies;
+                displayPolicies(service, policies);
+                updateStats();
+            } catch (error) {
+                console.error(`Error fetching ${service} policies:`, error);
             }
         }
 
-        // Export functions
-        window.exportSelected = async function() {
-            const format = document.querySelector('input[name="exportFormat"]:checked').value;
-            const policies = getSelectedPolicies();
+        // Fetch Intune policies
+        async function fetchIntunePolicies() {
+            const policies = [];
+            
+            try {
+                // Fetch configuration policies
+                const configResponse = await fetch('https://graph.microsoft.com/beta/deviceManagement/configurationPolicies', {
+                    headers: {
+                        'Authorization': `Bearer ${accessToken}`
+                    }
+                });
+                
+                if (configResponse.ok) {
+                    const configData = await configResponse.json();
+                    configData.value.forEach(policy => {
+                        policies.push({
+                            id: `intune_config_${policy.id}`,
+                            name: policy.name,
+                            type: 'Configuration Policy',
+                            service: 'intune',
+                            created: policy.createdDateTime,
+                            modified: policy.lastModifiedDateTime,
+                            data: policy
+                        });
+                    });
+                }
+                
+                // Fetch compliance policies
+                const complianceResponse = await fetch('https://graph.microsoft.com/beta/deviceManagement/deviceCompliancePolicies', {
+                    headers: {
+                        'Authorization': `Bearer ${accessToken}`
+                    }
+                });
+                
+                if (complianceResponse.ok) {
+                    const complianceData = await complianceResponse.json();
+                    complianceData.value.forEach(policy => {
+                        policies.push({
+                            id: `intune_compliance_${policy.id}`,
+                            name: policy.displayName,
+                            type: 'Compliance Policy',
+                            service: 'intune',
+                            created: policy.createdDateTime,
+                            modified: policy.lastModifiedDateTime,
+                            data: policy
+                        });
+                    });
+                }
+            } catch (error) {
+                console.error('Error fetching Intune policies:', error);
+            }
+            
+            return policies;
+        }
+
+        // Fetch Exchange policies (mock implementation)
+        async function fetchExchangePolicies() {
+            // Note: Exchange policies would require Exchange Online PowerShell or specific Graph endpoints
+            return [];
+        }
+
+        // Fetch SharePoint policies (mock implementation)
+        async function fetchSharePointPolicies() {
+            // Note: SharePoint policies would require SharePoint API or specific Graph endpoints
+            return [];
+        }
+
+        // Fetch Teams policies (mock implementation)
+        async function fetchTeamsPolicies() {
+            // Note: Teams policies would require Teams PowerShell or specific Graph endpoints
+            return [];
+        }
+
+        // Fetch Azure AD policies
+        async function fetchAADPolicies() {
+            const policies = [];
+            
+            try {
+                // Fetch conditional access policies
+                const caResponse = await fetch('https://graph.microsoft.com/v1.0/identity/conditionalAccess/policies', {
+                    headers: {
+                        'Authorization': `Bearer ${accessToken}`
+                    }
+                });
+                
+                if (caResponse.ok) {
+                    const caData = await caResponse.json();
+                    caData.value.forEach(policy => {
+                        policies.push({
+                            id: `aad_ca_${policy.id}`,
+                            name: policy.displayName,
+                            type: 'Conditional Access',
+                            service: 'aad',
+                            created: policy.createdDateTime,
+                            modified: policy.modifiedDateTime,
+                            data: policy
+                        });
+                    });
+                }
+            } catch (error) {
+                console.error('Error fetching Azure AD policies:', error);
+            }
+            
+            return policies;
+        }
+
+        // Fetch Compliance policies (mock implementation)
+        async function fetchCompliancePolicies() {
+            // Note: Compliance policies would require specific Graph endpoints or PowerShell
+            return [];
+        }
+
+        // Display policies in the UI
+        function displayPolicies(service, policies) {
+            const container = document.getElementById(service + 'Policies');
+            container.innerHTML = '';
             
             if (policies.length === 0) {
+                container.innerHTML = `
+                    <div class="empty-state">
+                        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                        </svg>
+                        <h3>No Policies Found</h3>
+                        <p>No policies were found for this service</p>
+                    </div>
+                `;
+                return;
+            }
+            
+            policies.forEach(policy => {
+                const policyCard = document.createElement('div');
+                policyCard.className = 'policy-card';
+                policyCard.innerHTML = `
+                    <div class="policy-header">
+                        <input type="checkbox" value="${policy.id}" onchange="togglePolicySelection('${policy.id}', this)">
+                        <span class="policy-name">${policy.name}</span>
+                        <span class="policy-type">${policy.type}</span>
+                    </div>
+                    <div class="policy-meta">
+                        <span>Created: ${new Date(policy.created).toLocaleDateString()}</span>
+                        <span>Modified: ${new Date(policy.modified).toLocaleDateString()}</span>
+                    </div>
+                `;
+                
+                container.appendChild(policyCard);
+            });
+        }
+
+        // Toggle policy selection
+        window.togglePolicySelection = function(policyId, checkbox) {
+            if (checkbox.checked) {
+                selectedPolicies.add(policyId);
+                checkbox.closest('.policy-card').classList.add('selected');
+            } else {
+                selectedPolicies.delete(policyId);
+                checkbox.closest('.policy-card').classList.remove('selected');
+            }
+            updateStats();
+        };
+
+        // Show fetch summary
+        function showFetchSummary() {
+            const summaryDiv = document.getElementById('fetchSummary');
+            let summaryHTML = '<h3>Fetch Summary</h3><div class="stats-grid">';
+            
+            Object.keys(allPolicies).forEach(service => {
+                const count = allPolicies[service].length;
+                summaryHTML += `
+                    <div class="stat-card">
+                        <div class="stat-number">${count}</div>
+                        <div class="stat-label">${service.charAt(0).toUpperCase() + service.slice(1)} Policies</div>
+                    </div>
+                `;
+            });
+            
+            summaryHTML += '</div>';
+            summaryDiv.innerHTML = summaryHTML;
+            summaryDiv.style.display = 'block';
+        }
+
+        // Initialize export functionality
+        function initializeExport() {
+            // Export functionality would be implemented here
+        }
+
+        // Export selected policies
+        window.exportSelected = function() {
+            if (selectedPolicies.size === 0) {
                 alert('Please select at least one policy to export');
                 return;
             }
             
-            showExportProgress();
-            
-            if (format === 'csv' || format === 'both') {
-                exportToCSV(policies, 'selected');
-            }
-            
-            if (format === 'json' || format === 'both') {
-                exportToJSON(policies, 'selected');
-            }
-            
-            hideExportProgress();
+            const format = document.querySelector('input[name="exportFormat"]:checked').value;
+            exportPolicies(Array.from(selectedPolicies), format);
         };
 
-        window.exportAll = async function() {
-            const format = document.querySelector('input[name="exportFormat"]:checked').value;
-            const policies = getAllPolicies();
+        // Export all policies
+        window.exportAll = function() {
+            const allPolicyIds = [];
+            Object.values(allPolicies).forEach(policies => {
+                policies.forEach(policy => {
+                    allPolicyIds.push(policy.id);
+                });
+            });
             
-            if (policies.length === 0) {
+            if (allPolicyIds.length === 0) {
                 alert('No policies to export. Please fetch policies first.');
                 return;
             }
             
-            showExportProgress();
-            
-            if (format === 'csv' || format === 'both') {
-                exportToCSV(policies, 'all');
-            }
-            
-            if (format === 'json' || format === 'both') {
-                exportToJSON(policies, 'all');
-            }
-            
-            hideExportProgress();
+            const format = document.querySelector('input[name="exportFormat"]:checked').value;
+            exportPolicies(allPolicyIds, format);
         };
 
-        function getSelectedPolicies() {
-            const policies = [];
-            selectedPolicies.forEach(policyId => {
-                const [service, ...idParts] = policyId.split('-');
-                const id = idParts.join('-');
-                const policy = allPolicies[service]?.find(p => p.id === id);
-                if (policy) policies.push(policy);
-            });
-            return policies;
-        }
-
-        function getAllPolicies() {
-            return Object.values(allPolicies).flat();
-        }
-
-        function exportToCSV(policies, prefix) {
-            const includeSettings = document.getElementById('includeSettings').checked;
-            const includeTimestamps = document.getElementById('includeTimestamps').checked;
-            const includeAssignments = document.getElementById('includeAssignments').checked;
-            
-            const headers = ['Service', 'Name', 'Type', 'Description'];
-            if (includeAssignments) {
-                headers.push('Assignments', 'Groups', 'Exclusions');
-            }
-            if (includeTimestamps) {
-                headers.push('Created', 'Modified');
-            }
-            
-            const rows = [headers];
-            
-            policies.forEach(policy => {
-                const row = [
-                    policy.service.toUpperCase(),
-                    policy.name || 'Unnamed',
-                    policy.type,
-                    policy.description || ''
-                ];
-                
-                if (includeAssignments) {
-                    if (policy.assignments) {
-                        const assignmentTypes = [];
-                        if (policy.assignments.allUsers) assignmentTypes.push('All Users');
-                        if (policy.assignments.allDevices) assignmentTypes.push('All Devices');
-                        
-                        const groupNames = policy.assignments.groups?.map(g => g.name).join('; ') || '';
-                        const exclusionNames = policy.assignments.exclusions?.map(g => g.name).join('; ') || '';
-                        
-                        row.push(assignmentTypes.join(', ') || 'None');
-                        row.push(groupNames);
-                        row.push(exclusionNames);
-                    } else {
-                        row.push('', '', '');
-                    }
-                }
-                
-                if (includeTimestamps) {
-                    row.push(
-                        policy.created ? new Date(policy.created).toISOString() : '',
-                        policy.modified ? new Date(policy.modified).toISOString() : ''
-                    );
-                }
-                
-                rows.push(row);
-            });
-            
-            const csv = rows.map(row => row.map(cell => `"${String(cell).replace(/"/g, '""')}"`).join(',')).join('\n');
-            downloadFile(csv, `M365_Policies_${prefix}_${getTimestamp()}.csv`, 'text/csv');
-        }
-
-        function exportToJSON(policies, prefix) {
-            const includeMetadata = document.getElementById('includeMetadata').checked;
-            const includeSettings = document.getElementById('includeSettings').checked;
-            const includeAssignments = document.getElementById('includeAssignments').checked;
-            
-            const exportData = {
-                exportDate: new Date().toISOString(),
-                totalPolicies: policies.length,
-                policies: policies.map(policy => {
-                    const exportPolicy = {
-                        service: policy.service,
-                        name: policy.name,
-                        type: policy.type,
-                        id: policy.id
-                    };
-                    
-                    if (includeMetadata) {
-                        exportPolicy.description = policy.description;
-                        exportPolicy.created = policy.created;
-                        exportPolicy.modified = policy.modified;
-                        if (policy.platform) exportPolicy.platform = policy.platform;
-                    }
-                    
-                    if (includeAssignments && policy.assignments) {
-                        exportPolicy.assignments = policy.assignments;
-                        if (policy.rawAssignments) {
-                            exportPolicy.rawAssignments = policy.rawAssignments;
-                        }
-                    }
-                    
-                    if (includeSettings && policy.raw) {
-                        exportPolicy.configuration = policy.raw;
-                    }
-                    
-                    return exportPolicy;
-                })
-            };
-            
-            const json = JSON.stringify(exportData, null, 2);
-            downloadFile(json, `M365_Policies_${prefix}_${getTimestamp()}.json`, 'application/json');
-        }
-
-        window.downloadIndividual = async function() {
-            const policies = getSelectedPolicies();
-            
-            if (policies.length === 0) {
-                alert('Please select at least one policy to download individually');
+        // Download individual policy JSONs
+        window.downloadIndividual = function() {
+            if (selectedPolicies.size === 0) {
+                alert('Please select at least one policy to download');
                 return;
             }
             
-            showExportProgress();
-            
-            for (let i = 0; i < policies.length; i++) {
-                const policy = policies[i];
-                const json = JSON.stringify(policy.raw || policy, null, 2);
-                const filename = `${policy.service}_${policy.type}_${policy.name.replace(/[^a-z0-9]/gi, '_')}.json`;
-                downloadFile(json, filename, 'application/json');
-                
-                // Update progress
-                const progress = Math.round(((i + 1) / policies.length) * 100);
-                document.getElementById('exportProgressFill').style.width = progress + '%';
-                document.getElementById('exportProgressText').textContent = progress + '%';
-                
-                // Small delay between downloads
-                await new Promise(resolve => setTimeout(resolve, 100));
-            }
-            
-            hideExportProgress();
+            selectedPolicies.forEach(policyId => {
+                const policy = findPolicyById(policyId);
+                if (policy) {
+                    downloadJSON(policy.data, `${policy.service}_${policy.name.replace(/[^a-z0-9]/gi, '_')}.json`);
+                }
+            });
         };
 
-        function downloadFile(content, filename, type) {
-            const blob = new Blob([content], { type });
+        // Export policies in specified format
+        function exportPolicies(policyIds, format) {
+            const exportData = [];
+            
+            policyIds.forEach(policyId => {
+                const policy = findPolicyById(policyId);
+                if (policy) {
+                    exportData.push(policy);
+                }
+            });
+            
+            if (format === 'csv' || format === 'both') {
+                exportCSV(exportData);
+            }
+            
+            if (format === 'json' || format === 'both') {
+                exportJSON(exportData);
+            }
+        }
+
+        // Find policy by ID
+        function findPolicyById(policyId) {
+            for (const service of Object.keys(allPolicies)) {
+                const policy = allPolicies[service].find(p => p.id === policyId);
+                if (policy) return policy;
+            }
+            return null;
+        }
+
+        // Export as CSV
+        function exportCSV(policies) {
+            const headers = ['Service', 'Policy Name', 'Type', 'Created', 'Modified'];
+            const rows = policies.map(policy => [
+                policy.service,
+                policy.name,
+                policy.type,
+                new Date(policy.created).toLocaleDateString(),
+                new Date(policy.modified).toLocaleDateString()
+            ]);
+            
+            const csv = [headers, ...rows].map(row => row.map(cell => `"${cell}"`).join(',')).join('\n');
+            downloadFile(csv, 'policies_export.csv', 'text/csv');
+        }
+
+        // Export as JSON
+        function exportJSON(policies) {
+            const jsonData = JSON.stringify(policies, null, 2);
+            downloadFile(jsonData, 'policies_export.json', 'application/json');
+        }
+
+        // Download JSON file
+        function downloadJSON(data, filename) {
+            const jsonData = JSON.stringify(data, null, 2);
+            downloadFile(jsonData, filename, 'application/json');
+        }
+
+        // Download file helper
+        function downloadFile(content, filename, mimeType) {
+            const blob = new Blob([content], { type: mimeType });
             const url = URL.createObjectURL(blob);
             const a = document.createElement('a');
             a.href = url;
             a.download = filename;
+            document.body.appendChild(a);
             a.click();
+            document.body.removeChild(a);
             URL.revokeObjectURL(url);
         }
-
-        function getTimestamp() {
-            return new Date().toISOString().slice(0, 19).replace(/:/g, '-');
-        }
-
-        function showExportProgress() {
-            document.getElementById('exportProgress').style.display = 'block';
-            document.getElementById('exportProgressFill').style.width = '0%';
-            document.getElementById('exportProgressText').textContent = '0%';
-            document.getElementById('exportStatus').textContent = 'Preparing export...';
-        }
-
-        function hideExportProgress() {
-            setTimeout(() => {
-                document.getElementById('exportProgress').style.display = 'none';
-            }, 2000);
-            document.getElementById('exportStatus').textContent = 'Export completed!';
-            document.getElementById('exportProgressFill').style.width = '100%';
-            document.getElementById('exportProgressText').textContent = '100%';
-        }
-
-        // Save Client ID to localStorage if available
-        const clientIdInput = document.getElementById('clientId');
-        
-        // Load saved Client ID
-        try {
-            const savedClientId = localStorage.getItem('m365PolicyDownloaderClientId');
-            if (savedClientId) {
-                clientIdInput.value = savedClientId;
-                clientIdInput.dispatchEvent(new Event('input'));
-            }
-        } catch (e) {
-            console.log('localStorage not available');
-        }
-
-        // Save Client ID when changed
-        clientIdInput.addEventListener('change', () => {
-            const clientId = clientIdInput.value.trim();
-            if (clientId) {
-                try {
-                    localStorage.setItem('m365PolicyDownloaderClientId', clientId);
-                } catch (e) {
-                    console.log('Could not save Client ID to localStorage');
-                }
-            }
-        });
-
-        // Initialize stats
-        updateStats();
-
-        // Debug function to manually show redirect URI
-        window.showRedirectUri = function() {
-            const el = document.getElementById('currentRedirectUri');
-            const alert = document.getElementById('redirectUriAlert');
-            if (el) {
-                el.textContent = window.currentUrl;
-                console.log('Redirect URI manually set to:', window.currentUrl);
-            }
-            if (alert) {
-                alert.style.display = 'block';
-                console.log('Redirect URI alert made visible');
-            }
-        };
-
-        console.log('M365 Policy Downloader initialized successfully');
-        console.log('Current redirect URI:', window.currentUrl);
-        console.log('Redirect URI Alert visible:', document.getElementById('redirectUriAlert')?.style.display);
-        console.log('Environment: Sandboxed =', window.isSandboxed);
-        console.log('To manually show redirect URI, run: window.showRedirectUri()');
-        
-        }); // End of DOMContentLoaded
-        
-        // Fallback for redirect URI display
-        window.addEventListener('load', function() {
-            const uriEl = document.getElementById('currentRedirectUri');
-            if (uriEl && (!uriEl.textContent || uriEl.textContent === 'Loading...')) {
-                uriEl.textContent = window.currentUrl;
-                console.log('Redirect URI set via window.load:', window.currentUrl);
-            }
-        });
     </script>
 </body>
 </html>
