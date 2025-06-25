@@ -942,7 +942,7 @@ async function authenticateUser() {
     }
 }
 
-// SHA-256 hashing function - THIS IS THE CORRECT IMPLEMENTATION
+// SHA-256 hashing function
 async function hashPassword(password) {
     const msgUint8 = new TextEncoder().encode(password);
     const hashBuffer = await crypto.subtle.digest('SHA-256', msgUint8);
