@@ -6,7 +6,7 @@ Upload CIS compliance workflows to Microsoft Intune.
 
 ## Usage
 
-1. Visit: [https://[your-github-username].github.io/intune-policy-manager/](https://luiserodz.github.io/theHAM/IntunePolicyManager.html)
+1. For the Intune Policy Manager, visit: [https://luiserodz.github.io/theHAM/IntunePolicyManager.html]
 2. Enter the Client ID (or use the pre-configured one)
 3. Sign in with your Microsoft account
 4. Select JSON workflow files
