@@ -764,96 +764,136 @@
         </div>
 
         <!-- How to Get Client ID Section -->
-        <div style="background: white; border-radius: 8px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); padding: 0; margin-bottom: 20px;">
-            <button class="collapsible" id="howToToggle">
-                <span>How to Get Your Entra ID Client ID</span>
-            </button>
-            <div class="collapsible-content" id="howToContent">
-                <div class="how-to-section">
-                    <h3>Step-by-Step Guide to Register Your Application</h3>
-                    
-                    <div class="alert alert-warning">
-                        <svg width="20" height="20" fill="currentColor" viewBox="0 0 16 16">
-                            <path d="M8.982 1.566a1.13 1.13 0 0 0-1.96 0L.165 13.233c-.457.778.091 1.767.98 1.767h13.713c.889 0 1.438-.99.98-1.767L8.982 1.566zM8 5c.535 0 .954.462.9.995l-.35 3.507a.552.552 0 0 1-1.1 0L7.1 5.995A.905.905 0 0 1 8 5zm.002 6a1 1 0 1 1 0 2 1 1 0 0 1 0-2z"/>
-                        </svg>
-                        <strong>Dynamic Environment Warning:</strong> If you're running this in Google Colab, JSFiddle, or similar platforms, the redirect URI changes each time. You'll need to update it in Entra ID before each use.
-                    </div>
-                    
-                    <h4>Step 1: Register an Application in Entra ID</h4>
-                    <ol>
-                        <li>Go to the <a href="https://entra.microsoft.com" target="_blank">Microsoft Entra Portal</a></li>
-                        <li>Navigate to <strong>Applications</strong> → <strong>App registrations</strong></li>
-                        <li>Click <strong>New registration</strong></li>
-                        <li>Configure the application:
-                            <ul style="margin-top: 5px;">
-                                <li><strong>Name:</strong> M365 Policy Downloader (or any name you prefer)</li>
-                                <li><strong>Supported account types:</strong> Choose based on your needs:
-                                    <ul>
-                                        <li>"Accounts in this organizational directory only" (single tenant)</li>
-                                        <li>"Accounts in any organizational directory" (multi-tenant)</li>
-                                    </ul>
-                                </li>
-                                <li><strong>Redirect URI:</strong>
-                                    <ul>
-                                        <li>Platform: <code>Single-page application (SPA)</code></li>
-                                        <li>URI: <strong style="color: red;">Copy the URI shown above in the yellow box</strong></li>
-                                    </ul>
-                                </li>
-                            </ul>
-                        </li>
-                        <li>Click <strong>Register</strong></li>
-                    </ol>
-
-                    <h4>Step 2: Configure API Permissions</h4>
-                    <ol>
-                        <li>In your app registration, go to <strong>API permissions</strong></li>
-                        <li>Click <strong>Add a permission</strong></li>
-                        <li>Select <strong>Microsoft Graph</strong></li>
-                        <li>Choose <strong>Delegated permissions</strong></li>
-                        <li>Search for and add these permissions:
-                            <ul style="margin-top: 5px;">
-                                <li><code>DeviceManagementConfiguration.Read.All</code> - Read Intune policies</li>
-                                <li><code>Policy.Read.All</code> - Read Azure AD and conditional access policies</li>
-                                <li><code>Directory.Read.All</code> - Read directory data</li>
-                                <li><code>Group.Read.All</code> - Read group information for assignments</li>
-                                <li><code>Sites.Read.All</code> - Read SharePoint settings</li>
-                                <li><code>User.Read</code> - Sign in and read user profile</li>
-                            </ul>
-                        </li>
-                        <li>Click <strong>Add permissions</strong></li>
-                        <li><strong style="color: red;">Important:</strong> Click <strong>Grant admin consent for [Your Organization]</strong></li>
-                        <li>Ensure all permissions show a green checkmark under "Status"</li>
-                    </ol>
-
-                    <h4>Step 3: Get Your Client ID</h4>
-                    <ol>
-                        <li>Go to the <strong>Overview</strong> page of your app registration</li>
-                        <li>Copy the <strong>Application (client) ID</strong> (it looks like: <code>xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx</code>)</li>
-                        <li>Paste it in the Client ID field below</li>
-                    </ol>
-
-                    <h4>Troubleshooting Common Issues:</h4>
-                    <div style="background: #fff3cd; border: 1px solid #ffc107; border-radius: 6px; padding: 15px; margin: 15px 0;">
-                        <ul style="margin-left: 20px;">
-                            <li><strong>Button not responding:</strong> Check browser console (F12) for errors</li>
-                            <li><strong>403 Forbidden:</strong> Admin consent not granted - have an admin grant consent in Entra ID</li>
-                            <li><strong>401 Unauthorized:</strong> Token expired - sign out and sign in again</li>
-                            <li><strong>AADSTS50011:</strong> Redirect URI mismatch - ensure the URI matches exactly</li>
-                            <li><strong>Platform doesn't matter:</strong> Works on Windows, macOS, and Linux</li>
-                        </ul>
-                    </div>
-
-                    <h4>Alternative: Use a Static Hosting Service</h4>
-                    <p>To avoid changing the redirect URI each time, consider hosting this HTML file on:</p>
-                    <ul style="margin-left: 20px;">
-                        <li>GitHub Pages (free)</li>
-                        <li>Netlify (free tier available)</li>
-                        <li>Microsoft Azure Static Web Apps (free tier available)</li>
-                        <li>Your own web server</li>
-                    </ul>
-                </div>
+<div style="background: white; border-radius: 8px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); padding: 0; margin-bottom: 20px;">
+    <button class="collapsible" id="howToToggle">
+        <span>How to Get Your Entra ID Client ID</span>
+    </button>
+    <div class="collapsible-content" id="howToContent">
+        <div class="how-to-section">
+            <h3>Step-by-Step Guide to Register Your Application</h3>
+            
+            <div class="alert alert-warning">
+                <svg width="20" height="20" fill="currentColor" viewBox="0 0 16 16">
+                    <path d="M8.982 1.566a1.13 1.13 0 0 0-1.96 0L.165 13.233c-.457.778.091 1.767.98 1.767h13.713c.889 0 1.438-.99.98-1.767L8.982 1.566zM8 5c.535 0 .954.462.9.995l-.35 3.507a.552.552 0 0 1-1.1 0L7.1 5.995A.905.905 0 0 1 8 5zm.002 6a1 1 0 1 1 0 2 1 1 0 0 1 0-2z"/>
+                </svg>
+                <strong>Dynamic Environment Warning:</strong> If you're running this in Google Colab, JSFiddle, or similar platforms, the redirect URI changes each time. You'll need to update it in Entra ID before each use.
             </div>
+            
+            <h4>Step 1: Register an Application in Entra ID</h4>
+            <ol>
+                <li>Go to the <a href="https://entra.microsoft.com" target="_blank">Microsoft Entra Portal</a></li>
+                <li>Navigate to <strong>Applications</strong> → <strong>App registrations</strong></li>
+                <li>Click <strong>New registration</strong></li>
+                <li>Configure the application:
+                    <ul style="margin-top: 5px;">
+                        <li><strong>Name:</strong> M365 Policy Downloader (or any name you prefer)</li>
+                        <li><strong>Supported account types:</strong> Choose based on your needs:
+                            <ul>
+                                <li>"Accounts in this organizational directory only" (single tenant)</li>
+                                <li>"Accounts in any organizational directory" (multi-tenant)</li>
+                            </ul>
+                        </li>
+                        <li><strong>Redirect URI:</strong>
+                            <ul>
+                                <li>Platform: <code>Single-page application (SPA)</code></li>
+                                <li>URI: 
+                                    <div style="display: inline-flex; align-items: center; gap: 10px; background: #f0f8ff; padding: 5px 10px; border-radius: 4px; margin: 5px 0;">
+                                        <code id="howToRedirectUri" style="font-family: monospace; color: #d73a49;">Loading...</code>
+                                        <button class="copy-btn" onclick="copyHowToUri(this)" style="padding: 3px 10px; font-size: 12px;">Copy</button>
+                                    </div>
+                                </li>
+                            </ul>
+                        </li>
+                    </ul>
+                </li>
+                <li>Click <strong>Register</strong></li>
+            </ol>
+
+            <h4>Step 2: Configure API Permissions</h4>
+            <ol>
+                <li>In your app registration, go to <strong>API permissions</strong></li>
+                <li>Click <strong>Add a permission</strong></li>
+                <li>Select <strong>Microsoft Graph</strong></li>
+                <li>Choose <strong>Delegated permissions</strong></li>
+                <li>Search for and add these permissions:
+                    <ul style="margin-top: 5px;">
+                        <li><code>DeviceManagementConfiguration.Read.All</code> - Read Intune policies</li>
+                        <li><code>Policy.Read.All</code> - Read Azure AD and conditional access policies</li>
+                        <li><code>Directory.Read.All</code> - Read directory data</li>
+                        <li><code>Group.Read.All</code> - Read group information for assignments</li>
+                        <li><code>Sites.Read.All</code> - Read SharePoint settings</li>
+                        <li><code>User.Read</code> - Sign in and read user profile</li>
+                    </ul>
+                </li>
+                <li>Click <strong>Add permissions</strong></li>
+                <li><strong style="color: red;">Important:</strong> Click <strong>Grant admin consent for [Your Organization]</strong></li>
+                <li>Ensure all permissions show a green checkmark under "Status"</li>
+            </ol>
+
+            <h4>Step 3: Get Your Client ID</h4>
+            <ol>
+                <li>Go to the <strong>Overview</strong> page of your app registration</li>
+                <li>Copy the <strong>Application (client) ID</strong> (it looks like: <code>xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx</code>)</li>
+                <li>Paste it in the Client ID field below</li>
+            </ol>
+
+            <h4>Troubleshooting Common Issues:</h4>
+            <div style="background: #fff3cd; border: 1px solid #ffc107; border-radius: 6px; padding: 15px; margin: 15px 0;">
+                <ul style="margin-left: 20px;">
+                    <li><strong>Button not responding:</strong> Check browser console (F12) for errors</li>
+                    <li><strong>403 Forbidden:</strong> Admin consent not granted - have an admin grant consent in Entra ID</li>
+                    <li><strong>401 Unauthorized:</strong> Token expired - sign out and sign in again</li>
+                    <li><strong>AADSTS50011:</strong> Redirect URI mismatch - ensure the URI matches exactly</li>
+                    <li><strong>Platform doesn't matter:</strong> Works on Windows, macOS, and Linux</li>
+                </ul>
+            </div>
+
+            <h4>Alternative: Use a Static Hosting Service</h4>
+            <p>To avoid changing the redirect URI each time, consider hosting this HTML file on:</p>
+            <ul style="margin-left: 20px;">
+                <li>GitHub Pages (free)</li>
+                <li>Netlify (free tier available)</li>
+                <li>Microsoft Azure Static Web Apps (free tier available)</li>
+                <li>Your own web server</li>
+            </ul>
         </div>
+    </div>
+</div>
+
+<script>
+// Function to copy the how-to URI
+function copyHowToUri(buttonElement) {
+    const uriElement = document.getElementById('howToRedirectUri');
+    const uri = uriElement.textContent;
+    
+    if (uri && uri !== 'Loading...') {
+        if (!window.isSandboxed && navigator.clipboard && navigator.clipboard.writeText) {
+            navigator.clipboard.writeText(uri).then(() => {
+                const originalText = buttonElement.textContent;
+                buttonElement.textContent = 'Copied!';
+                buttonElement.style.background = '#28a745';
+                setTimeout(() => {
+                    buttonElement.textContent = originalText;
+                    buttonElement.style.background = '';
+                }, 2000);
+            }).catch(() => {
+                fallbackCopyToClipboard(uri, buttonElement);
+            });
+        } else {
+            fallbackCopyToClipboard(uri, buttonElement);
+        }
+    }
+}
+
+// Update the how-to redirect URI when DOM loads
+document.addEventListener('DOMContentLoaded', function() {
+    // Update the how-to section URI
+    const howToUriElement = document.getElementById('howToRedirectUri');
+    if (howToUriElement) {
+        howToUriElement.textContent = window.currentUrl;
+    }
+});
+</script>
 
         <!-- Overview Tab -->
         <div class="tab-content active" id="overviewTab" role="tabpanel">
