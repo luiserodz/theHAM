@@ -12,175 +12,376 @@
         }
 
         body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background: linear-gradient(135deg, #0078d4 0%, #005a9e 100%);
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
             min-height: 100vh;
-            padding: 20px;
+            color: #1f2937;
+            line-height: 1.6;
         }
 
         .container {
-            max-width: 1400px;
+            max-width: 1280px;
             margin: 0 auto;
-            background: white;
-            border-radius: 12px;
-            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
-            overflow: hidden;
+            padding: 2rem 1rem;
         }
 
         .header {
-            background: linear-gradient(135deg, #0078d4, #106ebe);
-            color: white;
-            padding: 30px;
-            text-align: center;
+            background-color: white;
+            border-radius: 0.5rem;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+            padding: 1.5rem;
+            margin-bottom: 2rem;
+            position: relative;
         }
 
-        .header h1 {
-            font-size: 2.5em;
-            margin-bottom: 10px;
-            font-weight: 300;
+        .header-title {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 1rem;
+        }
+
+        .header-title h1 {
+            font-size: 1.875rem;
+            font-weight: 700;
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
         }
 
         .header p {
             font-size: 1.1em;
             opacity: 0.9;
+            color: #4b5563;
+        }
+
+        .icon {
+            width: 1.5rem;
+            height: 1.5rem;
+            display: inline-block;
+            vertical-align: middle;
+        }
+
+        .status-indicator {
+            position: absolute;
+            top: 1rem;
+            right: 1rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            font-size: 0.875rem;
+        }
+
+        .status-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: #dc3545;
+        }
+
+        .status-dot.connected {
+            background: #28a745;
         }
 
         .nav-tabs {
             display: flex;
-            background: #f8f9fa;
-            border-bottom: 1px solid #dee2e6;
-            overflow-x: auto;
-            scrollbar-width: thin;
+            background-color: white;
+            border-radius: 0.5rem;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+            margin-bottom: 2rem;
+            overflow: hidden;
         }
 
         .nav-tab {
-            padding: 15px 25px;
-            cursor: pointer;
-            border-bottom: 3px solid transparent;
-            transition: all 0.3s ease;
-            white-space: nowrap;
+            flex: 1;
+            padding: 1rem;
+            text-align: center;
             background: none;
             border: none;
-            font-size: 14px;
+            cursor: pointer;
+            font-size: 0.875rem;
             font-weight: 500;
-            color: #495057;
+            color: #6b7280;
+            transition: all 0.2s;
+            position: relative;
         }
 
         .nav-tab:hover {
-            background: #e9ecef;
+            background-color: #f3f4f6;
         }
 
         .nav-tab.active {
-            background: white;
-            color: #0078d4;
-            border-bottom-color: #0078d4;
+            color: #2563eb;
+            background-color: #eff6ff;
         }
 
-        .content {
-            padding: 30px;
+        .nav-tab.active::after {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            height: 3px;
+            background-color: #2563eb;
         }
 
         .tab-content {
             display: none;
+            background-color: white;
+            border-radius: 0.5rem;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+            padding: 1.5rem;
+            animation: fadeIn 0.3s ease;
         }
 
         .tab-content.active {
             display: block;
         }
 
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
         .auth-section {
-            background: #f8f9fa;
-            border: 1px solid #dee2e6;
-            border-radius: 8px;
-            padding: 20px;
-            margin-bottom: 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
         }
 
-        .form-group {
-            margin-bottom: 20px;
-        }
-
-        .form-group label {
-            display: block;
-            margin-bottom: 8px;
+        .auth-status {
+            padding: 10px 15px;
+            border-radius: 5px;
             font-weight: 500;
-            color: #333;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
         }
 
-        .form-group input {
-            width: 100%;
-            padding: 12px;
-            border: 2px solid #e1e5e9;
-            border-radius: 6px;
-            font-size: 14px;
-            transition: all 0.3s ease;
+        .auth-status.connected {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
         }
 
-        .form-group input:focus {
-            outline: none;
-            border-color: #0078d4;
-            box-shadow: 0 0 0 3px rgba(0, 120, 212, 0.1);
+        .auth-status.disconnected {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
         }
 
         .btn {
-            background: linear-gradient(135deg, #0078d4, #106ebe);
-            color: white;
+            padding: 10px 20px;
             border: none;
-            padding: 12px 30px;
-            border-radius: 6px;
-            cursor: pointer;
-            font-size: 14px;
+            border-radius: 5px;
+            font-size: 16px;
             font-weight: 500;
+            cursor: pointer;
             transition: all 0.3s ease;
-            margin-right: 10px;
-            margin-bottom: 10px;
             display: inline-flex;
             align-items: center;
             gap: 8px;
+            position: relative;
+            overflow: hidden;
         }
 
-        .btn:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 4px 12px rgba(0, 120, 212, 0.3);
+        .btn::before {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 0;
+            height: 0;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.3);
+            transform: translate(-50%, -50%);
+            transition: width 0.6s, height 0.6s;
+        }
+
+        .btn:active::before {
+            width: 300px;
+            height: 300px;
+        }
+
+        .btn-primary {
+            background: #2a5298;
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: #1e3c72;
+            transform: translateY(-1px);
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+        }
+
+        .btn-secondary {
+            background: #6c757d;
+            color: white;
+        }
+
+        .btn-secondary:hover {
+            background: #5a6268;
+        }
+
+        .btn-success {
+            background: #28a745;
+            color: white;
+        }
+
+        .btn-success:hover {
+            background: #218838;
+        }
+
+        .btn-danger {
+            background: #dc3545;
+            color: white;
+        }
+
+        .btn-danger:hover {
+            background: #c82333;
+        }
+
+        .btn-info {
+            background: #17a2b8;
+            color: white;
+        }
+
+        .btn-info:hover {
+            background: #138496;
+        }
+
+        .btn svg {
+            pointer-events: none;
         }
 
         .btn:disabled {
             opacity: 0.6;
             cursor: not-allowed;
+            pointer-events: none;
         }
 
-        .btn-secondary {
-            background: linear-gradient(135deg, #6c757d, #545b62);
+        .btn.loading {
+            color: transparent;
         }
 
-        .btn-success {
-            background: linear-gradient(135deg, #28a745, #20923a);
+        .btn.loading::after {
+            content: '';
+            position: absolute;
+            width: 16px;
+            height: 16px;
+            margin: auto;
+            border: 2px solid transparent;
+            border-top-color: white;
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
         }
 
-        .btn-danger {
-            background: linear-gradient(135deg, #dc3545, #c82333);
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
         }
 
-        .btn-info {
-            background: linear-gradient(135deg, #17a2b8, #138496);
+        .form-group {
+            margin-bottom: 15px;
         }
 
-        .status-indicator {
-            display: inline-block;
-            padding: 6px 12px;
-            border-radius: 20px;
-            font-size: 14px;
+        .form-group label {
+            display: block;
+            margin-bottom: 5px;
             font-weight: 500;
         }
 
-        .status-connected {
-            background: #d4edda;
-            color: #155724;
+        .form-group input,
+        .form-group select,
+        .form-group textarea {
+            width: 100%;
+            padding: 8px 12px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 14px;
+            transition: all 0.2s;
         }
 
-        .status-disconnected {
+        .form-group input:focus,
+        .form-group select:focus,
+        .form-group textarea:focus {
+            outline: none;
+            border-color: #3b82f6;
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+        }
+
+        .alert {
+            padding: 15px;
+            margin-bottom: 20px;
+            border-radius: 5px;
+            display: flex;
+            align-items: flex-start;
+            gap: 10px;
+        }
+
+        .alert-warning {
+            background: #fff3cd;
+            color: #856404;
+            border: 1px solid #ffeaa7;
+        }
+
+        .alert-danger {
             background: #f8d7da;
             color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+
+        .alert-info {
+            background: #d1ecf1;
+            color: #0c5460;
+            border: 1px solid #bee5eb;
+        }
+
+        .alert-success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+
+        .collapsible {
+            cursor: pointer;
+            padding: 10px;
+            background: #2a5298;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            width: 100%;
+            text-align: left;
+            font-size: 16px;
+            font-weight: 500;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .collapsible:hover {
+            background: #1e3c72;
+        }
+
+        .collapsible-content {
+            max-height: 0;
+            overflow: hidden;
+            transition: max-height 0.3s ease-out;
+        }
+
+        .collapsible-content.active {
+            max-height: 3000px;
+            transition: max-height 0.5s ease-in;
+        }
+
+        .collapsible::after {
+            content: '\25BC';
+            font-size: 12px;
+            transition: transform 0.3s;
+        }
+
+        .collapsible.active::after {
+            transform: rotate(180deg);
         }
 
         .policy-grid {
@@ -191,27 +392,28 @@
 
         .policy-card {
             background: white;
-            border: 1px solid #dee2e6;
-            border-radius: 8px;
-            padding: 15px;
+            border: 1px solid #e5e7eb;
+            border-radius: 6px;
+            padding: 12px;
             transition: all 0.2s;
+            cursor: pointer;
         }
 
         .policy-card:hover {
-            border-color: #0078d4;
-            box-shadow: 0 2px 8px rgba(0, 120, 212, 0.1);
+            border-color: #3b82f6;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
         }
 
         .policy-card.selected {
-            background: #e7f3ff;
-            border-color: #0078d4;
+            background: #eff6ff;
+            border-color: #2563eb;
         }
 
         .policy-header {
             display: flex;
             align-items: center;
             gap: 10px;
-            margin-bottom: 10px;
+            margin-bottom: 8px;
         }
 
         .policy-header input[type="checkbox"] {
@@ -222,22 +424,26 @@
 
         .policy-name {
             font-weight: 600;
+            color: #1f2937;
             flex: 1;
         }
 
         .policy-type {
-            display: inline-block;
-            padding: 4px 8px;
-            background: #e7f3ff;
-            color: #0056b3;
+            background: #e0e7ff;
+            color: #3730a3;
+            padding: 2px 8px;
             border-radius: 4px;
-            font-size: 12px;
+            font-size: 0.75rem;
+            font-weight: 500;
         }
 
         .policy-details {
-            margin-top: 8px;
-            font-size: 14px;
-            color: #6c757d;
+            font-size: 0.875rem;
+            color: #6b7280;
+            display: flex;
+            gap: 16px;
+            flex-wrap: wrap;
+            margin-left: 30px;
         }
 
         .policy-meta {
@@ -245,60 +451,13 @@
             gap: 20px;
             margin-top: 8px;
             font-size: 13px;
-            color: #6c757d;
-        }
-
-        .loading-spinner {
-            display: inline-block;
-            width: 20px;
-            height: 20px;
-            border: 3px solid #f3f3f3;
-            border-top: 3px solid #0078d4;
-            border-radius: 50%;
-            animation: spin 1s linear infinite;
-            margin-right: 10px;
-        }
-
-        @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
-        }
-
-        .progress-bar {
-            width: 100%;
-            height: 25px;
-            background: #e0e0e0;
-            border-radius: 15px;
-            overflow: hidden;
-            margin: 20px 0;
-            position: relative;
-        }
-
-        .progress-fill {
-            height: 100%;
-            background: linear-gradient(90deg, #28a745 0%, #20c997 100%);
-            width: 0%;
-            transition: width 0.5s ease;
-        }
-
-        .progress-text {
-            position: absolute;
-            left: 50%;
-            top: 50%;
-            transform: translate(-50%, -50%);
-            font-size: 12px;
-            font-weight: bold;
-            color: #333;
+            color: #6b7280;
         }
 
         .filter-controls {
-            background: #f8f9fa;
-            border: 1px solid #dee2e6;
-            border-radius: 8px;
-            padding: 15px;
-            margin-bottom: 20px;
             display: flex;
-            gap: 15px;
+            gap: 10px;
+            margin-bottom: 20px;
             align-items: center;
             flex-wrap: wrap;
         }
@@ -307,7 +466,7 @@
             flex: 1;
             min-width: 200px;
             padding: 8px 12px;
-            border: 1px solid #dee2e6;
+            border: 1px solid #ddd;
             border-radius: 4px;
         }
 
@@ -319,58 +478,63 @@
         }
 
         .stat-card {
-            background: #f8f9fa;
-            border: 1px solid #dee2e6;
+            background: white;
+            padding: 20px;
             border-radius: 8px;
-            padding: 15px;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
             text-align: center;
         }
 
         .stat-number {
-            font-size: 24px;
-            font-weight: bold;
-            color: #0078d4;
+            font-size: 2rem;
+            font-weight: 700;
+            color: #2563eb;
+            margin-bottom: 5px;
         }
 
         .stat-label {
-            font-size: 14px;
-            color: #6c757d;
-            margin-top: 5px;
+            color: #6b7280;
+            font-size: 0.875rem;
         }
 
-        .alert {
-            padding: 15px;
-            margin-bottom: 20px;
-            border-radius: 5px;
-            border: 1px solid transparent;
-            display: block;
+        .progress-bar {
+            width: 100%;
+            height: 25px;
+            background: #e0e0e0;
+            border-radius: 15px;
+            overflow: hidden;
+            margin-top: 10px;
+            box-shadow: inset 0 2px 4px rgba(0,0,0,0.1);
+            position: relative;
         }
 
-        .alert-info {
-            background: #d1ecf1;
-            color: #0c5460;
-            border-color: #bee5eb;
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #28a745 0%, #20c997 100%);
+            width: 0%;
+            transition: width 0.5s ease;
+            position: relative;
         }
 
-        .alert-warning {
-            background: #fff3cd;
-            color: #856404;
-            border-color: #ffeaa7;
-        }
-
-        .alert-danger {
-            background: #f8d7da;
-            color: #721c24;
-            border-color: #f5c6cb;
+        .progress-text {
+            position: absolute;
+            left: 50%;
+            top: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 12px;
+            font-weight: bold;
+            color: #333;
+            z-index: 1;
         }
 
         .policy-count {
-            background: #e7f3ff;
-            color: #0056b3;
-            padding: 4px 12px;
-            border-radius: 20px;
-            font-size: 14px;
+            background: #e0e7ff;
+            color: #3730a3;
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-size: 0.75rem;
             font-weight: 500;
+            margin-left: 8px;
         }
 
         .service-badge {
@@ -410,43 +574,68 @@
             gap: 8px;
         }
 
-        .collapsible {
-            background-color: #4a69bd;
-            color: white;
-            cursor: pointer;
-            padding: 18px;
-            width: 100%;
-            border: none;
-            text-align: left;
-            outline: none;
-            font-size: 16px;
-            transition: 0.4s;
-            position: relative;
+        .empty-state {
+            text-align: center;
+            padding: 60px 20px;
+            color: #6b7280;
         }
 
-        .collapsible:hover {
-            background-color: #3c5aa6;
+        .empty-state svg {
+            width: 64px;
+            height: 64px;
+            margin-bottom: 20px;
+            opacity: 0.3;
         }
 
-        .collapsible::after {
-            content: '▼';
-            font-size: 12px;
+        .empty-state h3 {
+            font-size: 1.25rem;
+            margin-bottom: 10px;
+            color: #4b5563;
+        }
+
+        .empty-state p {
+            margin-bottom: 20px;
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                padding: 1rem 0.5rem;
+            }
+            
+            .nav-tabs {
+                flex-direction: column;
+            }
+            
+            .filter-controls {
+                flex-direction: column;
+            }
+            
+            .filter-controls input[type="text"] {
+                width: 100%;
+            }
+            
+            .stats-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        /* Accessibility improvements */
+        .visually-hidden {
             position: absolute;
-            right: 20px;
-            top: 50%;
-            transform: translateY(-50%);
-            transition: transform 0.3s;
-        }
-
-        .collapsible.active::after {
-            transform: translateY(-50%) rotate(180deg);
-        }
-
-        .collapsible-content {
-            padding: 0 18px;
-            display: none;
+            width: 1px;
+            height: 1px;
+            padding: 0;
+            margin: -1px;
             overflow: hidden;
-            background-color: #f1f1f1;
+            clip: rect(0, 0, 0, 0);
+            white-space: nowrap;
+            border: 0;
+        }
+
+        /* Focus styles */
+        *:focus-visible {
+            outline: 2px solid #2563eb;
+            outline-offset: 2px;
         }
 
         .redirect-uri-box {
@@ -457,55 +646,112 @@
             margin: 15px 0;
         }
 
-        code {
+        .redirect-uri-box h4 {
+            color: #856404;
+            margin-bottom: 10px;
+        }
+
+        .redirect-uri-display {
+            background: white;
+            border: 1px solid #ddd;
+            padding: 10px;
+            border-radius: 4px;
+            margin: 10px 0;
+            word-break: break-all;
+            font-family: monospace;
+            font-size: 0.9em;
+        }
+
+        .copy-btn {
+            padding: 5px 15px;
+            background: #17a2b8;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+        }
+
+        .copy-btn:hover {
+            background: #138496;
+        }
+
+        .how-to-section {
+            background: #f0f8ff;
+            border: 2px solid #2a5298;
+            border-radius: 8px;
+            padding: 20px;
+            margin-top: 20px;
+        }
+
+        .how-to-section h3 {
+            color: #2a5298;
+            margin-bottom: 15px;
+        }
+
+        .how-to-section h4 {
+            color: #1e3c72;
+            margin-top: 15px;
+            margin-bottom: 10px;
+        }
+
+        .how-to-section ol {
+            margin-left: 20px;
+        }
+
+        .how-to-section li {
+            margin-bottom: 8px;
+            line-height: 1.6;
+        }
+
+        .how-to-section code {
             background: #e9ecef;
             padding: 2px 6px;
             border-radius: 3px;
             font-family: 'Courier New', monospace;
             font-size: 0.9em;
         }
-
-        @media (max-width: 768px) {
-            .nav-tabs {
-                flex-wrap: nowrap;
-                overflow-x: scroll;
-            }
-            
-            .filter-controls {
-                flex-direction: column;
-            }
-            
-            .filter-controls input[type="text"] {
-                width: 100%;
-            }
-        }
     </style>
 </head>
 <body>
     <div class="container">
         <div class="header">
-            <h1>📋 Microsoft 365 Policy Downloader</h1>
+            <div class="status-indicator">
+                <span class="status-dot" id="statusDot"></span>
+                <span id="connectionStatus">Disconnected</span>
+            </div>
+            <div class="header-title">
+                <h1>
+                    <svg class="icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                    </svg>
+                    Microsoft 365 Policy Downloader
+                </h1>
+            </div>
             <p>Export and backup policies from all Microsoft 365 admin portals with assignment details</p>
         </div>
 
-        <div class="nav-tabs">
-            <button class="nav-tab active" onclick="switchTab('overview')">Overview</button>
-            <button class="nav-tab" onclick="switchTab('intune')">Intune</button>
-            <button class="nav-tab" onclick="switchTab('exchange')">Exchange</button>
-            <button class="nav-tab" onclick="switchTab('sharepoint')">SharePoint</button>
-            <button class="nav-tab" onclick="switchTab('teams')">Teams</button>
-            <button class="nav-tab" onclick="switchTab('aad')">Azure AD</button>
-            <button class="nav-tab" onclick="switchTab('compliance')">Compliance</button>
-            <button class="nav-tab" onclick="switchTab('export')">Export</button>
+        <div class="nav-tabs" role="tablist">
+            <button class="nav-tab active" role="tab" aria-selected="true" onclick="switchTab('overview')">Overview</button>
+            <button class="nav-tab" role="tab" aria-selected="false" onclick="switchTab('intune')">Intune</button>
+            <button class="nav-tab" role="tab" aria-selected="false" onclick="switchTab('exchange')">Exchange</button>
+            <button class="nav-tab" role="tab" aria-selected="false" onclick="switchTab('sharepoint')">SharePoint</button>
+            <button class="nav-tab" role="tab" aria-selected="false" onclick="switchTab('teams')">Teams</button>
+            <button class="nav-tab" role="tab" aria-selected="false" onclick="switchTab('aad')">Azure AD</button>
+            <button class="nav-tab" role="tab" aria-selected="false" onclick="switchTab('compliance')">Compliance</button>
+            <button class="nav-tab" role="tab" aria-selected="false" onclick="switchTab('export')">Export</button>
         </div>
 
-        <div class="content">
-            <!-- Dynamic Redirect URI Alert -->
-            <div class="alert alert-danger" id="redirectUriAlert" style="display: block;">
+        <!-- Dynamic Redirect URI Alert -->
+        <div class="alert alert-danger" id="redirectUriAlert" style="margin: 0 0 20px 0;">
+            <svg width="20" height="20" fill="currentColor" viewBox="0 0 16 16">
+                <path d="M8.982 1.566a1.13 1.13 0 0 0-1.96 0L.165 13.233c-.457.778.091 1.767.98 1.767h13.713c.889 0 1.438-.99.98-1.767L8.982 1.566zM8 5c.535 0 .954.462.9.995l-.35 3.507a.552.552 0 0 1-1.1 0L7.1 5.995A.905.905 0 0 1 8 5zm.002 6a1 1 0 1 1 0 2 1 1 0 0 1 0-2z"/>
+            </svg>
+            <div>
                 <strong>Important - Dynamic Redirect URI Detected!</strong>
-                <div style="background: #fff3cd; border: 2px solid #ffeaa7; border-radius: 5px; padding: 15px; margin: 15px 0;">
-                    <h4 style="color: #856404; margin-bottom: 10px;">Your current redirect URI is:</h4>
-                    <div style="background: white; border: 1px solid #ddd; padding: 10px; border-radius: 4px; margin: 10px 0; word-break: break-all; font-family: monospace; font-size: 0.9em;" id="currentRedirectUri">Loading...</div>
+                <div class="redirect-uri-box">
+                    <h4>Your current redirect URI is:</h4>
+                    <div class="redirect-uri-display" id="currentRedirectUri">Loading...</div>
                     <script>
                         // Immediately populate redirect URI
                         (function() {
@@ -514,106 +760,114 @@
                             if (el) el.textContent = url;
                         })();
                     </script>
-                    <button class="btn btn-info" onclick="window.copyRedirectUri ? window.copyRedirectUri() : alert('Function not loaded yet, please try again')" style="padding: 8px 16px;">Copy to Clipboard</button>
+                    <button class="copy-btn" onclick="window.copyRedirectUri ? window.copyRedirectUri() : alert('Function not loaded yet, please try again')">Copy to Clipboard</button>
                     <p style="margin-top: 10px;">
                         <strong>You must add this exact URI to your Entra ID app registration before signing in!</strong><br>
                         This URI changes each time you load the page in an embedded environment.
                     </p>
                 </div>
             </div>
+        </div>
 
-            <!-- How to Get Client ID Section -->
-            <div style="background: white; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); padding: 0; margin-bottom: 20px;">
-                <button class="collapsible" id="howToToggle" style="width: 100%; text-align: left; padding: 20px; background: #4a69bd; color: white; border: none; cursor: pointer; font-size: 18px; font-weight: 500; border-radius: 8px 8px 0 0;">
-                    How to Get Your Entra ID Client ID
-                </button>
-                <div class="collapsible-content" id="howToContent" style="padding: 20px; border: 1px solid #ddd; border-top: none; border-radius: 0 0 8px 8px; display: none;">
-                    <div style="background: #e7f3ff; border: 2px solid #2a5298; border-radius: 8px; padding: 20px;">
-                        <h3 style="color: #2a5298; margin-bottom: 15px;">Step-by-Step Guide to Register Your Application</h3>
-                        
-                        <div class="alert alert-warning">
-                            <strong>⚠️ Dynamic Environment Warning:</strong> If you're running this in Google Colab, JSFiddle, or similar platforms, the redirect URI changes each time. You'll need to update it in Entra ID before each use.
-                        </div>
-                        
-                        <h4 style="color: #1e3c72; margin-top: 20px;">Step 1: Register an Application in Entra ID</h4>
-                        <ol style="margin-left: 20px; line-height: 1.8;">
-                            <li>Go to the <a href="https://entra.microsoft.com" target="_blank">Microsoft Entra Portal</a></li>
-                            <li>Navigate to <strong>Applications</strong> → <strong>App registrations</strong></li>
-                            <li>Click <strong>New registration</strong></li>
-                            <li>Configure the application:
-                                <ul style="margin-top: 5px;">
-                                    <li><strong>Name:</strong> M365 Policy Downloader (or any name you prefer)</li>
-                                    <li><strong>Supported account types:</strong> Choose based on your needs:
-                                        <ul>
-                                            <li>"Accounts in this organizational directory only" (single tenant)</li>
-                                            <li>"Accounts in any organizational directory" (multi-tenant)</li>
-                                        </ul>
-                                    </li>
-                                    <li><strong>Redirect URI:</strong>
-                                        <ul>
-                                            <li>Platform: <code>Single-page application (SPA)</code></li>
-                                            <li>URI: <strong style="color: red;">Copy the URI shown above in the yellow box</strong></li>
-                                        </ul>
-                                    </li>
-                                </ul>
-                            </li>
-                            <li>Click <strong>Register</strong></li>
-                        </ol>
-
-                        <h4 style="color: #1e3c72; margin-top: 20px;">Step 2: Configure API Permissions</h4>
-                        <ol style="margin-left: 20px; line-height: 1.8;">
-                            <li>In your app registration, go to <strong>API permissions</strong></li>
-                            <li>Click <strong>Add a permission</strong></li>
-                            <li>Select <strong>Microsoft Graph</strong></li>
-                            <li>Choose <strong>Delegated permissions</strong></li>
-                            <li>Search for and add these permissions:
-                                <ul style="margin-top: 5px;">
-                                    <li><code>DeviceManagementConfiguration.Read.All</code> - Read Intune policies</li>
-                                    <li><code>Policy.Read.All</code> - Read Azure AD and conditional access policies</li>
-                                    <li><code>Directory.Read.All</code> - Read directory data</li>
-                                    <li><code>Group.Read.All</code> - Read group information for assignments</li>
-                                    <li><code>Sites.Read.All</code> - Read SharePoint settings</li>
-                                    <li><code>User.Read</code> - Sign in and read user profile</li>
-                                </ul>
-                            </li>
-                            <li>Click <strong>Add permissions</strong></li>
-                            <li><strong style="color: red;">Important:</strong> Click <strong>Grant admin consent for [Your Organization]</strong></li>
-                            <li>Ensure all permissions show a green checkmark under "Status"</li>
-                        </ol>
-
-                        <h4 style="color: #1e3c72; margin-top: 20px;">Step 3: Get Your Client ID</h4>
-                        <ol style="margin-left: 20px; line-height: 1.8;">
-                            <li>Go to the <strong>Overview</strong> page of your app registration</li>
-                            <li>Copy the <strong>Application (client) ID</strong> (it looks like: <code>xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx</code>)</li>
-                            <li>Paste it in the Client ID field below</li>
-                        </ol>
-
-                        <h4 style="color: #1e3c72; margin-top: 20px;">Troubleshooting Common Issues:</h4>
-                        <div style="background: #fff3cd; border: 1px solid #ffc107; border-radius: 6px; padding: 15px; margin: 15px 0;">
-                            <ul style="margin-left: 20px;">
-                                <li><strong>Button not responding:</strong> Check browser console (F12) for errors</li>
-                                <li><strong>403 Forbidden:</strong> Admin consent not granted - have an admin grant consent in Entra ID</li>
-                                <li><strong>401 Unauthorized:</strong> Token expired - sign out and sign in again</li>
-                                <li><strong>AADSTS50011:</strong> Redirect URI mismatch - ensure the URI matches exactly</li>
-                                <li><strong>Platform doesn't matter:</strong> Works on Windows, macOS, and Linux</li>
+        <!-- How to Get Client ID Section -->
+        <div style="background: white; border-radius: 8px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); padding: 0; margin-bottom: 20px;">
+            <button class="collapsible" id="howToToggle" aria-expanded="false" aria-controls="howToContent">
+                <span>How to Get Your Entra ID Client ID</span>
+            </button>
+            <div class="collapsible-content" id="howToContent">
+                <div class="how-to-section">
+                    <h3>Step-by-Step Guide to Register Your Application</h3>
+                    
+                    <div class="alert alert-warning">
+                        <svg width="20" height="20" fill="currentColor" viewBox="0 0 16 16">
+                            <path d="M8.982 1.566a1.13 1.13 0 0 0-1.96 0L.165 13.233c-.457.778.091 1.767.98 1.767h13.713c.889 0 1.438-.99.98-1.767L8.982 1.566zM8 5c.535 0 .954.462.9.995l-.35 3.507a.552.552 0 0 1-1.1 0L7.1 5.995A.905.905 0 0 1 8 5zm.002 6a1 1 0 1 1 0 2 1 1 0 0 1 0-2z"/>
+                        </svg>
+                        <strong>Dynamic Environment Warning:</strong> If you're running this in Google Colab, JSFiddle, or similar platforms, the redirect URI changes each time. You'll need to update it in Entra ID before each use.
+                    </div>
+                    
+                    <h4>Step 1: Register an Application in Entra ID</h4>
+                    <ol>
+                        <li>Go to the <a href="https://entra.microsoft.com" target="_blank">Microsoft Entra Portal</a></li>
+                        <li>Navigate to <strong>Applications</strong> → <strong>App registrations</strong></li>
+                        <li>Click <strong>New registration</strong></li>
+                        <li>Configure the application:
+                            <ul style="margin-top: 5px;">
+                                <li><strong>Name:</strong> M365 Policy Downloader (or any name you prefer)</li>
+                                <li><strong>Supported account types:</strong> Choose based on your needs:
+                                    <ul>
+                                        <li>"Accounts in this organizational directory only" (single tenant)</li>
+                                        <li>"Accounts in any organizational directory" (multi-tenant)</li>
+                                    </ul>
+                                </li>
+                                <li><strong>Redirect URI:</strong>
+                                    <ul>
+                                        <li>Platform: <code>Single-page application (SPA)</code></li>
+                                        <li>URI: <strong style="color: red;">Copy the URI shown above in the yellow box</strong></li>
+                                    </ul>
+                                </li>
                             </ul>
-                        </div>
+                        </li>
+                        <li>Click <strong>Register</strong></li>
+                    </ol>
 
-                        <h4 style="color: #1e3c72; margin-top: 20px;">Alternative: Use a Static Hosting Service</h4>
-                        <p>To avoid changing the redirect URI each time, consider hosting this HTML file on:</p>
+                    <h4>Step 2: Configure API Permissions</h4>
+                    <ol>
+                        <li>In your app registration, go to <strong>API permissions</strong></li>
+                        <li>Click <strong>Add a permission</strong></li>
+                        <li>Select <strong>Microsoft Graph</strong></li>
+                        <li>Choose <strong>Delegated permissions</strong></li>
+                        <li>Search for and add these permissions:
+                            <ul style="margin-top: 5px;">
+                                <li><code>DeviceManagementConfiguration.Read.All</code> - Read Intune policies</li>
+                                <li><code>Policy.Read.All</code> - Read Azure AD and conditional access policies</li>
+                                <li><code>Directory.Read.All</code> - Read directory data</li>
+                                <li><code>Group.Read.All</code> - Read group information for assignments</li>
+                                <li><code>Sites.Read.All</code> - Read SharePoint settings</li>
+                                <li><code>User.Read</code> - Sign in and read user profile</li>
+                            </ul>
+                        </li>
+                        <li>Click <strong>Add permissions</strong></li>
+                        <li><strong style="color: red;">Important:</strong> Click <strong>Grant admin consent for [Your Organization]</strong></li>
+                        <li>Ensure all permissions show a green checkmark under "Status"</li>
+                    </ol>
+
+                    <h4>Step 3: Get Your Client ID</h4>
+                    <ol>
+                        <li>Go to the <strong>Overview</strong> page of your app registration</li>
+                        <li>Copy the <strong>Application (client) ID</strong> (it looks like: <code>xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx</code>)</li>
+                        <li>Paste it in the Client ID field below</li>
+                    </ol>
+
+                    <h4>Troubleshooting Common Issues:</h4>
+                    <div style="background: #fff3cd; border: 1px solid #ffc107; border-radius: 6px; padding: 15px; margin: 15px 0;">
                         <ul style="margin-left: 20px;">
-                            <li>GitHub Pages (free)</li>
-                            <li>Netlify (free tier available)</li>
-                            <li>Microsoft Azure Static Web Apps (free tier available)</li>
-                            <li>Your own web server</li>
+                            <li><strong>Button not responding:</strong> Check browser console (F12) for errors</li>
+                            <li><strong>403 Forbidden:</strong> Admin consent not granted - have an admin grant consent in Entra ID</li>
+                            <li><strong>401 Unauthorized:</strong> Token expired - sign out and sign in again</li>
+                            <li><strong>AADSTS50011:</strong> Redirect URI mismatch - ensure the URI matches exactly</li>
+                            <li><strong>Platform doesn't matter:</strong> Works on Windows, macOS, and Linux</li>
                         </ul>
                     </div>
+
+                    <h4>Alternative: Use a Static Hosting Service</h4>
+                    <p>To avoid changing the redirect URI each time, consider hosting this HTML file on:</p>
+                    <ul style="margin-left: 20px;">
+                        <li>GitHub Pages (free)</li>
+                        <li>Netlify (free tier available)</li>
+                        <li>Microsoft Azure Static Web Apps (free tier available)</li>
+                        <li>Your own web server</li>
+                    </ul>
                 </div>
             </div>
+        </div>
 
-            <!-- Overview Tab -->
-            <div class="tab-content active" id="overviewTab">
-                <div class="alert alert-warning" id="sandboxWarning" style="display: none;">
+        <!-- Overview Tab -->
+        <div class="tab-content active" id="overviewTab" role="tabpanel">
+            <div class="alert alert-warning" id="sandboxWarning" style="display: none;">
+                <svg width="20" height="20" fill="currentColor" viewBox="0 0 16 16">
+                    <path d="M8.982 1.566a1.13 1.13 0 0 0-1.96 0L.165 13.233c-.457.778.091 1.767.98 1.767h13.713c.889 0 1.438-.99.98-1.767L8.982 1.566zM8 5c.535 0 .954.462.9.995l-.35 3.507a.552.552 0 0 1-1.1 0L7.1 5.995A.905.905 0 0 1 8 5zm.002 6a1 1 0 1 1 0 2 1 1 0 0 1 0-2z"/>
+                </svg>
+                <div>
                     <strong>⚠️ Sandboxed Environment Detected!</strong>
                     <p>You're running this in a restricted environment. Some features may not work:</p>
                     <ul style="margin-top: 5px;">
@@ -625,41 +879,49 @@
                         <strong>To download:</strong> Right-click on this page → "Save As" → Save as HTML file → Open locally
                     </p>
                 </div>
-                
-                <div class="auth-section">
-                    <h3>Authentication</h3>
-                    <div class="form-group">
-                        <label for="clientId">Entra ID Client ID:</label>
-                        <input type="text" id="clientId" placeholder="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx">
-                        <small style="display: block; margin-top: 5px; color: #666;">Enter your Entra ID application Client ID</small>
-                    </div>
-                    <div style="display: flex; align-items: center; gap: 20px; margin-bottom: 15px;">
-                        <span class="status-indicator status-disconnected" id="authStatus">Not connected</span>
-                        <span id="userInfo" style="display: none;">Signed in as: <strong id="userEmail"></strong></span>
-                    </div>
-                    <button id="loginBtn" class="btn" disabled>
-                        <svg width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
-                            <path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.012 8.012 0 0 0 16 8c0-4.42-3.58-8-8-8z"/>
-                        </svg>
-                        Sign in with Microsoft
-                    </button>
-                    <button id="signOutBtn" class="btn btn-danger" style="display: none;">
-                        <svg width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
-                            <path fill-rule="evenodd" d="M10 12.5a.5.5 0 0 1-.5.5h-8a.5.5 0 0 1-.5-.5v-9a.5.5 0 0 1 .5-.5h8a.5.5 0 0 1 .5.5v2a.5.5 0 0 0 1 0v-2A1.5 1.5 0 0 0 9.5 2h-8A1.5 1.5 0 0 0 0 3.5v9A1.5 1.5 0 0 0 1.5 14h8a1.5 1.5 0 0 0 1.5-1.5v-2a.5.5 0 0 0-1 0v2z"/>
-                            <path fill-rule="evenodd" d="M15.854 8.354a.5.5 0 0 0 0-.708l-3-3a.5.5 0 0 0-.708.708L14.293 7.5H5.5a.5.5 0 0 0 0 1h8.793l-2.147 2.146a.5.5 0 0 0 .708.708l3-3z"/>
-                        </svg>
-                        Sign Out
-                    </button>
-                    <button id="fetchAllBtn" class="btn btn-success" disabled>
-                        <svg width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
-                            <path d="M.5 9.9a.5.5 0 0 1 .5.5v2.5a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-2.5a.5.5 0 0 1 1 0v2.5a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2v-2.5a.5.5 0 0 1 .5-.5z"/>
-                            <path d="M7.646 11.854a.5.5 0 0 0 .708 0l3 3a.5.5 0 0 0 .708-.708L8.5 11.707V5.5a.5.5 0 0 0-1 0v6.207l-1.646-1.646a.5.5 0 0 0-.708.708z"/>
-                        </svg>
-                        Fetch All Policies
-                    </button>
+            </div>
+            
+            <div class="auth-section">
+                <h3>Authentication</h3>
+                <div class="form-group">
+                    <label for="clientId">Entra ID Client ID:</label>
+                    <input type="text" id="clientId" placeholder="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx" 
+                           pattern="[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}">
+                    <small style="display: block; margin-top: 5px; color: #666;">Enter your Entra ID application Client ID</small>
                 </div>
+                <div id="authStatus" class="auth-status disconnected" role="status">
+                    <span>Not connected to Microsoft Graph</span>
+                </div>
+                <button id="loginBtn" class="btn btn-primary" disabled aria-label="Sign in with Microsoft">
+                    <svg width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
+                        <path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.012 8.012 0 0 0 16 8c0-4.42-3.58-8-8-8z"/>
+                    </svg>
+                    Sign in with Microsoft
+                </button>
+                <button id="signOutBtn" class="btn btn-danger" style="display: none;">
+                    <svg width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
+                        <path fill-rule="evenodd" d="M10 12.5a.5.5 0 0 1-.5.5h-8a.5.5 0 0 1-.5-.5v-9a.5.5 0 0 1 .5-.5h8a.5.5 0 0 1 .5.5v2a.5.5 0 0 0 1 0v-2A1.5 1.5 0 0 0 9.5 2h-8A1.5 1.5 0 0 0 0 3.5v9A1.5 1.5 0 0 0 1.5 14h8a1.5 1.5 0 0 0 1.5-1.5v-2a.5.5 0 0 0-1 0v2z"/>
+                        <path fill-rule="evenodd" d="M15.854 8.354a.5.5 0 0 0 0-.708l-3-3a.5.5 0 0 0-.708.708L14.293 7.5H5.5a.5.5 0 0 0 0 1h8.793l-2.147 2.146a.5.5 0 0 0 .708.708l3-3z"/>
+                    </svg>
+                    Sign Out
+                </button>
+                <button id="fetchAllBtn" class="btn btn-success" disabled>
+                    <svg width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
+                        <path d="M.5 9.9a.5.5 0 0 1 .5.5v2.5a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-2.5a.5.5 0 0 1 1 0v2.5a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2v-2.5a.5.5 0 0 1 .5-.5z"/>
+                        <path d="M7.646 11.854a.5.5 0 0 0 .708 0l3 3a.5.5 0 0 0 .708-.708L8.5 11.707V5.5a.5.5 0 0 0-1 0v6.207l-1.646-1.646a.5.5 0 0 0-.708.708z"/>
+                    </svg>
+                    Fetch All Policies
+                </button>
+                <div id="userInfo" style="display: none;">
+                    <strong>Signed in as:</strong> <span id="userEmail"></span>
+                </div>
+            </div>
 
-                <div class="alert alert-info">
+            <div class="alert alert-info">
+                <svg width="20" height="20" fill="currentColor" viewBox="0 0 16 16">
+                    <path d="M8 16A8 8 0 1 0 8 0a8 8 0 0 0 0 16zm.93-9.412-1 4.705c-.07.34.029.533.304.533.194 0 .487-.07.686-.246l-.088.416c-.287.346-.92.598-1.465.598-.703 0-1.002-.422-.808-1.319l.738-3.468c.064-.293.006-.399-.287-.47l-.451-.081.082-.381 2.29-.287zM8 5.5a1 1 0 1 1 0-2 1 1 0 0 1 0 2z"/>
+                </svg>
+                <div>
                     <strong>Note:</strong> This tool requires Microsoft Graph API permissions:
                     <ul style="margin-top: 5px; margin-left: 20px;">
                         <li>DeviceManagementConfiguration.Read.All - To read Intune configuration policies</li>
@@ -671,209 +933,250 @@
                     </ul>
                     <small>Platform: Works on Windows, macOS, and Linux in any modern browser</small>
                 </div>
+            </div>
 
-                <div class="stats-grid" id="statsGrid">
-                    <div class="stat-card">
-                        <div class="stat-number" id="totalPolicies">0</div>
-                        <div class="stat-label">Total Policies</div>
-                    </div>
-                    <div class="stat-card">
-                        <div class="stat-number" id="selectedPolicies">0</div>
-                        <div class="stat-label">Selected</div>
-                    </div>
-                    <div class="stat-card">
-                        <div class="stat-number" id="servicesQueried">0</div>
-                        <div class="stat-label">Services Queried</div>
-                    </div>
-                    <div class="stat-card">
-                        <div class="stat-number" id="lastFetch">Never</div>
-                        <div class="stat-label">Last Fetch</div>
-                    </div>
+            <div class="stats-grid" id="statsGrid">
+                <div class="stat-card">
+                    <div class="stat-number" id="totalPolicies">0</div>
+                    <div class="stat-label">Total Policies</div>
                 </div>
-
-                <div id="overviewProgress" style="display: none;">
-                    <h3>Fetching Policies...</h3>
-                    <div class="progress-bar">
-                        <div class="progress-fill" id="overviewProgressFill"></div>
-                        <div class="progress-text" id="overviewProgressText">0%</div>
-                    </div>
-                    <p id="currentService" style="text-align: center; color: #666;">Initializing...</p>
+                <div class="stat-card">
+                    <div class="stat-number" id="selectedPolicies">0</div>
+                    <div class="stat-label">Selected</div>
                 </div>
-                
-                <div id="fetchSummary" style="display: none;">
-                    <!-- Fetch summary will be inserted here -->
+                <div class="stat-card">
+                    <div class="stat-number" id="servicesQueried">0</div>
+                    <div class="stat-label">Services Queried</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-number" id="lastFetch">Never</div>
+                    <div class="stat-label">Last Fetch</div>
                 </div>
             </div>
 
-            <!-- Intune Tab -->
-            <div class="tab-content" id="intuneTab">
-                <h3>Intune Policies <span class="policy-count" id="intuneCount">0</span></h3>
-                
-                <div class="filter-controls">
-                    <input type="text" id="intuneSearch" placeholder="Search Intune policies...">
-                    <button class="btn btn-secondary" onclick="selectAllIntune()">Select All</button>
-                    <button class="btn btn-secondary" onclick="deselectAllIntune()">Deselect All</button>
-                    <button class="btn" onclick="refreshIntune()">
+            <div id="overviewProgress" style="display: none;">
+                <h3>Fetching Policies...</h3>
+                <div class="progress-bar">
+                    <div class="progress-fill" id="overviewProgressFill"></div>
+                    <div class="progress-text" id="overviewProgressText">0%</div>
+                </div>
+                <p id="currentService" style="text-align: center; color: #666;">Initializing...</p>
+            </div>
+            
+            <div id="fetchSummary" style="display: none;">
+                <!-- Fetch summary will be inserted here -->
+            </div>
+        </div>
+
+        <!-- Intune Tab -->
+        <div class="tab-content" id="intuneTab" role="tabpanel">
+            <h3>Intune Policies <span class="policy-count" id="intuneCount">0</span></h3>
+            
+            <div class="filter-controls">
+                <input type="text" id="intuneSearch" placeholder="Search Intune policies...">
+                <button class="btn btn-secondary" onclick="selectAllIntune()">Select All</button>
+                <button class="btn btn-secondary" onclick="deselectAllIntune()">Deselect All</button>
+                <button class="btn btn-primary" onclick="refreshIntune()">
+                    <svg width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
+                        <path fill-rule="evenodd" d="M8 3a5 5 0 1 0 4.546 2.914.5.5 0 0 1 .908-.417A6 6 0 1 1 8 2v1z"/>
+                        <path d="M8 4.466V.534a.25.25 0 0 1 .41-.192l2.36 1.966c.12.1.12.284 0 .384L8.41 4.658A.25.25 0 0 1 8 4.466z"/>
+                    </svg>
+                    Refresh
+                </button>
+            </div>
+
+            <div id="intunePolicies" class="policy-grid">
+                <div class="empty-state">
+                    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                    </svg>
+                    <h3>No Policies Loaded</h3>
+                    <p>Sign in and click "Fetch All Policies" to load Intune policies</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Exchange Tab -->
+        <div class="tab-content" id="exchangeTab" role="tabpanel">
+            <h3>Exchange Policies <span class="policy-count" id="exchangeCount">0</span></h3>
+            
+            <div class="filter-controls">
+                <input type="text" id="exchangeSearch" placeholder="Search Exchange policies...">
+                <button class="btn btn-secondary" onclick="selectAllExchange()">Select All</button>
+                <button class="btn btn-secondary" onclick="deselectAllExchange()">Deselect All</button>
+                <button class="btn btn-primary" onclick="refreshExchange()">Refresh</button>
+            </div>
+
+            <div id="exchangePolicies" class="policy-grid">
+                <div class="empty-state">
+                    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                    </svg>
+                    <h3>No Policies Loaded</h3>
+                    <p>Sign in and click "Fetch All Policies" to load Exchange policies</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- SharePoint Tab -->
+        <div class="tab-content" id="sharepointTab" role="tabpanel">
+            <h3>SharePoint Policies <span class="policy-count" id="sharepointCount">0</span></h3>
+            
+            <div class="filter-controls">
+                <input type="text" id="sharepointSearch" placeholder="Search SharePoint policies...">
+                <button class="btn btn-secondary" onclick="selectAllSharePoint()">Select All</button>
+                <button class="btn btn-secondary" onclick="deselectAllSharePoint()">Deselect All</button>
+                <button class="btn btn-primary" onclick="refreshSharePoint()">Refresh</button>
+            </div>
+
+            <div id="sharepointPolicies" class="policy-grid">
+                <div class="empty-state">
+                    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                    </svg>
+                    <h3>No Policies Loaded</h3>
+                    <p>Sign in and click "Fetch All Policies" to load SharePoint policies</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Teams Tab -->
+        <div class="tab-content" id="teamsTab" role="tabpanel">
+            <h3>Teams Policies <span class="policy-count" id="teamsCount">0</span></h3>
+            
+            <div class="filter-controls">
+                <input type="text" id="teamsSearch" placeholder="Search Teams policies...">
+                <button class="btn btn-secondary" onclick="selectAllTeams()">Select All</button>
+                <button class="btn btn-secondary" onclick="deselectAllTeams()">Deselect All</button>
+                <button class="btn btn-primary" onclick="refreshTeams()">Refresh</button>
+            </div>
+
+            <div id="teamsPolicies" class="policy-grid">
+                <div class="empty-state">
+                    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                    </svg>
+                    <h3>No Policies Loaded</h3>
+                    <p>Sign in and click "Fetch All Policies" to load Teams policies</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Azure AD Tab -->
+        <div class="tab-content" id="aadTab" role="tabpanel">
+            <h3>Azure AD Policies <span class="policy-count" id="aadCount">0</span></h3>
+            
+            <div class="filter-controls">
+                <input type="text" id="aadSearch" placeholder="Search Azure AD policies...">
+                <button class="btn btn-secondary" onclick="selectAllAAD()">Select All</button>
+                <button class="btn btn-secondary" onclick="deselectAllAAD()">Deselect All</button>
+                <button class="btn btn-primary" onclick="refreshAAD()">Refresh</button>
+            </div>
+
+            <div id="aadPolicies" class="policy-grid">
+                <div class="empty-state">
+                    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                    </svg>
+                    <h3>No Policies Loaded</h3>
+                    <p>Sign in and click "Fetch All Policies" to load Azure AD policies</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Compliance Tab -->
+        <div class="tab-content" id="complianceTab" role="tabpanel">
+            <h3>Compliance Policies <span class="policy-count" id="complianceCount">0</span></h3>
+            
+            <div class="filter-controls">
+                <input type="text" id="complianceSearch" placeholder="Search Compliance policies...">
+                <button class="btn btn-secondary" onclick="selectAllCompliance()">Select All</button>
+                <button class="btn btn-secondary" onclick="deselectAllCompliance()">Deselect All</button>
+                <button class="btn btn-primary" onclick="refreshCompliance()">Refresh</button>
+            </div>
+
+            <div id="compliancePolicies" class="policy-grid">
+                <div class="empty-state">
+                    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                    </svg>
+                    <h3>No Policies Loaded</h3>
+                    <p>Sign in and click "Fetch All Policies" to load Compliance policies</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Export Tab -->
+        <div class="tab-content" id="exportTab" role="tabpanel">
+            <h3>Export Options</h3>
+            
+            <div class="export-options">
+                <h4>Export Format</h4>
+                <div class="checkbox-group">
+                    <div class="checkbox-item">
+                        <input type="radio" name="exportFormat" id="formatCSV" value="csv" checked>
+                        <label for="formatCSV">CSV (Summary)</label>
+                    </div>
+                    <div class="checkbox-item">
+                        <input type="radio" name="exportFormat" id="formatJSON" value="json">
+                        <label for="formatJSON">JSON (Full Details)</label>
+                    </div>
+                    <div class="checkbox-item">
+                        <input type="radio" name="exportFormat" id="formatBoth" value="both">
+                        <label for="formatBoth">Both CSV & JSON</label>
+                    </div>
+                </div>
+
+                <h4 style="margin-top: 20px;">Include in Export</h4>
+                <div class="checkbox-group">
+                    <div class="checkbox-item">
+                        <input type="checkbox" id="includeMetadata" checked>
+                        <label for="includeMetadata">Policy Metadata</label>
+                    </div>
+                    <div class="checkbox-item">
+                        <input type="checkbox" id="includeSettings" checked>
+                        <label for="includeSettings">Policy Settings</label>
+                    </div>
+                    <div class="checkbox-item">
+                        <input type="checkbox" id="includeAssignments" checked>
+                        <label for="includeAssignments">Assignments</label>
+                    </div>
+                    <div class="checkbox-item">
+                        <input type="checkbox" id="includeTimestamps" checked>
+                        <label for="includeTimestamps">Created/Modified Dates</label>
+                    </div>
+                </div>
+
+                <div style="margin-top: 20px;">
+                    <button class="btn btn-success" onclick="exportSelected()" id="exportBtn">
                         <svg width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
-                            <path fill-rule="evenodd" d="M8 3a5 5 0 1 0 4.546 2.914.5.5 0 0 1 .908-.417A6 6 0 1 1 8 2v1z"/>
-                            <path d="M8 4.466V.534a.25.25 0 0 1 .41-.192l2.36 1.966c.12.1.12.284 0 .384L8.41 4.658A.25.25 0 0 1 8 4.466z"/>
+                            <path d="M.5 9.9a.5.5 0 0 1 .5.5v2.5a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-2.5a.5.5 0 0 1 1 0v2.5a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2v-2.5a.5.5 0 0 1 .5-.5z"/>
+                            <path d="M7.646 11.854a.5.5 0 0 0 .708 0l3 3a.5.5 0 0 0 .708-.708L8.5 11.707V5.5a.5.5 0 0 0-1 0v6.207l-1.646-1.646a.5.5 0 0 0-.708.708z"/>
                         </svg>
-                        Refresh
+                        Export Selected Policies
+                    </button>
+                    <button class="btn btn-primary" onclick="exportAll()">
+                        Export All Policies
+                    </button>
+                    <button class="btn btn-secondary" onclick="downloadIndividual()">
+                        Download Individual Policy JSONs
                     </button>
                 </div>
 
-                <div id="intunePolicies" class="policy-grid">
-                    <div class="alert alert-info">Sign in and click "Fetch All Policies" to load Intune policies</div>
-                </div>
-            </div>
-
-            <!-- Exchange Tab -->
-            <div class="tab-content" id="exchangeTab">
-                <h3>Exchange Policies <span class="policy-count" id="exchangeCount">0</span></h3>
-                
-                <div class="filter-controls">
-                    <input type="text" id="exchangeSearch" placeholder="Search Exchange policies...">
-                    <button class="btn btn-secondary" onclick="selectAllExchange()">Select All</button>
-                    <button class="btn btn-secondary" onclick="deselectAllExchange()">Deselect All</button>
-                    <button class="btn" onclick="refreshExchange()">Refresh</button>
-                </div>
-
-                <div id="exchangePolicies" class="policy-grid">
-                    <div class="alert alert-info">Sign in and click "Fetch All Policies" to load Exchange policies</div>
-                </div>
-            </div>
-
-            <!-- SharePoint Tab -->
-            <div class="tab-content" id="sharepointTab">
-                <h3>SharePoint Policies <span class="policy-count" id="sharepointCount">0</span></h3>
-                
-                <div class="filter-controls">
-                    <input type="text" id="sharepointSearch" placeholder="Search SharePoint policies...">
-                    <button class="btn btn-secondary" onclick="selectAllSharePoint()">Select All</button>
-                    <button class="btn btn-secondary" onclick="deselectAllSharePoint()">Deselect All</button>
-                    <button class="btn" onclick="refreshSharePoint()">Refresh</button>
-                </div>
-
-                <div id="sharepointPolicies" class="policy-grid">
-                    <div class="alert alert-info">Sign in and click "Fetch All Policies" to load SharePoint policies</div>
-                </div>
-            </div>
-
-            <!-- Teams Tab -->
-            <div class="tab-content" id="teamsTab">
-                <h3>Teams Policies <span class="policy-count" id="teamsCount">0</span></h3>
-                
-                <div class="filter-controls">
-                    <input type="text" id="teamsSearch" placeholder="Search Teams policies...">
-                    <button class="btn btn-secondary" onclick="selectAllTeams()">Select All</button>
-                    <button class="btn btn-secondary" onclick="deselectAllTeams()">Deselect All</button>
-                    <button class="btn" onclick="refreshTeams()">Refresh</button>
-                </div>
-
-                <div id="teamsPolicies" class="policy-grid">
-                    <div class="alert alert-info">Sign in and click "Fetch All Policies" to load Teams policies</div>
-                </div>
-            </div>
-
-            <!-- Azure AD Tab -->
-            <div class="tab-content" id="aadTab">
-                <h3>Azure AD Policies <span class="policy-count" id="aadCount">0</span></h3>
-                
-                <div class="filter-controls">
-                    <input type="text" id="aadSearch" placeholder="Search Azure AD policies...">
-                    <button class="btn btn-secondary" onclick="selectAllAAD()">Select All</button>
-                    <button class="btn btn-secondary" onclick="deselectAllAAD()">Deselect All</button>
-                    <button class="btn" onclick="refreshAAD()">Refresh</button>
-                </div>
-
-                <div id="aadPolicies" class="policy-grid">
-                    <div class="alert alert-info">Sign in and click "Fetch All Policies" to load Azure AD policies</div>
-                </div>
-            </div>
-
-            <!-- Compliance Tab -->
-            <div class="tab-content" id="complianceTab">
-                <h3>Compliance Policies <span class="policy-count" id="complianceCount">0</span></h3>
-                
-                <div class="filter-controls">
-                    <input type="text" id="complianceSearch" placeholder="Search Compliance policies...">
-                    <button class="btn btn-secondary" onclick="selectAllCompliance()">Select All</button>
-                    <button class="btn btn-secondary" onclick="deselectAllCompliance()">Deselect All</button>
-                    <button class="btn" onclick="refreshCompliance()">Refresh</button>
-                </div>
-
-                <div id="compliancePolicies" class="policy-grid">
-                    <div class="alert alert-info">Sign in and click "Fetch All Policies" to load Compliance policies</div>
-                </div>
-            </div>
-
-            <!-- Export Tab -->
-            <div class="tab-content" id="exportTab">
-                <h3>Export Options</h3>
-                
-                <div class="export-options">
-                    <h4>Export Format</h4>
-                    <div class="checkbox-group">
-                        <div class="checkbox-item">
-                            <input type="radio" name="exportFormat" id="formatCSV" value="csv" checked>
-                            <label for="formatCSV">CSV (Summary)</label>
-                        </div>
-                        <div class="checkbox-item">
-                            <input type="radio" name="exportFormat" id="formatJSON" value="json">
-                            <label for="formatJSON">JSON (Full Details)</label>
-                        </div>
-                        <div class="checkbox-item">
-                            <input type="radio" name="exportFormat" id="formatBoth" value="both">
-                            <label for="formatBoth">Both CSV & JSON</label>
-                        </div>
+                <div id="exportProgress" style="display: none; margin-top: 20px;">
+                    <div class="progress-bar">
+                        <div class="progress-fill" id="exportProgressFill"></div>
+                        <div class="progress-text" id="exportProgressText">0%</div>
                     </div>
-
-                    <h4 style="margin-top: 20px;">Include in Export</h4>
-                    <div class="checkbox-group">
-                        <div class="checkbox-item">
-                            <input type="checkbox" id="includeMetadata" checked>
-                            <label for="includeMetadata">Policy Metadata</label>
-                        </div>
-                        <div class="checkbox-item">
-                            <input type="checkbox" id="includeSettings" checked>
-                            <label for="includeSettings">Policy Settings</label>
-                        </div>
-                        <div class="checkbox-item">
-                            <input type="checkbox" id="includeAssignments" checked>
-                            <label for="includeAssignments">Assignments</label>
-                        </div>
-                        <div class="checkbox-item">
-                            <input type="checkbox" id="includeTimestamps" checked>
-                            <label for="includeTimestamps">Created/Modified Dates</label>
-                        </div>
-                    </div>
-
-                    <div style="margin-top: 20px;">
-                        <button class="btn btn-success" onclick="exportSelected()" id="exportBtn">
-                            <svg width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
-                                <path d="M.5 9.9a.5.5 0 0 1 .5.5v2.5a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-2.5a.5.5 0 0 1 1 0v2.5a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2v-2.5a.5.5 0 0 1 .5-.5z"/>
-                                <path d="M7.646 11.854a.5.5 0 0 0 .708 0l3 3a.5.5 0 0 0 .708-.708L8.5 11.707V5.5a.5.5 0 0 0-1 0v6.207l-1.646-1.646a.5.5 0 0 0-.708.708z"/>
-                            </svg>
-                            Export Selected Policies
-                        </button>
-                        <button class="btn" onclick="exportAll()">
-                            Export All Policies
-                        </button>
-                        <button class="btn btn-secondary" onclick="downloadIndividual()">
-                            Download Individual Policy JSONs
-                        </button>
-                    </div>
-
-                    <div id="exportProgress" style="display: none; margin-top: 20px;">
-                        <div class="progress-bar">
-                            <div class="progress-fill" id="exportProgressFill"></div>
-                            <div class="progress-text" id="exportProgressText">0%</div>
-                        </div>
-                        <p id="exportStatus" style="text-align: center; color: #666;">Preparing export...</p>
-                    </div>
+                    <p id="exportStatus" style="text-align: center; color: #666;">Preparing export...</p>
                 </div>
+            </div>
 
-                <div class="alert alert-warning" style="margin-top: 20px;">
+            <div class="alert alert-warning" style="margin-top: 20px;">
+                <svg width="20" height="20" fill="currentColor" viewBox="0 0 16 16">
+                    <path d="M8.982 1.566a1.13 1.13 0 0 0-1.96 0L.165 13.233c-.457.778.091 1.767.98 1.767h13.713c.889 0 1.438-.99.98-1.767L8.982 1.566zM8 5c.535 0 .954.462.9.995l-.35 3.507a.552.552 0 0 1-1.1 0L7.1 5.995A.905.905 0 0 1 8 5zm.002 6a1 1 0 1 1 0 2 1 1 0 0 1 0-2z"/>
+                </svg>
+                <div>
                     <strong>Export Notes:</strong>
                     <ul style="margin-top: 5px; margin-left: 20px;">
                         <li>CSV format includes policy summaries and key settings</li>
