@@ -613,6 +613,94 @@
             margin-top: 20px;
         }
 
+        .how-to-section {
+            background: #e3f2fd;
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
+
+        .how-to-section h3 {
+            color: #1976D2;
+            margin-bottom: 15px;
+            display: flex;
+            align-items: center;
+            cursor: pointer;
+        }
+
+        .how-to-section h3:hover {
+            color: #1565C0;
+        }
+
+        .how-to-content {
+            display: none;
+            margin-top: 20px;
+        }
+
+        .how-to-content.show {
+            display: block;
+        }
+
+        .how-to-section h4 {
+            color: #1565C0;
+            margin-top: 20px;
+            margin-bottom: 10px;
+        }
+
+        .how-to-section ol {
+            margin-left: 20px;
+            line-height: 1.8;
+        }
+
+        .how-to-section li {
+            margin-bottom: 8px;
+        }
+
+        .how-to-section code {
+            background: #f5f5f5;
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-family: 'Courier New', monospace;
+            font-size: 0.9em;
+        }
+
+        .redirect-uri-box {
+            background: #fff3cd;
+            border: 2px solid #ffc107;
+            border-radius: 5px;
+            padding: 15px;
+            margin: 15px 0;
+        }
+
+        .redirect-uri-display {
+            background: white;
+            border: 1px solid #ddd;
+            padding: 10px;
+            border-radius: 4px;
+            margin: 10px 0;
+            word-break: break-all;
+            font-family: monospace;
+            font-size: 0.9em;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .copy-btn {
+            padding: 5px 15px;
+            background: #2196F3;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+            white-space: nowrap;
+        }
+
+        .copy-btn:hover {
+            background: #1976D2;
+        }
+
         @media (max-width: 768px) {
             .container {
                 margin: 10px;
@@ -653,6 +741,77 @@
             <!-- Alert for authentication -->
             <div class="alert alert-info" id="authAlert">
                 <strong>Authentication Required:</strong> Click "Sign in with Microsoft" to connect to your Intune environment.
+            </div>
+
+            <!-- How to Use Section -->
+            <div class="how-to-section">
+                <h3 onclick="toggleHowTo()">
+                    <span style="margin-right: 10px;">▼</span>
+                    How to Use This Tool
+                </h3>
+                <div class="how-to-content" id="howToContent">
+                    <h4>Step 1: Register an Application in Azure AD</h4>
+                    <ol>
+                        <li>Go to the <a href="https://portal.azure.com/#blade/Microsoft_AAD_RegisteredApps/ApplicationsListBlade" target="_blank">Azure Portal - App Registrations</a></li>
+                        <li>Click <strong>New registration</strong></li>
+                        <li>Configure the application:
+                            <ul style="margin-top: 5px;">
+                                <li><strong>Name:</strong> Intune Compliance Manager</li>
+                                <li><strong>Supported account types:</strong> Accounts in this organizational directory only</li>
+                                <li><strong>Redirect URI:</strong> Single-page application (SPA)</li>
+                            </ul>
+                        </li>
+                        <li>Add this redirect URI:
+                            <div class="redirect-uri-box">
+                                <strong>Important:</strong> Copy and add this exact URI to your app registration:
+                                <div class="redirect-uri-display">
+                                    <span id="redirectUri"></span>
+                                    <button class="copy-btn" onclick="copyRedirectUri()">Copy</button>
+                                </div>
+                            </div>
+                        </li>
+                        <li>Click <strong>Register</strong></li>
+                    </ol>
+
+                    <h4>Step 2: Configure API Permissions</h4>
+                    <ol>
+                        <li>In your app registration, go to <strong>API permissions</strong></li>
+                        <li>Click <strong>Add a permission</strong> → <strong>Microsoft Graph</strong> → <strong>Delegated permissions</strong></li>
+                        <li>Add these permissions:
+                            <ul style="margin-top: 5px;">
+                                <li><code>User.Read</code> - Sign in and read user profile</li>
+                                <li><code>DeviceManagementManagedDevices.Read.All</code> - Read device compliance data</li>
+                                <li><code>DeviceManagementApps.Read.All</code> - Read application data</li>
+                            </ul>
+                        </li>
+                        <li>Click <strong>Grant admin consent</strong> (requires admin rights)</li>
+                    </ol>
+
+                    <h4>Step 3: Get Your Application Details</h4>
+                    <ol>
+                        <li>Go to the <strong>Overview</strong> page of your app registration</li>
+                        <li>Copy the <strong>Application (client) ID</strong></li>
+                        <li>Copy your <strong>Directory (tenant) ID</strong> (optional, for single-tenant apps)</li>
+                    </ol>
+
+                    <h4>Step 4: Connect to Intune</h4>
+                    <ol>
+                        <li>Click the <strong>Sign in with Microsoft</strong> button below</li>
+                        <li>Enter your Application ID when prompted</li>
+                        <li>Sign in with your Microsoft 365 admin account</li>
+                        <li>Start managing compliance data!</li>
+                    </ol>
+
+                    <h4>Required Permissions Summary</h4>
+                    <div style="background: #f5f5f5; padding: 15px; border-radius: 5px; margin-top: 10px;">
+                        <strong>Microsoft Graph API Permissions:</strong>
+                        <ul style="margin-top: 10px; margin-bottom: 0;">
+                            <li><strong>User.Read</strong> - Required for authentication</li>
+                            <li><strong>DeviceManagementManagedDevices.Read.All</strong> - View device compliance status</li>
+                            <li><strong>DeviceManagementApps.Read.All</strong> - View application deployment data</li>
+                        </ul>
+                    </div>
+                </div>
             </div>
 
             <!-- Authentication Section -->
@@ -1071,8 +1230,73 @@
             document.addEventListener('mousemove', resetInactivityTimer);
             resetInactivityTimer();
             
+            // Set redirect URI
+            const redirectUri = window.location.origin + window.location.pathname;
+            document.getElementById('redirectUri').textContent = redirectUri;
+            
             // Initialize MSAL and other components
             checkSavedConfig();
+        }
+
+        // Toggle How To section
+        function toggleHowTo() {
+            const content = document.getElementById('howToContent');
+            const section = document.querySelector('.how-to-section h3');
+            const arrow = section.querySelector('span');
+            
+            if (content.classList.contains('show')) {
+                content.classList.remove('show');
+                arrow.textContent = '▼';
+            } else {
+                content.classList.add('show');
+                arrow.textContent = '▲';
+            }
+        }
+
+        // Copy redirect URI
+        function copyRedirectUri() {
+            const redirectUri = document.getElementById('redirectUri').textContent;
+            
+            // Try modern clipboard API first
+            if (navigator.clipboard && navigator.clipboard.writeText) {
+                navigator.clipboard.writeText(redirectUri).then(() => {
+                    showCopySuccess();
+                }).catch(() => {
+                    fallbackCopy(redirectUri);
+                });
+            } else {
+                fallbackCopy(redirectUri);
+            }
+        }
+
+        function fallbackCopy(text) {
+            const textArea = document.createElement('textarea');
+            textArea.value = text;
+            textArea.style.position = 'fixed';
+            textArea.style.left = '-999999px';
+            document.body.appendChild(textArea);
+            textArea.select();
+            
+            try {
+                document.execCommand('copy');
+                showCopySuccess();
+            } catch (err) {
+                alert('Please manually copy the redirect URI');
+            }
+            
+            document.body.removeChild(textArea);
+        }
+
+        function showCopySuccess() {
+            const btn = document.querySelector('.copy-btn');
+            const originalText = btn.textContent;
+            btn.textContent = 'Copied!';
+            btn.style.background = '#4CAF50';
+            
+            setTimeout(() => {
+                btn.textContent = originalText;
+                btn.style.background = '#2196F3';
+            }, 2000);
         }
 
         // Global variables
