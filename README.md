@@ -1,26 +1,107 @@
 # theHAM
-Hosted Administration &amp; Management: "A unified approach to Hosted Administration &amp; Management of policies, devices, and Microsoft 365 services including Exchange Online, SharePoint, OneDrive, and Intune."
-# Intune Policy Manager
 
-Upload CIS compliance workflows to Microsoft Intune.
+Hosted Administration & Management: A unified approach to managing Microsoft 365 services including Exchange Online, SharePoint, OneDrive, and Intune through web-based tools.
+
+## Tools
+
+### Intune Policy Manager
+Deploy CIS compliance workflows and security baselines to Microsoft Intune with bulk upload capabilities.
+
+**Access:** https://luiserodz.github.io/theHAM/IntunePolicyManager.html
+
+### Microsoft 365 Policy Downloader
+Export and backup Intune configurations, compliance policies, and device configurations for documentation or migration.
+
+**Access:** https://luiserodz.github.io/theHAM/Microsoft365PolicyDownloader.html
 
 ## Usage
 
-1. For the Intune Policy Manager, visit: [https://luiserodz.github.io/theHAM/IntunePolicyManager.html], for the Microsoft 365 Policy Downloader, visit: [https://luiserodz.github.io/theHAM/Microsoft365PolicyDownloader.html]
-2. Enter the Client ID (or use the pre-configured one)
-3. Sign in with your Microsoft account
-4. Select JSON workflow files
-5. Configure upload options
-6. Upload to Intune
+### Intune Policy Manager
+1. Visit https://luiserodz.github.io/theHAM/IntunePolicyManager.html
+2. Enter your Azure AD Client ID (or use the pre-configured one)
+3. Sign in with your Microsoft work account
+4. Select JSON workflow files to upload
+5. Configure assignment options (All Users, All Devices, or specific groups)
+6. Click Upload to deploy policies to Intune
+
+### Microsoft 365 Policy Downloader
+1. Visit https://luiserodz.github.io/theHAM/Microsoft365PolicyDownloader.html
+2. Enter your Azure AD Client ID (or use the pre-configured one)
+3. Sign in with your Microsoft work account
+4. Select policy types to export (Configuration, Compliance, Apps)
+5. Choose individual policies or bulk download
+6. Download policies as JSON files
 
 ## Prerequisites
 
-- Microsoft 365 admin access
-- Appropriate Intune licenses
-- JSON workflow files
+- Microsoft 365 Global Administrator or Intune Administrator role
+- Valid Intune licenses
+- Modern web browser (Chrome, Edge, Firefox)
+- JSON workflow files (for Policy Manager)
+- Azure AD app registration with appropriate permissions
+
+## Authentication Setup
+
+1. Register an application in Azure AD
+2. Add required API permissions:
+  - `DeviceManagementConfiguration.ReadWrite.All`
+  - `DeviceManagementApps.ReadWrite.All`
+  - `Group.Read.All`
+3. Configure redirect URI: `https://luiserodz.github.io/theHAM/[ToolName].html`
+4. Grant admin consent for permissions
+5. Copy the Application (Client) ID
+
+## Features
+
+### Intune Policy Manager
+- Bulk upload multiple policies simultaneously
+- Automatic policy naming with custom prefixes
+- Group-based assignment targeting
+- Real-time upload progress tracking
+- Detailed results with CSV export
+- Support for all Intune configuration policy types
+
+### Microsoft 365 Policy Downloader
+- Export all policy types (Configuration, Compliance, Application)
+- Individual or bulk download options
+- JSON format for easy reimport
+- Policy metadata preservation
+- Filtered search and selection
+- Backup scheduling recommendations
 
 ## Troubleshooting
 
-- Ensure popups are allowed for authentication
-- Check that admin consent is granted for API permissions
-- Verify the redirect URI matches exactly in Azure AD
+### Authentication Issues
+- Enable popups for GitHub Pages domain
+- Verify admin consent is granted in Azure AD
+- Check redirect URI matches exactly
+- Clear browser cache and cookies
+- Try incognito/private browsing mode
+
+### API Errors
+- **403 Forbidden**: Missing permissions - grant admin consent
+- **401 Unauthorized**: Token expired - sign in again
+- **429 Too Many Requests**: Rate limiting - reduce batch size
+- **400 Bad Request**: Invalid JSON format - verify workflow files
+
+### Browser Issues
+- Disable ad blockers and privacy extensions
+- Update to latest browser version
+- Check browser console (F12) for detailed errors
+- Ensure JavaScript is enabled
+
+## Security
+
+- Authentication handled directly with Microsoft
+- No credentials stored locally or transmitted to third parties
+- All operations performed client-side in browser
+- Review JSON content before production deployment
+- Use separate app registrations for test/production
+
+## Support
+
+Report issues or request features through GitHub Issues. Include:
+- Browser and version
+- Error messages from console
+- Steps to reproduce
+- Expected vs actual behavior
