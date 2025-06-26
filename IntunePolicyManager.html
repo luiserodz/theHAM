@@ -3870,13 +3870,12 @@ if (sessionStorage.getItem('intunePolicyManagerAuth')) {
                     'https://graph.microsoft.com/beta/deviceManagement/deviceConfigurations'
                 );
                 
-                // Fetch device configuration states for compliance tracking
-                const configStatesResponse = await makeApiRequest(
-                    'https://graph.microsoft.com/beta/deviceManagement/deviceConfigurationDeviceStatuses'
-                );
+                if (!compliancePoliciesResponse.ok) {
+                    throw new Error('Failed to fetch compliance policy data');
+                }
                 
-                if (!policiesResponse.ok) {
-                    throw new Error('Failed to fetch policy data');
+                if (!configPoliciesResponse.ok) {
+                    throw new Error('Failed to fetch configuration policy data');
                 }
                 
                 const compliancePoliciesData = await compliancePoliciesResponse.json();
@@ -3885,9 +3884,6 @@ if (sessionStorage.getItem('intunePolicyManagerAuth')) {
                 const configPoliciesData = await configPoliciesResponse.json();
                 const configPolicies = configPoliciesData.value || [];
                 
-                const configStatesData = configStatesResponse.ok ? await configStatesResponse.json() : { value: [] };
-                const configStates = configStatesData.value || [];
-                
                 // Combine all policies
                 const allPolicies = [
                     ...compliancePolicies.map(p => ({ ...p, policyType: 'Compliance' })),
@@ -3895,16 +3891,17 @@ if (sessionStorage.getItem('intunePolicyManagerAuth')) {
                 ];
                 
                 // Process the data
-                processComplianceData(devices, allPolicies, configStates);
+                processComplianceData(devices, allPolicies);
+                updateComplianceUI();
                 
             } catch (error) {
                 console.error('Error loading compliance data:', error);
-                showToast('Failed to load compliance data', 'error');
+                showToast('Failed to load compliance data: ' + error.message, 'error');
                 policyList.innerHTML = '<div style="padding: 20px; text-align: center; color: #dc3545;">Failed to load compliance data</div>';
             }
         }
 
-        function processComplianceData(devices, policies, configStates = []) {
+        function processComplianceData(devices, policies) {
             // Calculate overall compliance
             const compliantDevices = devices.filter(d => d.complianceState === 'compliant').length;
             const totalDevices = devices.length;
