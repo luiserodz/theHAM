@@ -1915,37 +1915,37 @@
         `;
     }
 // Check session expiry on each load
-(function checkSessionExpiry() {
-    const authExpiry = sessionStorage.getItem('authExpiry');
-    if (authExpiry && Date.now() > parseInt(authExpiry)) {
-        sessionStorage.removeItem('intunePolicyManagerAuth');
-        sessionStorage.removeItem('authExpiry');
-        location.reload();
+    (function checkSessionExpiry() {
+        const authExpiry = sessionStorage.getItem('authExpiry');
+        if (authExpiry && Date.now() > parseInt(authExpiry)) {
+            sessionStorage.removeItem('intunePolicyManagerAuth');
+            sessionStorage.removeItem('authExpiry');
+            location.reload();
+        }
+    })();
+
+    // Auto-logout on inactivity (30 minutes)
+    let inactivityTimer;
+    const INACTIVITY_TIMEOUT = 30 * 60 * 1000; // 30 minutes
+
+    function resetInactivityTimer() {
+        clearTimeout(inactivityTimer);
+        inactivityTimer = setTimeout(() => {
+            sessionStorage.removeItem('intunePolicyManagerAuth');
+            sessionStorage.removeItem('authExpiry');
+            alert('⏱️ Session expired due to inactivity.\n\nPlease refresh the page to log in again.');
+            location.reload();
+        }, INACTIVITY_TIMEOUT);
     }
-})();
 
-// Auto-logout on inactivity (30 minutes)
-let inactivityTimer;
-const INACTIVITY_TIMEOUT = 30 * 60 * 1000; // 30 minutes
-
-function resetInactivityTimer() {
-    clearTimeout(inactivityTimer);
-    inactivityTimer = setTimeout(() => {
-        sessionStorage.removeItem('intunePolicyManagerAuth');
-        sessionStorage.removeItem('authExpiry');
-        alert('⏱️ Session expired due to inactivity.\n\nPlease refresh the page to log in again.');
-        location.reload();
-    }, INACTIVITY_TIMEOUT);
-}
-
-// Start inactivity timer if authenticated
-if (sessionStorage.getItem('intunePolicyManagerAuth')) {
-    document.addEventListener('click', resetInactivityTimer);
-    document.addEventListener('keypress', resetInactivityTimer);
-    document.addEventListener('scroll', resetInactivityTimer);
-    document.addEventListener('mousemove', resetInactivityTimer);
-    resetInactivityTimer();
-}
+    // Start inactivity timer if authenticated
+    if (sessionStorage.getItem('intunePolicyManagerAuth')) {
+        document.addEventListener('click', resetInactivityTimer);
+        document.addEventListener('keypress', resetInactivityTimer);
+        document.addEventListener('scroll', resetInactivityTimer);
+        document.addEventListener('mousemove', resetInactivityTimer);
+        resetInactivityTimer();
+    }
     console.log('Intune Policy Manager Enhanced v2 initializing...');
         
         // Global variables
