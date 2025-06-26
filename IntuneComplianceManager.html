@@ -739,7 +739,7 @@
 
         <div class="main-content">
             <!-- Alert for authentication -->
-            <div class="alert alert-info" id="authAlert">
+            <div class="alert alert-info" id="authAlert" style="display: none;">
                 <strong>Authentication Required:</strong> Click "Sign in with Microsoft" to connect to your Intune environment.
             </div>
 
@@ -1085,31 +1085,6 @@
         </div>
     </div>
 
-    <!-- Authentication Modal -->
-    <div class="auth-modal" id="authModal">
-        <div class="auth-modal-content">
-            <div class="auth-modal-header">
-                <h2>Configure Authentication</h2>
-            </div>
-            <div class="auth-modal-body">
-                <div class="form-group">
-                    <label for="clientId">Application (Client) ID</label>
-                    <input type="text" id="clientId" placeholder="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx">
-                    <small>Enter your Azure AD Application ID</small>
-                </div>
-                <div class="form-group">
-                    <label for="tenantId">Tenant ID (Optional)</label>
-                    <input type="text" id="tenantId" placeholder="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx">
-                    <small>Leave empty for multi-tenant access</small>
-                </div>
-                <div class="auth-buttons">
-                    <button class="btn" onclick="saveAuthConfig()">Connect</button>
-                    <button class="btn btn-secondary" onclick="closeAuthModal()">Cancel</button>
-                </div>
-            </div>
-        </div>
-    </div>
-
     <!-- Include MSAL library -->
     <script src="https://alcdn.msauth.net/browser/2.30.0/js/msal-browser.min.js"></script>
 
@@ -1323,23 +1298,19 @@
         // Check for saved configuration
         function checkSavedConfig() {
             const savedClientId = localStorage.getItem('intuneComplianceClientId');
-            const savedTenantId = localStorage.getItem('intuneComplianceTenantId');
             
             if (savedClientId) {
                 document.getElementById('clientId').value = savedClientId;
-                if (savedTenantId) {
-                    document.getElementById('tenantId').value = savedTenantId;
-                }
-                initializeMSAL(savedClientId, savedTenantId);
+                initializeMSAL(savedClientId);
             }
         }
 
         // Initialize MSAL
-        function initializeMSAL(clientId, tenantId) {
+        function initializeMSAL(clientId) {
             const msalConfig = {
                 auth: {
                     clientId: clientId,
-                    authority: tenantId ? `https://login.microsoftonline.com/${tenantId}` : 'https://login.microsoftonline.com/common',
+                    authority: 'https://login.microsoftonline.com/common',
                     redirectUri: window.location.origin + window.location.pathname
                 },
                 cache: {
@@ -1364,50 +1335,48 @@
             }
         }
 
+        // Client ID input handling
+        document.addEventListener('DOMContentLoaded', function() {
+            const clientIdInput = document.getElementById('clientId');
+            const authBtn = document.getElementById('authBtn');
+            
+            // Check for saved client ID
+            const savedClientId = localStorage.getItem('intuneComplianceClientId');
+            if (savedClientId) {
+                clientIdInput.value = savedClientId;
+                initializeMSAL(savedClientId);
+            }
+            
+            // Handle client ID changes
+            clientIdInput.addEventListener('input', function() {
+                const clientId = this.value.trim();
+                if (clientId && clientId.match(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i)) {
+                    localStorage.setItem('intuneComplianceClientId', clientId);
+                    initializeMSAL(clientId);
+                }
+            });
+        });
+
         // Authentication handling
         function handleAuth() {
             if (account) {
                 logout();
             } else {
+                const clientId = document.getElementById('clientId').value.trim();
+                if (!clientId) {
+                    alert('Please enter your Entra ID Client ID first');
+                    return;
+                }
+                
                 if (!msalInstance) {
-                    showAuthModal();
+                    initializeMSAL(clientId);
+                    setTimeout(() => login(), 500);
                 } else {
                     login();
                 }
             }
         }
 
-        function showAuthModal() {
-            document.getElementById('authModal').style.display = 'block';
-        }
-
-        function closeAuthModal() {
-            document.getElementById('authModal').style.display = 'none';
-        }
-
-        function saveAuthConfig() {
-            const clientId = document.getElementById('clientId').value.trim();
-            const tenantId = document.getElementById('tenantId').value.trim();
-            
-            if (!clientId) {
-                alert('Please enter a Client ID');
-                return;
-            }
-            
-            localStorage.setItem('intuneComplianceClientId', clientId);
-            if (tenantId) {
-                localStorage.setItem('intuneComplianceTenantId', tenantId);
-            } else {
-                localStorage.removeItem('intuneComplianceTenantId');
-            }
-            
-            closeAuthModal();
-            initializeMSAL(clientId, tenantId);
-            
-            setTimeout(() => {
-                login();
-            }, 500);
-        }
 
         async function login() {
             if (!msalInstance) {
@@ -1442,13 +1411,24 @@
 
         function updateUI() {
             const authBtn = document.getElementById('authBtn');
+            const authStatus = document.getElementById('authStatus');
             const userInfo = document.getElementById('userInfo');
             const authAlert = document.getElementById('authAlert');
             
             if (account) {
-                authBtn.textContent = 'Sign Out';
+                authBtn.innerHTML = `
+                    <svg width="16" height="16" fill="currentColor" viewBox="0 0 16 16" style="margin-right: 8px;">
+                        <path d="M7.05 0v3.56H3.56V0H7.05zm0 4.27v3.56H3.56V4.27H7.05zm4.27-4.27v3.56H7.84V0h3.48zm0 4.27v3.56H7.84V4.27h3.48zM7.05 8.53v3.56H3.56V8.53H7.05zm0 4.27V16H3.56v-3.2H7.05zm4.27-4.27v3.56H7.84V8.53h3.48zm0 4.27V16H7.84v-3.2h3.48z"/>
+                    </svg>
+                    Sign Out
+                `;
                 authBtn.classList.add('btn-danger');
-                userInfo.style.display = 'inline';
+                
+                authStatus.style.background = '#e8f5e9';
+                authStatus.style.color = '#2e7d32';
+                authStatus.textContent = 'Connected to Microsoft Graph';
+                
+                userInfo.style.display = 'block';
                 userInfo.innerHTML = `<span class="user-info">Signed in as: ${account.username}</span>`;
                 authAlert.style.display = 'none';
                 
@@ -1458,10 +1438,20 @@
                 document.getElementById('exportComplianceBtn').disabled = false;
                 document.getElementById('exportAppsBtn').disabled = false;
             } else {
-                authBtn.textContent = 'Sign in with Microsoft';
+                authBtn.innerHTML = `
+                    <svg width="16" height="16" fill="currentColor" viewBox="0 0 16 16" style="margin-right: 8px;">
+                        <path d="M7.05 0v3.56H3.56V0H7.05zm0 4.27v3.56H3.56V4.27H7.05zm4.27-4.27v3.56H7.84V0h3.48zm0 4.27v3.56H7.84V4.27h3.48zM7.05 8.53v3.56H3.56V8.53H7.05zm0 4.27V16H3.56v-3.2H7.05zm4.27-4.27v3.56H7.84V8.53h3.48zm0 4.27V16H7.84v-3.2h3.48z"/>
+                    </svg>
+                    Sign in with Microsoft
+                `;
                 authBtn.classList.remove('btn-danger');
+                
+                authStatus.style.background = '#ffebee';
+                authStatus.style.color = '#c62828';
+                authStatus.textContent = 'Not connected to Microsoft Graph';
+                
                 userInfo.style.display = 'none';
-                authAlert.style.display = 'block';
+                authAlert.style.display = 'none';
                 
                 // Disable buttons
                 document.getElementById('refreshComplianceBtn').disabled = true;
@@ -1535,6 +1525,45 @@
                 
                 const devicesData = await devicesResponse.json();
                 complianceData = devicesData.value || [];
+                
+                // For non-compliant devices, fetch detailed compliance information
+                for (const device of complianceData) {
+                    if (device.complianceState === 'noncompliant' || device.complianceState === 'configManager') {
+                        try {
+                            // Fetch device compliance policy states
+                            const policyResponse = await fetch(
+                                `https://graph.microsoft.com/beta/deviceManagement/managedDevices('${device.id}')/deviceCompliancePolicyStates?$expand=settingStates`,
+                                {
+                                    headers: {
+                                        'Authorization': `Bearer ${accessToken}`
+                                    }
+                                }
+                            );
+                            
+                            if (policyResponse.ok) {
+                                const policyData = await policyResponse.json();
+                                device.compliancePolicies = policyData.value || [];
+                                
+                                // Also try to get device configuration states for additional details
+                                const configResponse = await fetch(
+                                    `https://graph.microsoft.com/beta/deviceManagement/managedDevices('${device.id}')/deviceConfigurationStates`,
+                                    {
+                                        headers: {
+                                            'Authorization': `Bearer ${accessToken}`
+                                        }
+                                    }
+                                );
+                                
+                                if (configResponse.ok) {
+                                    const configData = await configResponse.json();
+                                    device.configurationStates = configData.value || [];
+                                }
+                            }
+                        } catch (error) {
+                            console.error(`Error fetching compliance details for device ${device.id}:`, error);
+                        }
+                    }
+                }
                 
                 // Process and display data
                 processComplianceData();
@@ -1876,8 +1905,110 @@
             
             modalTitle.textContent = `Device Details: ${device.deviceName}`;
             
+            let complianceDetails = '';
+            if ((device.complianceState === 'noncompliant' || device.complianceState === 'configManager') && device.compliancePolicies) {
+                const nonCompliantPolicies = device.compliancePolicies.filter(p => 
+                    p.state === 'nonCompliant' || p.state === 'failed' || p.state === 'error'
+                );
+                
+                if (nonCompliantPolicies.length > 0) {
+                    complianceDetails = `
+                        <div class="detail-item" style="grid-column: 1 / -1;">
+                            <div class="detail-label" style="color: #c62828; font-size: 16px; margin-bottom: 10px;">Non-Compliant Policies</div>
+                            <div style="background: #ffebee; padding: 15px; border-radius: 4px;">
+                                ${nonCompliantPolicies.map(policy => {
+                                    let policyHtml = `
+                                        <div style="margin-bottom: 15px; padding-bottom: 15px; border-bottom: 1px solid #ffcdd2;">
+                                            <strong style="color: #b71c1c;">${policy.displayName || 'Unknown Policy'}</strong>
+                                            <div style="margin-top: 5px; color: #666;">
+                                                Policy Status: <span style="color: #c62828; font-weight: 600;">${policy.state}</span>
+                                            </div>
+                                    `;
+                                    
+                                    // Check for setting states
+                                    if (policy.settingStates && policy.settingStates.length > 0) {
+                                        const failedSettings = policy.settingStates.filter(s => 
+                                            s.state === 'nonCompliant' || s.state === 'failed' || s.state === 'error'
+                                        );
+                                        
+                                        if (failedSettings.length > 0) {
+                                            policyHtml += `
+                                                <div style="margin-top: 10px;">
+                                                    <strong>Failed Settings:</strong>
+                                                    <ul style="margin: 8px 0 0 20px; line-height: 1.6;">
+                                                        ${failedSettings.map(setting => `
+                                                            <li>
+                                                                <strong>${setting.setting || setting.settingName || 'Unknown setting'}</strong>
+                                                                ${setting.instanceDisplayName ? `<br><small style="color: #666;">${setting.instanceDisplayName}</small>` : ''}
+                                                                <br><span style="color: #c62828;">Status: ${setting.state}</span>
+                                                                ${setting.errorDescription ? `<br><small style="color: #d32f2f;">${setting.errorDescription}</small>` : ''}
+                                                            </li>
+                                                        `).join('')}
+                                                    </ul>
+                                                </div>
+                                            `;
+                                        }
+                                    } else {
+                                        policyHtml += `
+                                            <div style="margin-top: 8px; color: #666; font-style: italic;">
+                                                No specific setting details available
+                                            </div>
+                                        `;
+                                    }
+                                    
+                                    policyHtml += `</div>`;
+                                    return policyHtml;
+                                }).join('')}
+                            </div>
+                        </div>
+                    `;
+                } else if (device.compliancePolicies.length > 0) {
+                    // Device has policies but none are marked as non-compliant
+                    complianceDetails = `
+                        <div class="detail-item" style="grid-column: 1 / -1;">
+                            <div class="detail-label" style="color: #ef6c00; font-size: 16px; margin-bottom: 10px;">Compliance Policy Status</div>
+                            <div style="background: #fff3e0; padding: 15px; border-radius: 4px;">
+                                <p>Device is marked as non-compliant but no specific policy violations were found.</p>
+                                <p style="margin-top: 10px;">This might indicate:</p>
+                                <ul style="margin: 5px 0 0 20px;">
+                                    <li>Policies are still being evaluated</li>
+                                    <li>Compliance data is being synchronized</li>
+                                    <li>The device hasn't checked in recently</li>
+                                </ul>
+                            </div>
+                        </div>
+                    `;
+                }
+            }
+            
+            // Additional configuration state details if available
+            let configDetails = '';
+            if (device.configurationStates && device.configurationStates.length > 0) {
+                const failedConfigs = device.configurationStates.filter(c => 
+                    c.state === 'failed' || c.state === 'error' || c.state === 'conflict'
+                );
+                
+                if (failedConfigs.length > 0) {
+                    configDetails = `
+                        <div class="detail-item" style="grid-column: 1 / -1;">
+                            <div class="detail-label" style="color: #ef6c00; font-size: 16px; margin-bottom: 10px;">Configuration Issues</div>
+                            <div style="background: #fff3e0; padding: 15px; border-radius: 4px;">
+                                ${failedConfigs.map(config => `
+                                    <div style="margin-bottom: 10px;">
+                                        <strong>${config.displayName || 'Unknown Configuration'}</strong>
+                                        <div style="color: #ef6c00;">Status: ${config.state}</div>
+                                    </div>
+                                `).join('')}
+                            </div>
+                        </div>
+                    `;
+                }
+            }
+            
             modalBody.innerHTML = `
                 <div class="detail-grid">
+                    ${complianceDetails}
+                    ${configDetails}
                     <div class="detail-item">
                         <div class="detail-label">Device Name</div>
                         <div class="detail-value">${device.deviceName}</div>
@@ -1921,6 +2052,14 @@
                     <div class="detail-item">
                         <div class="detail-label">Management State</div>
                         <div class="detail-value">${device.managementState || 'N/A'}</div>
+                    </div>
+                    <div class="detail-item">
+                        <div class="detail-label">Compliance Grace Period</div>
+                        <div class="detail-value">${formatDate(device.complianceGracePeriodExpirationDateTime) || 'N/A'}</div>
+                    </div>
+                    <div class="detail-item">
+                        <div class="detail-label">Azure AD Registered</div>
+                        <div class="detail-value">${device.azureADRegistered ? 'Yes' : 'No'}</div>
                     </div>
                 </div>
             `;
@@ -1984,14 +2123,9 @@
         // Close modals when clicking outside
         window.onclick = function(event) {
             const detailModal = document.getElementById('detailModal');
-            const authModal = document.getElementById('authModal');
             
             if (event.target === detailModal) {
                 closeModal();
-            }
-            
-            if (event.target === authModal) {
-                closeAuthModal();
             }
             
             // Close export menus
