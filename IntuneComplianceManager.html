@@ -1191,6 +1191,9 @@
                         <button class="btn btn-primary" onclick="refreshPolicyData()" id="refreshPoliciesBtn" disabled>
                             Load Configuration Policies
                         </button>
+                        <button class="btn btn-secondary" onclick="loadPolicyDeviceStatus()" id="loadDeviceStatusBtn" disabled style="display: none;">
+                            Load Device Status
+                        </button>
                         <div class="export-menu">
                             <button class="btn btn-secondary" onclick="toggleExportMenu('policies')" disabled id="exportPoliciesBtn">
                                 Export ▼
@@ -1215,16 +1218,38 @@
                         <thead>
                             <tr>
                                 <th>Policy Name</th>
+                                <th>Type</th>
                                 <th>Description</th>
                                 <th>Platform</th>
-                                <th>Created</th>
-                                <th>Modified</th>
+                                <th>Assigned Devices</th>
+                                <th>Success Rate</th>
                                 <th>Actions</th>
                             </tr>
                         </thead>
                         <tbody id="policiesTableBody">
                         </tbody>
                     </table>
+                </div>
+
+                <!-- Policy Device Status Container -->
+                <div id="policyDeviceStatusContainer" style="display: none; margin-top: 24px;">
+                    <div class="chart-container">
+                        <div class="chart-title" id="policyDeviceStatusTitle">Device Status</div>
+                        <table class="data-table">
+                            <thead>
+                                <tr>
+                                    <th>Device Name</th>
+                                    <th>User</th>
+                                    <th>Status</th>
+                                    <th>Last Reported</th>
+                                    <th>Failed Settings</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="policyDeviceStatusBody">
+                            </tbody>
+                        </table>
+                    </div>
                 </div>
 
                 <!-- Empty State -->
@@ -1402,17 +1427,21 @@
 
     <script>
         // Password Protection
-        window.addEventListener('DOMContentLoaded', async function() {
+        (async function() {
+            // Clear any saved Client ID first
+            localStorage.removeItem('intuneComplianceClientId');
+            
             const isAuthenticated = sessionStorage.getItem('intuneComplianceManagerAuth');
             
             if (!isAuthenticated) {
-                await authenticateUser();
+                const authenticated = await authenticateUser();
+                if (!authenticated) {
+                    return;
+                }
             }
             
-            if (sessionStorage.getItem('intuneComplianceManagerAuth')) {
-                initializeApp();
-            }
-        });
+            initializeApp();
+        })();
 
         async function authenticateUser() {
             const PASSWORD_HASH = '9e5c3ce7906db8e6f333df0e10deed2263b0a8738a9abe3f3612b8f52846689e';
@@ -1521,7 +1550,7 @@
             const redirectUri = window.location.origin + window.location.pathname;
             document.getElementById('redirectUri').textContent = redirectUri;
             
-            checkSavedConfig();
+            // Don't check for saved config - start fresh
         }
 
         // Toggle collapsible section
@@ -1590,16 +1619,6 @@
         let filteredApplicationData = [];
         let deviceInstallStates = [];
 
-        // Check for saved configuration
-        function checkSavedConfig() {
-            const savedClientId = localStorage.getItem('intuneComplianceClientId');
-            
-            if (savedClientId) {
-                document.getElementById('clientId').value = savedClientId;
-                initializeMSAL(savedClientId);
-            }
-        }
-
         // Initialize MSAL
         function initializeMSAL(clientId) {
             const msalConfig = {
@@ -1633,11 +1652,8 @@
         document.addEventListener('DOMContentLoaded', function() {
             const clientIdInput = document.getElementById('clientId');
             
-            const savedClientId = localStorage.getItem('intuneComplianceClientId');
-            if (savedClientId) {
-                clientIdInput.value = savedClientId;
-                initializeMSAL(savedClientId);
-            }
+            // Don't load saved Client ID - start with blank field
+            clientIdInput.value = '';
             
             clientIdInput.addEventListener('input', function() {
                 const clientId = this.value.trim();
@@ -1696,7 +1712,7 @@
             if (clientIdInput) {
                 clientIdInput.value = '';
                 clientIdInput.disabled = false;
-                clientIdInput.style.borderColor = '#ddd';
+                clientIdInput.style.borderColor = '#d1d5db';
             }
             
             // Clear all data
@@ -3226,7 +3242,7 @@
                         </div>
                     </div>
                     
-                                        <div class="section">
+                    <div class="section">
                         <h2>Compliance Overview</h2>
                         <div class="compliance-chart">
                             <div class="chart-bar">
@@ -3531,14 +3547,15 @@
                     csvContent += row.map(cell => `"${cell}"`).join(',') + '\n';
                 });
             } else if (type === 'policies') {
-                const headers = ['Policy Name', 'Description', 'Platform', 'Created Date', 'Modified Date'];
+                const headers = ['Policy Name', 'Type', 'Description', 'Platform', 'Created Date', 'Modified Date'];
                 csvContent += headers.map(h => `"${h}"`).join(',') + '\n';
                 
                 data.forEach(policy => {
                     const row = [
-                        policy.displayName || '',
+                        policy.displayName || policy.name || '',
+                        policy.policyType || '',
                         (policy.description || '').replace(/"/g, '""'),
-                        policy.platform || '',
+                        policy.platform || policy.platforms || '',
                         formatDate(policy.createdDateTime) || '',
                         formatDate(policy.lastModifiedDateTime) || ''
                     ];
