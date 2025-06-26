@@ -1820,22 +1820,14 @@
     
     <script>
 <script>
-// Secure Password Protection with SHA-256 Hashing - MUST RUN FIRST
-(async function() {
+// Secure Password Protection with SHA-256 Hashing
+(function() {
     // Check if user has already authenticated in this session
     const isAuthenticated = sessionStorage.getItem('intunePolicyManagerAuth');
     
     if (!isAuthenticated) {
-        try {
-            await authenticateUser();
-        } catch (error) {
-            // If authentication fails, stop execution
-            return;
-        }
+        authenticateUser();
     }
-    
-    // Only continue loading the rest of the application if authenticated
-    initializeApplication();
 })();
 
 async function authenticateUser() {
@@ -1880,7 +1872,7 @@ async function authenticateUser() {
     }
 }
 
-// SHA-256 hashing function
+// SHA-256 hashing function - THIS IS THE CORRECT IMPLEMENTATION
 async function hashPassword(password) {
     const msgUint8 = new TextEncoder().encode(password);
     const hashBuffer = await crypto.subtle.digest('SHA-256', msgUint8);
@@ -1923,14 +1915,14 @@ function showAccessDenied(message) {
 }
 
 // Check session expiry on each load
-function checkSessionExpiry() {
+(function checkSessionExpiry() {
     const authExpiry = sessionStorage.getItem('authExpiry');
     if (authExpiry && Date.now() > parseInt(authExpiry)) {
         sessionStorage.removeItem('intunePolicyManagerAuth');
         sessionStorage.removeItem('authExpiry');
         location.reload();
     }
-}
+})();
 
 // Auto-logout on inactivity (30 minutes)
 let inactivityTimer;
@@ -1946,18 +1938,14 @@ function resetInactivityTimer() {
     }, INACTIVITY_TIMEOUT);
 }
 
-// This function wraps all your existing initialization code
-function initializeApplication() {
-    // Check session expiry
-    checkSessionExpiry();
-    
-    // Start inactivity timer
+// Start inactivity timer if authenticated
+if (sessionStorage.getItem('intunePolicyManagerAuth')) {
     document.addEventListener('click', resetInactivityTimer);
     document.addEventListener('keypress', resetInactivityTimer);
     document.addEventListener('scroll', resetInactivityTimer);
     document.addEventListener('mousemove', resetInactivityTimer);
     resetInactivityTimer();
-    
+}
     console.log('Intune Policy Manager Enhanced v2 initializing...');
         
         // Global variables
