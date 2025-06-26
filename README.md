@@ -1,4 +1,4 @@
-# theHAM
+# the HAM
 
 Hosted Administration & Management: A unified approach to managing Microsoft 365 services including Exchange Online, SharePoint, OneDrive, and Intune through web-based tools.
 
