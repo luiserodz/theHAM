@@ -643,33 +643,13 @@
     </style>
 </head>
 <body>
-    <!-- Password Protection -->
-    <div id="passwordProtection" style="display: none;">
-        <div class="container" style="max-width: 500px; margin-top: 100px;">
-            <div class="header">
-                <h1>Intune Compliance Manager</h1>
-                <p>Authentication Required</p>
-            </div>
-            <div class="main-content" style="padding: 30px;">
-                <div class="form-group">
-                    <label for="passwordInput">Enter Password:</label>
-                    <input type="password" id="passwordInput" placeholder="Enter password" onkeypress="if(event.key === 'Enter') checkPassword()">
-                </div>
-                <button class="btn" onclick="checkPassword()">Submit</button>
-                <div id="passwordError" style="color: #f44336; margin-top: 10px; display: none;">Incorrect password. Please try again.</div>
-            </div>
+    <div class="container">
+        <div class="header">
+            <h1>Intune Compliance Manager</h1>
+            <p>Monitor and manage device compliance and application deployment status</p>
         </div>
-    </div>
 
-    <!-- Main Application -->
-    <div id="mainApp" style="display: none;">
-        <div class="container">
-            <div class="header">
-                <h1>Intune Compliance Manager</h1>
-                <p>Monitor and manage device compliance and application deployment status</p>
-            </div>
-
-            <div class="main-content">
+        <div class="main-content">
             <!-- Alert for authentication -->
             <div class="alert alert-info" id="authAlert">
                 <strong>Authentication Required:</strong> Click "Sign in with Microsoft" to connect to your Intune environment.
@@ -918,7 +898,6 @@
                         <p>Sign in and click "Refresh Data" to load application deployment information</p>
                     </div>
                 </div>
-            </div>
         </div>
     </div>
 
