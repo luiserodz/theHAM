@@ -738,6 +738,144 @@
             font-size: 13px;
         }
 
+        .compliance-timeline {
+            margin-top: 20px;
+            padding: 16px;
+            background: #f9fafb;
+            border-radius: 6px;
+            border: 1px solid #e5e7eb;
+        }
+
+        .timeline-title {
+            font-weight: 600;
+            margin-bottom: 16px;
+            color: #1a1a1a;
+            font-size: 16px;
+        }
+
+        .timeline-item {
+            display: flex;
+            align-items: flex-start;
+            margin-bottom: 16px;
+            position: relative;
+            padding-left: 24px;
+        }
+
+        .timeline-item:before {
+            content: '';
+            position: absolute;
+            left: 6px;
+            top: 6px;
+            bottom: -22px;
+            width: 2px;
+            background: #e5e7eb;
+        }
+
+        .timeline-item:last-child:before {
+            display: none;
+        }
+
+        .timeline-dot {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            position: absolute;
+            left: 0;
+            top: 6px;
+            border: 2px solid white;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+        }
+
+        .timeline-dot.compliant {
+            background: #16a34a;
+        }
+
+        .timeline-dot.noncompliant {
+            background: #dc2626;
+        }
+
+        .timeline-dot.unknown {
+            background: #d97706;
+        }
+
+        .timeline-content {
+            flex: 1;
+        }
+
+        .timeline-date {
+            font-size: 12px;
+            color: #6b7280;
+            margin-bottom: 4px;
+        }
+
+        .timeline-status {
+            font-weight: 600;
+            color: #1a1a1a;
+        }
+
+        .timeline-details {
+            font-size: 13px;
+            color: #6b7280;
+            margin-top: 4px;
+        }
+
+        .platform-card {
+            background: #f9fafb;
+            padding: 16px;
+            border-radius: 8px;
+            margin-bottom: 12px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .platform-name {
+            font-weight: 600;
+            color: #1a1a1a;
+        }
+
+        .platform-stats {
+            display: flex;
+            gap: 16px;
+            font-size: 14px;
+        }
+
+        .platform-stat {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .conflict-item {
+            background: #fee2e2;
+            border: 1px solid #fecaca;
+            padding: 16px;
+            border-radius: 8px;
+            margin-bottom: 12px;
+        }
+
+        .conflict-header {
+            font-weight: 600;
+            color: #dc2626;
+            margin-bottom: 8px;
+        }
+
+        .conflict-details {
+            font-size: 14px;
+            color: #7f1d1d;
+            line-height: 1.6;
+        }
+
+        .policy-tag {
+            display: inline-block;
+            padding: 4px 8px;
+            background: #dbeafe;
+            color: #1e40af;
+            border-radius: 4px;
+            font-size: 12px;
+            margin-right: 6px;
+        }
+
         @media (max-width: 768px) {
             .container {
                 margin: 10px;
@@ -800,8 +938,10 @@
             <!-- Tabs -->
             <div class="tabs">
                 <button class="tab active" onclick="switchTab('overview')">Overview</button>
+                <button class="tab" onclick="switchTab('dashboard')">Dashboard</button>
                 <button class="tab" onclick="switchTab('compliance')">Compliance</button>
                 <button class="tab" onclick="switchTab('applications')">Applications</button>
+                <button class="tab" onclick="switchTab('policies')">Policy Analysis</button>
                 <button class="tab" onclick="switchTab('export')">Export</button>
             </div>
 
@@ -846,9 +986,6 @@
                                     <li><code style="background: #f3f4f6; padding: 2px 6px; border-radius: 3px;">User.Read</code> - Sign in and read user profile</li>
                                     <li><code style="background: #f3f4f6; padding: 2px 6px; border-radius: 3px;">DeviceManagementManagedDevices.Read.All</code> - Read device compliance data</li>
                                     <li><code style="background: #f3f4f6; padding: 2px 6px; border-radius: 3px;">DeviceManagementApps.Read.All</code> - Read application data</li>
-                                    <li><code style="background: #f3f4f6; padding: 2px 6px; border-radius: 3px;">DeviceManagementConfiguration.Read.All</code> - Read device configuration and compliance policies</li>
-                                    <li><code style="background: #f3f4f6; padding: 2px 6px; border-radius: 3px;">DeviceManagementServiceConfig.Read.All</code> - Read Intune service configuration</li>
-                                    <li><code style="background: #f3f4f6; padding: 2px 6px; border-radius: 3px;">DeviceManagementRBAC.Read.All</code> - Read role-based access control settings</li>
                                 </ul>
                             </li>
                             <li>Click <strong>Grant admin consent</strong> (requires admin rights)</li>
@@ -904,6 +1041,57 @@
                     <div class="stat-card">
                         <div class="stat-value" id="lastSync">-</div>
                         <div class="stat-label">Last Refresh</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Dashboard Tab -->
+            <div class="tab-content" id="dashboardTab">
+                <div class="chart-container">
+                    <div class="chart-title">Executive Compliance Dashboard</div>
+                    <div class="stats-container" style="margin-bottom: 24px;">
+                        <div class="stat-card">
+                            <div class="stat-value" id="dashComplianceRate">-</div>
+                            <div class="stat-label">Overall Compliance Rate</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-value" id="dashCriticalDevices">-</div>
+                            <div class="stat-label">Critical Non-Compliant</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-value" id="dashRecentSync">-</div>
+                            <div class="stat-label">Synced Last 24h</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-value" id="dashPendingDevices">-</div>
+                            <div class="stat-label">Pending Evaluation</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Platform Breakdown -->
+                <div class="chart-container">
+                    <div class="chart-title">Compliance by Platform</div>
+                    <div id="platformBreakdown" style="padding: 20px;">
+                        <div class="loading">
+                            <p>Load compliance data to view platform breakdown</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Compliance Trends -->
+                <div class="chart-container">
+                    <div class="chart-title">Compliance Trend (Simulated)</div>
+                    <canvas id="complianceTrendChart" width="400" height="200" style="max-width: 100%;"></canvas>
+                </div>
+
+                <!-- Top Non-Compliant Reasons -->
+                <div class="chart-container">
+                    <div class="chart-title">Top Non-Compliance Reasons</div>
+                    <div id="nonComplianceReasons" style="padding: 20px;">
+                        <div class="loading">
+                            <p>Analyzing compliance data...</p>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -1128,6 +1316,71 @@
                     </svg>
                     <h3>No application data available</h3>
                     <p>Sign in and click "Refresh Data" to load application information</p>
+                </div>
+            </div>
+
+            <!-- Policy Analysis Tab -->
+            <div class="tab-content" id="policiesTab">
+                <div class="info-notice">
+                    <strong>Policy Analysis Features:</strong>
+                    <ul>
+                        <li>Detect potential conflicts between configuration policies</li>
+                        <li>Identify devices affected by multiple policies</li>
+                        <li>Show policy assignment overlaps</li>
+                    </ul>
+                </div>
+
+                <div class="controls">
+                    <div class="control-row">
+                        <button class="btn btn-primary" onclick="analyzePolicies()" id="analyzePoliciesBtn" disabled>
+                            Analyze Policies
+                        </button>
+                        <button class="btn btn-secondary" onclick="refreshPolicyData()" id="refreshPoliciesBtn" disabled>
+                            Refresh Policy Data
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Policy Conflicts -->
+                <div class="chart-container" id="policyConflictsContainer" style="display: none;">
+                    <div class="chart-title">Policy Conflicts Detected</div>
+                    <div id="policyConflictsList">
+                        <!-- Conflicts will be displayed here -->
+                    </div>
+                </div>
+
+                <!-- Policy Overview -->
+                <div class="chart-container" id="policyOverviewContainer" style="display: none;">
+                    <div class="chart-title">Configuration Policies Overview</div>
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>Policy Name</th>
+                                <th>Type</th>
+                                <th>Platform</th>
+                                <th>Assigned Devices</th>
+                                <th>Conflicts</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="policyTableBody">
+                        </tbody>
+                    </table>
+                </div>
+
+                <!-- Loading State -->
+                <div class="loading" id="policiesLoading" style="display: none;">
+                    <div class="spinner"></div>
+                    <p>Analyzing policies...</p>
+                </div>
+
+                <!-- Empty State -->
+                <div class="empty-state" id="policiesEmpty">
+                    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"></path>
+                    </svg>
+                    <h3>No policy data available</h3>
+                    <p>Click "Refresh Policy Data" to load configuration policies</p>
                 </div>
             </div>
 
