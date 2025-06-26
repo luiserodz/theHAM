@@ -701,6 +701,20 @@
             background: #1976D2;
         }
 
+        .info-notice {
+            background: #fff3cd;
+            border: 1px solid #ffc107;
+            color: #856404;
+            padding: 15px;
+            border-radius: 5px;
+            margin-bottom: 20px;
+        }
+
+        .info-notice strong {
+            display: block;
+            margin-bottom: 5px;
+        }
+
         @media (max-width: 768px) {
             .container {
                 margin: 10px;
@@ -831,6 +845,18 @@
                     Sign in with Microsoft
                 </button>
                 <div id="userInfo" style="display: none; margin-top: 10px;"></div>
+            </div>
+
+            <!-- Application Deployment Notice -->
+            <div class="info-notice" id="appDeploymentNotice" style="display: none;">
+                <strong>Note about Application Deployment Data:</strong>
+                Microsoft Graph API has limitations for application deployment statistics. The install summary data may show zeros if:
+                <ul style="margin-top: 5px; margin-left: 20px;">
+                    <li>Applications haven't been deployed to any devices yet</li>
+                    <li>Additional permissions are required (DeviceManagementApps.ReadWrite.All)</li>
+                    <li>The data needs to be accessed through device-specific queries</li>
+                </ul>
+                For detailed deployment data, you may need to use the Intune portal directly or query device install states individually.
             </div>
 
             <!-- Tabs -->
@@ -977,16 +1003,6 @@
                                 <input type="text" id="appSearch" placeholder="Search by app name or publisher..." oninput="filterApplications()">
                             </div>
                             <div class="control-group">
-                                <label>Deployment Status</label>
-                                <select id="deploymentFilter" onchange="filterApplications()">
-                                    <option value="all">All Applications</option>
-                                    <option value="installed">Installed</option>
-                                    <option value="notinstalled">Not Installed</option>
-                                    <option value="failed">Failed</option>
-                                    <option value="pending">Pending</option>
-                                </select>
-                            </div>
-                            <div class="control-group">
                                 <label>Application Type</label>
                                 <select id="appTypeFilter" onchange="filterApplications()">
                                     <option value="all">All Types</option>
@@ -997,10 +1013,20 @@
                                     <option value="ios">iOS</option>
                                 </select>
                             </div>
+                            <div class="control-group">
+                                <label>View Mode</label>
+                                <select id="viewMode" onchange="changeViewMode()">
+                                    <option value="summary">Application Summary</option>
+                                    <option value="deviceStatus">Device Install Status</option>
+                                </select>
+                            </div>
                         </div>
                         <div class="control-row">
                             <button class="btn" onclick="refreshApplicationData()" id="refreshAppsBtn" disabled>
                                 Refresh Data
+                            </button>
+                            <button class="btn btn-secondary" onclick="fetchDeviceInstallStatus()" id="fetchDeviceStatusBtn" disabled style="display: none;">
+                                Fetch Device Status
                             </button>
                             <div class="export-menu">
                                 <button class="btn btn-secondary" onclick="toggleExportMenu('applications')" disabled id="exportAppsBtn">
@@ -1022,15 +1048,15 @@
                         </div>
                         <div class="stat-card">
                             <div class="stat-value">-</div>
-                            <div class="stat-label">Installed</div>
+                            <div class="stat-label">Assigned Apps</div>
                         </div>
                         <div class="stat-card">
                             <div class="stat-value">-</div>
-                            <div class="stat-label">Failed</div>
+                            <div class="stat-label">Available Apps</div>
                         </div>
                         <div class="stat-card">
                             <div class="stat-value">-</div>
-                            <div class="stat-label">Success Rate</div>
+                            <div class="stat-label">Required Apps</div>
                         </div>
                     </div>
 
@@ -1049,14 +1075,30 @@
                                     <th>Publisher</th>
                                     <th>Version</th>
                                     <th>Type</th>
-                                    <th>Deployed</th>
-                                    <th>Installed</th>
-                                    <th>Failed</th>
-                                    <th>Success Rate</th>
+                                    <th>Created</th>
+                                    <th>Modified</th>
                                     <th>Actions</th>
                                 </tr>
                             </thead>
                             <tbody id="applicationsTableBody">
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <!-- Device Install Status Table (hidden by default) -->
+                    <div id="deviceStatusTableContainer" style="display: none;">
+                        <table class="data-table">
+                            <thead>
+                                <tr>
+                                    <th>Device Name</th>
+                                    <th>User</th>
+                                    <th>Application</th>
+                                    <th>Install State</th>
+                                    <th>Version</th>
+                                    <th>Last Modified</th>
+                                </tr>
+                            </thead>
+                            <tbody id="deviceStatusTableBody">
                             </tbody>
                         </table>
                     </div>
@@ -1294,6 +1336,7 @@
         let applicationData = [];
         let filteredComplianceData = [];
         let filteredApplicationData = [];
+        let deviceInstallStates = [];
 
         // Check for saved configuration
         function checkSavedConfig() {
@@ -1377,7 +1420,6 @@
             }
         }
 
-
         async function login() {
             if (!msalInstance) {
                 showAuthModal();
@@ -1414,6 +1456,7 @@
             const authStatus = document.getElementById('authStatus');
             const userInfo = document.getElementById('userInfo');
             const authAlert = document.getElementById('authAlert');
+            const appNotice = document.getElementById('appDeploymentNotice');
             
             if (account) {
                 authBtn.innerHTML = `
@@ -1431,12 +1474,14 @@
                 userInfo.style.display = 'block';
                 userInfo.innerHTML = `<span class="user-info">Signed in as: ${account.username}</span>`;
                 authAlert.style.display = 'none';
+                appNotice.style.display = 'block';
                 
                 // Enable buttons
                 document.getElementById('refreshComplianceBtn').disabled = false;
                 document.getElementById('refreshAppsBtn').disabled = false;
                 document.getElementById('exportComplianceBtn').disabled = false;
                 document.getElementById('exportAppsBtn').disabled = false;
+                document.getElementById('fetchDeviceStatusBtn').disabled = false;
             } else {
                 authBtn.innerHTML = `
                     <svg width="16" height="16" fill="currentColor" viewBox="0 0 16 16" style="margin-right: 8px;">
@@ -1452,12 +1497,14 @@
                 
                 userInfo.style.display = 'none';
                 authAlert.style.display = 'none';
+                appNotice.style.display = 'none';
                 
                 // Disable buttons
                 document.getElementById('refreshComplianceBtn').disabled = true;
                 document.getElementById('refreshAppsBtn').disabled = true;
                 document.getElementById('exportComplianceBtn').disabled = true;
                 document.getElementById('exportAppsBtn').disabled = true;
+                document.getElementById('fetchDeviceStatusBtn').disabled = true;
             }
         }
 
@@ -1698,7 +1745,7 @@
             }
         }
 
-        // Application functions
+        // Application functions with enhanced data fetching
         async function refreshApplicationData() {
             if (!account) {
                 alert('Please sign in first');
@@ -1724,30 +1771,12 @@
                 const appsData = await appsResponse.json();
                 applicationData = appsData.value || [];
                 
-                // For each app, fetch installation summary
-                for (const app of applicationData) {
-                    try {
-                        const summaryResponse = await fetch(
-                            `https://graph.microsoft.com/beta/deviceAppManagement/mobileApps/${app.id}/installSummary`,
-                            {
-                                headers: {
-                                    'Authorization': `Bearer ${accessToken}`
-                                }
-                            }
-                        );
-                        
-                        if (summaryResponse.ok) {
-                            const summaryData = await summaryResponse.json();
-                            app.installSummary = summaryData;
-                        }
-                    } catch (error) {
-                        console.error(`Error fetching install summary for app ${app.id}:`, error);
-                    }
-                }
-                
-                // Process and display data
+                // Process application data to show summary
                 processApplicationData();
                 filterApplications();
+                
+                // Note about deployment data
+                console.log('Note: Application deployment statistics require additional API calls or specific permissions');
                 
             } catch (error) {
                 console.error('Error fetching application data:', error);
@@ -1757,34 +1786,96 @@
             }
         }
 
+        // New function to fetch device install status
+        async function fetchDeviceInstallStatus() {
+            if (!account) {
+                alert('Please sign in first');
+                return;
+            }
+
+            showLoading('applications', true);
+            deviceInstallStates = [];
+            
+            try {
+                const accessToken = await getAccessToken();
+                
+                // First get all devices if we don't have them
+                if (complianceData.length === 0) {
+                    await refreshComplianceData();
+                }
+                
+                // For each device, fetch its installed apps
+                for (const device of complianceData.slice(0, 10)) { // Limit to first 10 devices for demo
+                    try {
+                        const response = await fetch(
+                            `https://graph.microsoft.com/beta/deviceManagement/managedDevices/${device.id}/detectedApps`,
+                            {
+                                headers: {
+                                    'Authorization': `Bearer ${accessToken}`
+                                }
+                            }
+                        );
+                        
+                        if (response.ok) {
+                            const data = await response.json();
+                            const apps = data.value || [];
+                            
+                            apps.forEach(app => {
+                                deviceInstallStates.push({
+                                    deviceId: device.id,
+                                    deviceName: device.deviceName,
+                                    userPrincipalName: device.userPrincipalName,
+                                    appName: app.displayName,
+                                    version: app.version,
+                                    sizeInByte: app.sizeInByte,
+                                    deviceCount: app.deviceCount
+                                });
+                            });
+                        }
+                    } catch (error) {
+                        console.error(`Error fetching apps for device ${device.id}:`, error);
+                    }
+                }
+                
+                displayDeviceInstallStatus();
+                
+            } catch (error) {
+                console.error('Error fetching device install status:', error);
+                alert('Failed to fetch device install status. Please try again.');
+            } finally {
+                showLoading('applications', false);
+            }
+        }
+
         function processApplicationData() {
-            // Calculate real statistics from the data
-            let totalInstalled = 0;
-            let totalFailed = 0;
-            let totalDevices = 0;
+            // Count applications by type
+            let assignedCount = 0;
+            let availableCount = 0;
+            let requiredCount = 0;
             
             applicationData.forEach(app => {
-                if (app.installSummary) {
-                    totalInstalled += app.installSummary.installedDeviceCount || 0;
-                    totalFailed += app.installSummary.failedDeviceCount || 0;
-                    totalDevices += (app.installSummary.installedDeviceCount || 0) + 
-                                   (app.installSummary.failedDeviceCount || 0) + 
-                                   (app.installSummary.pendingInstallDeviceCount || 0);
+                // Check assignments if available
+                if (app.assignments) {
+                    app.assignments.forEach(assignment => {
+                        if (assignment.intent === 'required') requiredCount++;
+                        else if (assignment.intent === 'available') availableCount++;
+                    });
+                }
+                // If no assignment data, count as available
+                if (!app.assignments || app.assignments.length === 0) {
+                    availableCount++;
                 }
             });
             
-            const successRate = totalDevices > 0 ? Math.round((totalInstalled / totalDevices) * 100) : 0;
-            
             const statsContainer = document.getElementById('applicationStats');
             statsContainer.children[0].querySelector('.stat-value').textContent = applicationData.length;
-            statsContainer.children[1].querySelector('.stat-value').textContent = totalInstalled;
-            statsContainer.children[2].querySelector('.stat-value').textContent = totalFailed;
-            statsContainer.children[3].querySelector('.stat-value').textContent = successRate + '%';
+            statsContainer.children[1].querySelector('.stat-value').textContent = assignedCount || '-';
+            statsContainer.children[2].querySelector('.stat-value').textContent = availableCount || '-';
+            statsContainer.children[3].querySelector('.stat-value').textContent = requiredCount || '-';
         }
 
         function filterApplications() {
             const searchTerm = document.getElementById('appSearch').value.toLowerCase();
-            const deploymentFilter = document.getElementById('deploymentFilter').value;
             const typeFilter = document.getElementById('appTypeFilter').value;
             
             filteredApplicationData = applicationData.filter(app => {
@@ -1816,25 +1907,14 @@
             emptyState.style.display = 'none';
             
             tableBody.innerHTML = filteredApplicationData.map(app => {
-                // Use real data from install summary if available
-                const summary = app.installSummary || {};
-                const installed = summary.installedDeviceCount || 0;
-                const failed = summary.failedDeviceCount || 0;
-                const pending = summary.pendingInstallDeviceCount || 0;
-                const notInstalled = summary.notInstalledDeviceCount || 0;
-                const total = installed + failed + pending + notInstalled;
-                const successRate = total > 0 ? Math.round((installed / total) * 100) : 0;
-                
                 return `
                     <tr>
                         <td>${app.displayName}</td>
                         <td>${app.publisher || 'N/A'}</td>
                         <td>${app.displayVersion || 'N/A'}</td>
                         <td>${getAppType(app['@odata.type'])}</td>
-                        <td>${total}</td>
-                        <td>${installed}</td>
-                        <td>${failed}</td>
-                        <td>${successRate}%</td>
+                        <td>${formatDate(app.createdDateTime)}</td>
+                        <td>${formatDate(app.lastModifiedDateTime)}</td>
                         <td>
                             <button class="btn" onclick="viewAppDetails('${app.id}')">
                                 View Details
@@ -1843,6 +1923,46 @@
                     </tr>
                 `;
             }).join('');
+        }
+
+        function displayDeviceInstallStatus() {
+            const tableBody = document.getElementById('deviceStatusTableBody');
+            const tableContainer = document.getElementById('deviceStatusTableContainer');
+            
+            if (deviceInstallStates.length === 0) {
+                tableContainer.style.display = 'none';
+                return;
+            }
+            
+            tableContainer.style.display = 'block';
+            
+            tableBody.innerHTML = deviceInstallStates.map(state => `
+                <tr>
+                    <td>${state.deviceName}</td>
+                    <td>${state.userPrincipalName || 'N/A'}</td>
+                    <td>${state.appName}</td>
+                    <td><span class="status-badge status-compliant">Installed</span></td>
+                    <td>${state.version || 'N/A'}</td>
+                    <td>${formatBytes(state.sizeInByte)}</td>
+                </tr>
+            `).join('');
+        }
+
+        function changeViewMode() {
+            const viewMode = document.getElementById('viewMode').value;
+            const appTable = document.getElementById('applicationsTableContainer');
+            const deviceTable = document.getElementById('deviceStatusTableContainer');
+            const fetchBtn = document.getElementById('fetchDeviceStatusBtn');
+            
+            if (viewMode === 'deviceStatus') {
+                appTable.style.display = 'none';
+                deviceTable.style.display = 'block';
+                fetchBtn.style.display = 'inline-block';
+            } else {
+                appTable.style.display = 'block';
+                deviceTable.style.display = 'none';
+                fetchBtn.style.display = 'none';
+            }
         }
 
         // Helper functions
@@ -1863,6 +1983,14 @@
             if (!dateString) return 'N/A';
             const date = new Date(dateString);
             return date.toLocaleDateString() + ' ' + date.toLocaleTimeString();
+        }
+
+        function formatBytes(bytes) {
+            if (!bytes) return 'N/A';
+            const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+            if (bytes === 0) return '0 Bytes';
+            const i = parseInt(Math.floor(Math.log(bytes) / Math.log(1024)));
+            return Math.round(bytes / Math.pow(1024, i), 2) + ' ' + sizes[i];
         }
 
         function getAppType(odataType) {
@@ -1957,29 +2085,19 @@
                 });
             } else if (type === 'applications') {
                 // Headers for application data
-                const headers = ['Application Name', 'Publisher', 'Version', 'Type', 'Total Devices', 'Installed', 'Failed', 'Pending', 'Success Rate'];
+                const headers = ['Application Name', 'Publisher', 'Version', 'Type', 'Created Date', 'Modified Date', 'Description'];
                 csvContent += headers.map(h => `"${h}"`).join(',') + '\n';
                 
                 // Data rows
                 data.forEach(app => {
-                    const summary = app.installSummary || {};
-                    const installed = summary.installedDeviceCount || 0;
-                    const failed = summary.failedDeviceCount || 0;
-                    const pending = summary.pendingInstallDeviceCount || 0;
-                    const notInstalled = summary.notInstalledDeviceCount || 0;
-                    const total = installed + failed + pending + notInstalled;
-                    const successRate = total > 0 ? Math.round((installed / total) * 100) : 0;
-                    
                     const row = [
                         app.displayName || '',
                         app.publisher || '',
                         app.displayVersion || '',
                         getAppType(app['@odata.type']) || '',
-                        total,
-                        installed,
-                        failed,
-                        pending,
-                        successRate + '%'
+                        formatDate(app.createdDateTime) || '',
+                        formatDate(app.lastModifiedDateTime) || '',
+                        (app.description || '').replace(/"/g, '""')
                     ];
                     csvContent += row.map(cell => `"${cell}"`).join(',') + '\n';
                 });
@@ -2233,6 +2351,16 @@
                         <div class="detail-label">Last Modified</div>
                         <div class="detail-value">${formatDate(app.lastModifiedDateTime)}</div>
                     </div>
+                    <div class="detail-item">
+                        <div class="detail-label">Application ID</div>
+                        <div class="detail-value" style="font-family: monospace; font-size: 12px;">${app.id}</div>
+                    </div>
+                    ${app.notes ? `
+                    <div class="detail-item" style="grid-column: 1 / -1;">
+                        <div class="detail-label">Notes</div>
+                        <div class="detail-value">${app.notes}</div>
+                    </div>
+                    ` : ''}
                 </div>
             `;
             
