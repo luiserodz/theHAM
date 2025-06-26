@@ -816,8 +816,21 @@
 
             <!-- Authentication Section -->
             <div class="auth-container">
-                <button class="btn" id="authBtn" onclick="handleAuth()">Sign in with Microsoft</button>
-                <span id="userInfo" style="display: none;"></span>
+                <h3 style="margin-bottom: 15px; color: #333;">Authentication</h3>
+                <div class="form-group" style="margin-bottom: 15px;">
+                    <label for="clientId" style="display: block; margin-bottom: 8px; font-weight: 500; color: #333;">Entra ID Client ID:</label>
+                    <input type="text" id="clientId" placeholder="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx" style="width: 100%; padding: 10px; border: 2px solid #e0e0e0; border-radius: 4px; font-size: 14px;">
+                </div>
+                <div id="authStatus" style="background: #ffebee; color: #c62828; padding: 12px; border-radius: 4px; margin-bottom: 15px; text-align: center;">
+                    Not connected to Microsoft Graph
+                </div>
+                <button class="btn" id="authBtn" onclick="handleAuth()" style="width: 100%; padding: 12px; font-size: 16px;">
+                    <svg width="16" height="16" fill="currentColor" viewBox="0 0 16 16" style="margin-right: 8px;">
+                        <path d="M7.05 0v3.56H3.56V0H7.05zm0 4.27v3.56H3.56V4.27H7.05zm4.27-4.27v3.56H7.84V0h3.48zm0 4.27v3.56H7.84V4.27h3.48zM7.05 8.53v3.56H3.56V8.53H7.05zm0 4.27V16H3.56v-3.2H7.05zm4.27-4.27v3.56H7.84V8.53h3.48zm0 4.27V16H7.84v-3.2h3.48z"/>
+                    </svg>
+                    Sign in with Microsoft
+                </button>
+                <div id="userInfo" style="display: none; margin-top: 10px;"></div>
             </div>
 
             <!-- Tabs -->
