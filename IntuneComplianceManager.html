@@ -2424,7 +2424,7 @@
                 if (policy.policyType === 'Settings Catalog') {
                     // Settings Catalog policies need a different endpoint
                     const response = await fetch(
-                        `https://graph.microsoft.com/beta/deviceManagement/configurationPolicies/${policy.id}/deviceStatuses`,
+                        `https://graph.microsoft.com/beta/deviceManagement/configurationPolicies('${policy.id}')/deviceStatuses`,
                         {
                             headers: {
                                 'Authorization': `Bearer ${accessToken}`
@@ -2437,12 +2437,12 @@
                         const deviceStatuses = data.value || [];
                         
                         const deviceStates = deviceStatuses.map(status => ({
-                            deviceId: status.id,
-                            deviceName: status.deviceDisplayName || 'Unknown Device',
-                            userPrincipalName: status.userPrincipalName || status.userName || 'N/A',
-                            state: mapSettingsCatalogState(status.state),
-                            lastReported: status.lastReportedDateTime,
-                            errorDescription: status.state === 'error' ? 'Configuration failed to apply' : null,
+                            deviceId: status.deviceId || status.id,
+                            deviceName: status.deviceDisplayName || status.deviceName || 'Unknown Device',
+                            userPrincipalName: status.userPrincipalName || status.userName || status.userDisplayName || 'N/A',
+                            state: mapSettingsCatalogState(status.state || status.complianceState),
+                            lastReported: status.lastReportedDateTime || status.checkinDateTime,
+                            errorDescription: status.errorDescription || (status.state === 'error' ? 'Configuration failed to apply' : null),
                             settingStates: status.settingStates || []
                         }));
                         
@@ -2548,10 +2548,10 @@ function mapSettingsCatalogState(state) {
         try {
             const accessToken = await getAccessToken();
             const response = await fetch(
-                `https://graph.microsoft.com/beta/deviceManagement/configurationPolicies/${policyId}/deviceStatuses`,
+                `https://graph.microsoft.com/beta/deviceManagement/configurationPolicies('${policyId}')/deviceStatuses`,
                 {
                     headers: {
-                        'Authorization': `Bearer ${accessToken}`
+                    'Authorization': `Bearer ${accessToken}`
                     }
                 }
             );
@@ -2561,12 +2561,12 @@ function mapSettingsCatalogState(state) {
                 const deviceStatuses = data.value || [];
                 
                 deviceStates = deviceStatuses.map(status => ({
-                    deviceId: status.id,
-                    deviceName: status.deviceDisplayName || 'Unknown Device',
-                    userPrincipalName: status.userPrincipalName || status.userName || 'N/A',
-                    state: mapSettingsCatalogState(status.state),
-                    lastReported: status.lastReportedDateTime,
-                    errorDescription: status.state === 'error' ? 'Configuration failed to apply' : null,
+                    deviceId: status.deviceId || status.id,
+                    deviceName: status.deviceDisplayName || status.deviceName || 'Unknown Device',
+                    userPrincipalName: status.userPrincipalName || status.userName || status.userDisplayName || 'N/A',
+                    state: mapSettingsCatalogState(status.state || status.complianceState),
+                    lastReported: status.lastReportedDateTime || status.checkinDateTime,
+                    errorDescription: status.errorDescription || (status.state === 'error' ? 'Configuration failed to apply' : null),
                     settingStates: status.settingStates || []
                 }));
                 
