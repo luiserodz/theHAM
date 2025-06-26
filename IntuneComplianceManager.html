@@ -2397,149 +2397,238 @@
 
         // Load device status for all policies
         async function loadPolicyDeviceStatus() {
-            if (!account) {
-                alert('Please sign in first');
-                return;
-            }
+    if (!account) {
+        alert('Please sign in first');
+        return;
+    }
 
-            const btn = document.getElementById('loadDeviceStatusBtn');
-            btn.disabled = true;
-            btn.textContent = 'Loading Device Status...';
-            
+    const btn = document.getElementById('loadDeviceStatusBtn');
+    btn.disabled = true;
+    btn.textContent = 'Loading Device Status...';
+    
+    try {
+        const accessToken = await getAccessToken();
+        
+        // Get all policies
+        const allPolicies = [
+            ...policyData.map(p => ({...p, policyType: 'Compliance Policy', endpoint: 'deviceCompliancePolicyStates'})),
+            ...configurationProfiles.map(p => ({...p, policyType: 'Device Configuration', endpoint: 'deviceConfigurationStates'})),
+            ...settingsCatalog.map(p => ({...p, policyType: 'Settings Catalog', endpoint: 'settingsCatalog'})),
+            ...adminTemplates.map(p => ({...p, policyType: 'Administrative Template', endpoint: 'groupPolicyConfigurations'}))
+        ];
+        
+        // Load device states for each policy
+        for (const policy of allPolicies) {
             try {
-                const accessToken = await getAccessToken();
-                
-                // Get all policies
-                const allPolicies = [
-                    ...policyData.map(p => ({...p, policyType: 'Compliance Policy', endpoint: 'deviceCompliancePolicyStates'})),
-                    ...configurationProfiles.map(p => ({...p, policyType: 'Device Configuration', endpoint: 'deviceConfigurationStates'})),
-                    ...settingsCatalog.map(p => ({...p, policyType: 'Settings Catalog', endpoint: 'configurationPolicyStates'}))
-                ];
-                
-                // Load device states for each policy
-                for (const policy of allPolicies) {
-                    try {
-                        // For compliance data, we need to query devices and their policy states
-                        if (complianceData.length > 0) {
-                            const deviceStates = [];
-                            
-                            // Sample a subset of devices to avoid too many API calls
-                            const devicesToCheck = complianceData.slice(0, 50);
-                            
-                            for (const device of devicesToCheck) {
-                                try {
-                                    const response = await fetch(
-                                        `https://graph.microsoft.com/beta/deviceManagement/managedDevices/${device.id}/${policy.endpoint}`,
-                                        {
-                                            headers: {
-                                                'Authorization': `Bearer ${accessToken}`
-                                            }
-                                        }
-                                    );
-                                    
-                                    if (response.ok) {
-                                        const data = await response.json();
-                                        const policyState = data.value?.find(s => s.id?.includes(policy.id));
-                                        
-                                        if (policyState) {
-                                            deviceStates.push({
-                                                deviceId: device.id,
-                                                deviceName: device.deviceName,
-                                                userPrincipalName: device.userPrincipalName,
-                                                state: policyState.state,
-                                                lastReported: policyState.settingStatesLastReportedDateTime || policyState.lastReportedDateTime,
-                                                errorDescription: policyState.errorDescription,
-                                                settingStates: policyState.settingStates
-                                            });
-                                        }
-                                    }
-                                } catch (error) {
-                                    console.error(`Error fetching device state for ${device.deviceName}:`, error);
-                                }
-                            }
-                            
-                            if (deviceStates.length > 0) {
-                                policyDeviceStates[policy.id] = deviceStates;
+                // For Settings Catalog policies, use a different approach
+                if (policy.policyType === 'Settings Catalog') {
+                    // Settings Catalog policies need a different endpoint
+                    const response = await fetch(
+                        `https://graph.microsoft.com/beta/deviceManagement/configurationPolicies/${policy.id}/deviceStatuses`,
+                        {
+                            headers: {
+                                'Authorization': `Bearer ${accessToken}`
                             }
                         }
-                    } catch (error) {
-                        console.error(`Error loading device states for policy ${policy.id}:`, error);
+                    );
+                    
+                    if (response.ok) {
+                        const data = await response.json();
+                        const deviceStatuses = data.value || [];
+                        
+                        const deviceStates = deviceStatuses.map(status => ({
+                            deviceId: status.id,
+                            deviceName: status.deviceDisplayName || 'Unknown Device',
+                            userPrincipalName: status.userPrincipalName || status.userName || 'N/A',
+                            state: mapSettingsCatalogState(status.state),
+                            lastReported: status.lastReportedDateTime,
+                            errorDescription: status.state === 'error' ? 'Configuration failed to apply' : null,
+                            settingStates: status.settingStates || []
+                        }));
+                        
+                        if (deviceStates.length > 0) {
+                            policyDeviceStates[policy.id] = deviceStates;
+                        }
+                    }
+                } else {
+                    // For other policy types, use the device-based approach
+                    if (complianceData.length > 0) {
+                        const deviceStates = [];
+                        
+                        // Sample a subset of devices to avoid too many API calls
+                        const devicesToCheck = complianceData.slice(0, 50);
+                        
+                        for (const device of devicesToCheck) {
+                            try {
+                                const response = await fetch(
+                                    `https://graph.microsoft.com/beta/deviceManagement/managedDevices/${device.id}/${policy.endpoint}`,
+                                    {
+                                        headers: {
+                                            'Authorization': `Bearer ${accessToken}`
+                                        }
+                                    }
+                                );
+                                
+                                if (response.ok) {
+                                    const data = await response.json();
+                                    const policyState = data.value?.find(s => s.id?.includes(policy.id));
+                                    
+                                    if (policyState) {
+                                        deviceStates.push({
+                                            deviceId: device.id,
+                                            deviceName: device.deviceName,
+                                            userPrincipalName: device.userPrincipalName,
+                                            state: policyState.state,
+                                            lastReported: policyState.settingStatesLastReportedDateTime || policyState.lastReportedDateTime,
+                                            errorDescription: policyState.errorDescription,
+                                            settingStates: policyState.settingStates
+                                        });
+                                    }
+                                }
+                            } catch (error) {
+                                console.error(`Error fetching device state for ${device.deviceName}:`, error);
+                            }
+                        }
+                        
+                        if (deviceStates.length > 0) {
+                            policyDeviceStates[policy.id] = deviceStates;
+                        }
                     }
                 }
-                
-                // Refresh the display with success rates
-                displayPolicyData();
-                updateDashboard();
-                
-                btn.textContent = 'Refresh Device Status';
-                
             } catch (error) {
-                console.error('Error loading policy device status:', error);
-                alert('Failed to load device status. Please try again.');
-                btn.textContent = 'Load Device Status';
-            } finally {
-                btn.disabled = false;
+                console.error(`Error loading device states for policy ${policy.id}:`, error);
             }
         }
-
+        
+        // Refresh the display with success rates
+        displayPolicyData();
+        updateDashboard();
+        
+        btn.textContent = 'Refresh Device Status';
+        
+    } catch (error) {
+        console.error('Error loading policy device status:', error);
+        alert('Failed to load device status. Please try again.');
+        btn.textContent = 'Load Device Status';
+    } finally {
+        btn.disabled = false;
+    }
+}
+        // Helper function to map Settings Catalog states to standard states
+function mapSettingsCatalogState(state) {
+    switch(state) {
+        case 'compliant':
+        case 'succeeded':
+            return 'compliant';
+        case 'conflict':
+        case 'failed':
+        case 'error':
+            return 'nonCompliant';
+        case 'notApplicable':
+            return 'notApplicable';
+        case 'pending':
+            return 'pending';
+        default:
+            return 'unknown';
+    }
+}
         // View device status for a specific policy
         async function viewPolicyDeviceStatus(policyId, policyType, policyName) {
-            const container = document.getElementById('policyDeviceStatusContainer');
-            const title = document.getElementById('policyDeviceStatusTitle');
-            const tbody = document.getElementById('policyDeviceStatusBody');
-            
-            title.textContent = `Device Status for: ${policyName}`;
-            container.style.display = 'block';
-            
-            const deviceStates = policyDeviceStates[policyId];
-            
-            if (!deviceStates || deviceStates.length === 0) {
-                tbody.innerHTML = `
-                    <tr>
-                        <td colspan="6" style="text-align: center; padding: 20px; color: #6b7280;">
-                            No device status data available. Click "Load Device Status" to fetch device compliance information.
-                        </td>
-                    </tr>
-                `;
-                return;
-            }
-            
-            tbody.innerHTML = deviceStates.map(state => {
-                const statusClass = (state.state === 'compliant' || state.state === 'succeeded') ? 
-                    'compliant' : (state.state === 'nonCompliant' || state.state === 'failed') ? 
-                    'noncompliant' : 'unknown';
-                
-                // Count failed settings
-                let failedSettingsCount = 0;
-                if (state.settingStates && Array.isArray(state.settingStates)) {
-                    failedSettingsCount = state.settingStates.filter(s => 
-                        s.state === 'nonCompliant' || s.state === 'failed' || s.state === 'error'
-                    ).length;
+    const container = document.getElementById('policyDeviceStatusContainer');
+    const title = document.getElementById('policyDeviceStatusTitle');
+    const tbody = document.getElementById('policyDeviceStatusBody');
+    
+    title.textContent = `Device Status for: ${policyName}`;
+    container.style.display = 'block';
+    
+    let deviceStates = policyDeviceStates[policyId];
+    
+    // If no cached data and it's a Settings Catalog policy, try to fetch it
+    if ((!deviceStates || deviceStates.length === 0) && policyType === 'Settings Catalog') {
+        try {
+            const accessToken = await getAccessToken();
+            const response = await fetch(
+                `https://graph.microsoft.com/beta/deviceManagement/configurationPolicies/${policyId}/deviceStatuses`,
+                {
+                    headers: {
+                        'Authorization': `Bearer ${accessToken}`
+                    }
                 }
-                
-                return `
-                    <tr>
-                        <td>${state.deviceName}</td>
-                        <td>${state.userPrincipalName || 'N/A'}</td>
-                        <td>
-                            <span class="status-badge status-${statusClass}">
-                                ${state.state}
-                            </span>
-                        </td>
-                        <td>${formatDate(state.lastReported)}</td>
-                        <td>${failedSettingsCount > 0 ? failedSettingsCount : '-'}</td>
-                        <td>
-                            <button class="btn btn-primary" onclick="viewDeviceDetails('${state.deviceId}')">
-                                View Details
-                            </button>
-                        </td>
-                    </tr>
-                `;
-            }).join('');
+            );
             
-            // Scroll to the device status section
-            container.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+            if (response.ok) {
+                const data = await response.json();
+                const deviceStatuses = data.value || [];
+                
+                deviceStates = deviceStatuses.map(status => ({
+                    deviceId: status.id,
+                    deviceName: status.deviceDisplayName || 'Unknown Device',
+                    userPrincipalName: status.userPrincipalName || status.userName || 'N/A',
+                    state: mapSettingsCatalogState(status.state),
+                    lastReported: status.lastReportedDateTime,
+                    errorDescription: status.state === 'error' ? 'Configuration failed to apply' : null,
+                    settingStates: status.settingStates || []
+                }));
+                
+                // Cache the results
+                if (deviceStates.length > 0) {
+                    policyDeviceStates[policyId] = deviceStates;
+                }
+            }
+        } catch (error) {
+            console.error('Error fetching Settings Catalog device status:', error);
         }
+    }
+    
+    if (!deviceStates || deviceStates.length === 0) {
+        tbody.innerHTML = `
+            <tr>
+                <td colspan="6" style="text-align: center; padding: 20px; color: #6b7280;">
+                    No device status data available. Click "Load Device Status" to fetch device compliance information.
+                </td>
+            </tr>
+        `;
+        return;
+    }
+    
+    tbody.innerHTML = deviceStates.map(state => {
+        const statusClass = (state.state === 'compliant' || state.state === 'succeeded') ? 
+            'compliant' : (state.state === 'nonCompliant' || state.state === 'failed') ? 
+            'noncompliant' : 'unknown';
+        
+        // Count failed settings
+        let failedSettingsCount = 0;
+        if (state.settingStates && Array.isArray(state.settingStates)) {
+            failedSettingsCount = state.settingStates.filter(s => 
+                s.state === 'nonCompliant' || s.state === 'failed' || s.state === 'error'
+            ).length;
+        }
+        
+        return `
+            <tr>
+                <td>${state.deviceName}</td>
+                <td>${state.userPrincipalName || 'N/A'}</td>
+                <td>
+                    <span class="status-badge status-${statusClass}">
+                        ${state.state}
+                    </span>
+                </td>
+                <td>${formatDate(state.lastReported)}</td>
+                <td>${failedSettingsCount > 0 ? failedSettingsCount : '-'}</td>
+                <td>
+                    ${state.deviceId ? `
+                        <button class="btn btn-primary" onclick="viewDeviceDetails('${state.deviceId}')">
+                            View Details
+                        </button>
+                    ` : '-'}
+                </td>
+            </tr>
+        `;
+    }).join('');
+    
+    // Scroll to the device status section
+    container.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+}
 
         // Dashboard functions
         function updateDashboard() {
