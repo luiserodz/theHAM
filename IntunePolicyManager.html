@@ -949,7 +949,7 @@
 
         .compliance-grid-row {
             display: grid;
-            grid-template-columns: 2fr 1fr 1fr 1fr 150px;
+            grid-template-columns: 2fr 1fr 1fr 1fr 1fr 150px;
             padding: 15px 20px;
             border-bottom: 1px solid #eee;
             cursor: pointer;
@@ -1703,13 +1703,14 @@
 
             <!-- Policy Compliance Grid -->
             <div class="compliance-grid">
-                <div class="compliance-grid-header">
-                    <div>Policy Name</div>
-                    <div>Compliance Rate</div>
-                    <div>Compliant</div>
-                    <div>Non-Compliant</div>
-                    <div>Status</div>
-                </div>
+                <div class="compliance-grid-header" style="grid-template-columns: 2fr 1fr 1fr 1fr 1fr 150px;">
+                <div>Policy Name</div>
+                <div>Type</div>
+                <div>Compliance Rate</div>
+                <div>Compliant</div>
+                <div>Non-Compliant</div>
+                <div>Status</div>
+            </div>
                 <div id="policyComplianceList">
                     <!-- Dynamically populated -->
                 </div>
@@ -3859,21 +3860,42 @@ if (sessionStorage.getItem('intunePolicyManagerAuth')) {
                 const devicesData = await devicesResponse.json();
                 const devices = devicesData.value || [];
                 
-                // Fetch policy compliance data
-                const policiesResponse = await makeApiRequest(
+                // Fetch compliance policies
+                const compliancePoliciesResponse = await makeApiRequest(
                     'https://graph.microsoft.com/beta/deviceManagement/deviceCompliancePolicies'
+                );
+                
+                // Fetch configuration policies
+                const configPoliciesResponse = await makeApiRequest(
+                    'https://graph.microsoft.com/beta/deviceManagement/deviceConfigurations'
+                );
+                
+                // Fetch device configuration states for compliance tracking
+                const configStatesResponse = await makeApiRequest(
+                    'https://graph.microsoft.com/beta/deviceManagement/deviceConfigurationDeviceStatuses'
                 );
                 
                 if (!policiesResponse.ok) {
                     throw new Error('Failed to fetch policy data');
                 }
                 
-                const policiesData = await policiesResponse.json();
-                const policies = policiesData.value || [];
+                const compliancePoliciesData = await compliancePoliciesResponse.json();
+                const compliancePolicies = compliancePoliciesData.value || [];
+                
+                const configPoliciesData = await configPoliciesResponse.json();
+                const configPolicies = configPoliciesData.value || [];
+                
+                const configStatesData = configStatesResponse.ok ? await configStatesResponse.json() : { value: [] };
+                const configStates = configStatesData.value || [];
+                
+                // Combine all policies
+                const allPolicies = [
+                    ...compliancePolicies.map(p => ({ ...p, policyType: 'Compliance' })),
+                    ...configPolicies.map(p => ({ ...p, policyType: 'Configuration' }))
+                ];
                 
                 // Process the data
-                processComplianceData(devices, policies);
-                updateComplianceUI();
+                processComplianceData(devices, allPolicies, configStates);
                 
             } catch (error) {
                 console.error('Error loading compliance data:', error);
@@ -3882,7 +3904,7 @@ if (sessionStorage.getItem('intunePolicyManagerAuth')) {
             }
         }
 
-        function processComplianceData(devices, policies) {
+        function processComplianceData(devices, policies, configStates = []) {
             // Calculate overall compliance
             const compliantDevices = devices.filter(d => d.complianceState === 'compliant').length;
             const totalDevices = devices.length;
@@ -3972,6 +3994,7 @@ if (sessionStorage.getItem('intunePolicyManagerAuth')) {
                 
                 row.innerHTML = `
                     <div>${policy.displayName}</div>
+                    <div><span style="font-size: 12px; padding: 2px 8px; background: ${policy.policyType === 'Compliance' ? '#e3f2fd' : '#f3e5f5'}; border-radius: 12px;">${policy.policyType || 'Configuration'}</span></div>
                     <div>${rate}%</div>
                     <div>${compliantDevices}</div>
                     <div>${nonCompliantDevices}</div>
