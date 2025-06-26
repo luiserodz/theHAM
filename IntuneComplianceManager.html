@@ -1526,45 +1526,6 @@
                 const devicesData = await devicesResponse.json();
                 complianceData = devicesData.value || [];
                 
-                // For non-compliant devices, fetch detailed compliance information
-                for (const device of complianceData) {
-                    if (device.complianceState === 'noncompliant' || device.complianceState === 'configManager') {
-                        try {
-                            // Fetch device compliance policy states
-                            const policyResponse = await fetch(
-                                `https://graph.microsoft.com/beta/deviceManagement/managedDevices('${device.id}')/deviceCompliancePolicyStates?$expand=settingStates`,
-                                {
-                                    headers: {
-                                        'Authorization': `Bearer ${accessToken}`
-                                    }
-                                }
-                            );
-                            
-                            if (policyResponse.ok) {
-                                const policyData = await policyResponse.json();
-                                device.compliancePolicies = policyData.value || [];
-                                
-                                // Also try to get device configuration states for additional details
-                                const configResponse = await fetch(
-                                    `https://graph.microsoft.com/beta/deviceManagement/managedDevices('${device.id}')/deviceConfigurationStates`,
-                                    {
-                                        headers: {
-                                            'Authorization': `Bearer ${accessToken}`
-                                        }
-                                    }
-                                );
-                                
-                                if (configResponse.ok) {
-                                    const configData = await configResponse.json();
-                                    device.configurationStates = configData.value || [];
-                                }
-                            }
-                        } catch (error) {
-                            console.error(`Error fetching compliance details for device ${device.id}:`, error);
-                        }
-                    }
-                }
-                
                 // Process and display data
                 processComplianceData();
                 filterDevices();
@@ -1574,6 +1535,59 @@
                 alert('Failed to fetch compliance data. Please try again.');
             } finally {
                 showLoading('compliance', false);
+            }
+        }
+
+        // Separate function to fetch compliance details when viewing a device
+        async function fetchDeviceComplianceDetails(deviceId) {
+            try {
+                const accessToken = await getAccessToken();
+                const device = complianceData.find(d => d.id === deviceId);
+                
+                if (!device) return null;
+                
+                // Fetch compliance policy states with details
+                try {
+                    const policyResponse = await fetch(
+                        `https://graph.microsoft.com/beta/deviceManagement/managedDevices/${deviceId}/deviceCompliancePolicyStates?$expand=settingStates`,
+                        {
+                            headers: {
+                                'Authorization': `Bearer ${accessToken}`
+                            }
+                        }
+                    );
+                    
+                    if (policyResponse.ok) {
+                        const policyData = await policyResponse.json();
+                        device.compliancePolicies = policyData.value || [];
+                    }
+                } catch (error) {
+                    console.error('Error fetching compliance policies:', error);
+                }
+                
+                // Also fetch configuration states
+                try {
+                    const configResponse = await fetch(
+                        `https://graph.microsoft.com/beta/deviceManagement/managedDevices/${deviceId}/deviceConfigurationStates`,
+                        {
+                            headers: {
+                                'Authorization': `Bearer ${accessToken}`
+                            }
+                        }
+                    );
+                    
+                    if (configResponse.ok) {
+                        const configData = await configResponse.json();
+                        device.configurationStates = configData.value || [];
+                    }
+                } catch (error) {
+                    console.error('Error fetching configuration states:', error);
+                }
+                
+                return device;
+            } catch (error) {
+                console.error('Error fetching device details:', error);
+                return null;
             }
         }
 
@@ -1710,6 +1724,27 @@
                 const appsData = await appsResponse.json();
                 applicationData = appsData.value || [];
                 
+                // For each app, fetch installation summary
+                for (const app of applicationData) {
+                    try {
+                        const summaryResponse = await fetch(
+                            `https://graph.microsoft.com/beta/deviceAppManagement/mobileApps/${app.id}/installSummary`,
+                            {
+                                headers: {
+                                    'Authorization': `Bearer ${accessToken}`
+                                }
+                            }
+                        );
+                        
+                        if (summaryResponse.ok) {
+                            const summaryData = await summaryResponse.json();
+                            app.installSummary = summaryData;
+                        }
+                    } catch (error) {
+                        console.error(`Error fetching install summary for app ${app.id}:`, error);
+                    }
+                }
+                
                 // Process and display data
                 processApplicationData();
                 filterApplications();
@@ -1723,19 +1758,28 @@
         }
 
         function processApplicationData() {
-            // For demonstration, we'll calculate some mock statistics
-            const stats = {
-                total: applicationData.length,
-                installed: Math.floor(applicationData.length * 0.7),
-                failed: Math.floor(applicationData.length * 0.1),
-                successRate: 87
-            };
+            // Calculate real statistics from the data
+            let totalInstalled = 0;
+            let totalFailed = 0;
+            let totalDevices = 0;
+            
+            applicationData.forEach(app => {
+                if (app.installSummary) {
+                    totalInstalled += app.installSummary.installedDeviceCount || 0;
+                    totalFailed += app.installSummary.failedDeviceCount || 0;
+                    totalDevices += (app.installSummary.installedDeviceCount || 0) + 
+                                   (app.installSummary.failedDeviceCount || 0) + 
+                                   (app.installSummary.pendingInstallDeviceCount || 0);
+                }
+            });
+            
+            const successRate = totalDevices > 0 ? Math.round((totalInstalled / totalDevices) * 100) : 0;
             
             const statsContainer = document.getElementById('applicationStats');
-            statsContainer.children[0].querySelector('.stat-value').textContent = stats.total;
-            statsContainer.children[1].querySelector('.stat-value').textContent = stats.installed;
-            statsContainer.children[2].querySelector('.stat-value').textContent = stats.failed;
-            statsContainer.children[3].querySelector('.stat-value').textContent = stats.successRate + '%';
+            statsContainer.children[0].querySelector('.stat-value').textContent = applicationData.length;
+            statsContainer.children[1].querySelector('.stat-value').textContent = totalInstalled;
+            statsContainer.children[2].querySelector('.stat-value').textContent = totalFailed;
+            statsContainer.children[3].querySelector('.stat-value').textContent = successRate + '%';
         }
 
         function filterApplications() {
@@ -1772,11 +1816,14 @@
             emptyState.style.display = 'none';
             
             tableBody.innerHTML = filteredApplicationData.map(app => {
-                // Mock statistics for demonstration
-                const deployed = Math.floor(Math.random() * 100) + 50;
-                const installed = Math.floor(deployed * 0.8);
-                const failed = Math.floor(deployed * 0.1);
-                const successRate = Math.round((installed / deployed) * 100);
+                // Use real data from install summary if available
+                const summary = app.installSummary || {};
+                const installed = summary.installedDeviceCount || 0;
+                const failed = summary.failedDeviceCount || 0;
+                const pending = summary.pendingInstallDeviceCount || 0;
+                const notInstalled = summary.notInstalledDeviceCount || 0;
+                const total = installed + failed + pending + notInstalled;
+                const successRate = total > 0 ? Math.round((installed / total) * 100) : 0;
                 
                 return `
                     <tr>
@@ -1784,7 +1831,7 @@
                         <td>${app.publisher || 'N/A'}</td>
                         <td>${app.displayVersion || 'N/A'}</td>
                         <td>${getAppType(app['@odata.type'])}</td>
-                        <td>${deployed}</td>
+                        <td>${total}</td>
                         <td>${installed}</td>
                         <td>${failed}</td>
                         <td>${successRate}%</td>
@@ -1852,36 +1899,108 @@
         function exportData(type, format) {
             const data = type === 'compliance' ? filteredComplianceData : filteredApplicationData;
             
+            // Generate timestamp
+            const now = new Date();
+            const timestamp = now.toISOString().replace(/:/g, '-').split('.')[0];
+            const dateStr = now.toLocaleDateString().replace(/\//g, '-');
+            const orgName = account ? account.username.split('@')[1] : 'export';
+            
+            const filename = `${orgName}_intune_${type}_${dateStr}_${timestamp}`;
+            
             if (format === 'csv') {
-                exportToCSV(data, `intune_${type}_report_${new Date().toISOString().split('T')[0]}.csv`);
+                exportToCSV(data, `${filename}.csv`, type);
             } else if (format === 'json') {
-                exportToJSON(data, `intune_${type}_report_${new Date().toISOString().split('T')[0]}.json`);
+                exportToJSON(data, `${filename}.json`, type);
             }
             
             // Close menu
             document.getElementById(type + 'ExportMenu').classList.remove('show');
         }
 
-        function exportToCSV(data, filename) {
+        function exportToCSV(data, filename, type) {
             if (data.length === 0) {
                 alert('No data to export');
                 return;
             }
             
-            const headers = Object.keys(data[0]);
-            const csvContent = [
-                headers.join(','),
-                ...data.map(row => headers.map(header => {
-                    const value = row[header];
-                    return typeof value === 'string' && value.includes(',') ? `"${value}"` : value;
-                }).join(','))
-            ].join('\n');
+            let csvContent = '';
+            
+            // Add metadata header
+            csvContent += `"Intune Compliance Manager Export"\n`;
+            csvContent += `"Export Type","${type.charAt(0).toUpperCase() + type.slice(1)} Data"\n`;
+            csvContent += `"Organization","${account ? account.username.split('@')[1] : 'Unknown'}"\n`;
+            csvContent += `"Exported By","${account ? account.username : 'Unknown'}"\n`;
+            csvContent += `"Export Date","${new Date().toLocaleString()}"\n`;
+            csvContent += `"Total Records","${data.length}"\n`;
+            csvContent += `\n`;
+            
+            if (type === 'compliance') {
+                // Headers for compliance data
+                const headers = ['Device Name', 'User', 'Platform', 'OS Version', 'Compliance Status', 'Last Sync', 'Model', 'Manufacturer', 'Serial Number', 'Enrolled Date'];
+                csvContent += headers.map(h => `"${h}"`).join(',') + '\n';
+                
+                // Data rows
+                data.forEach(device => {
+                    const row = [
+                        device.deviceName || '',
+                        device.userPrincipalName || '',
+                        device.operatingSystem || '',
+                        device.osVersion || '',
+                        device.complianceState || '',
+                        formatDate(device.lastSyncDateTime) || '',
+                        device.model || '',
+                        device.manufacturer || '',
+                        device.serialNumber || '',
+                        formatDate(device.enrolledDateTime) || ''
+                    ];
+                    csvContent += row.map(cell => `"${cell}"`).join(',') + '\n';
+                });
+            } else if (type === 'applications') {
+                // Headers for application data
+                const headers = ['Application Name', 'Publisher', 'Version', 'Type', 'Total Devices', 'Installed', 'Failed', 'Pending', 'Success Rate'];
+                csvContent += headers.map(h => `"${h}"`).join(',') + '\n';
+                
+                // Data rows
+                data.forEach(app => {
+                    const summary = app.installSummary || {};
+                    const installed = summary.installedDeviceCount || 0;
+                    const failed = summary.failedDeviceCount || 0;
+                    const pending = summary.pendingInstallDeviceCount || 0;
+                    const notInstalled = summary.notInstalledDeviceCount || 0;
+                    const total = installed + failed + pending + notInstalled;
+                    const successRate = total > 0 ? Math.round((installed / total) * 100) : 0;
+                    
+                    const row = [
+                        app.displayName || '',
+                        app.publisher || '',
+                        app.displayVersion || '',
+                        getAppType(app['@odata.type']) || '',
+                        total,
+                        installed,
+                        failed,
+                        pending,
+                        successRate + '%'
+                    ];
+                    csvContent += row.map(cell => `"${cell}"`).join(',') + '\n';
+                });
+            }
             
             downloadFile(csvContent, filename, 'text/csv');
         }
 
-        function exportToJSON(data, filename) {
-            const jsonContent = JSON.stringify(data, null, 2);
+        function exportToJSON(data, filename, type) {
+            const exportData = {
+                metadata: {
+                    exportType: type,
+                    organization: account ? account.username.split('@')[1] : 'Unknown',
+                    exportedBy: account ? account.username : 'Unknown',
+                    exportDate: new Date().toISOString(),
+                    totalRecords: data.length
+                },
+                data: data
+            };
+            
+            const jsonContent = JSON.stringify(exportData, null, 2);
             downloadFile(jsonContent, filename, 'application/json');
         }
 
@@ -1897,13 +2016,22 @@
 
         // Modal functions
         async function viewDeviceDetails(deviceId) {
-            const device = complianceData.find(d => d.id === deviceId);
+            let device = complianceData.find(d => d.id === deviceId);
             if (!device) return;
             
             const modalTitle = document.getElementById('modalTitle');
             const modalBody = document.getElementById('modalBody');
             
             modalTitle.textContent = `Device Details: ${device.deviceName}`;
+            
+            // Show loading state
+            modalBody.innerHTML = '<div class="loading"><div class="spinner"></div><p>Loading compliance details...</p></div>';
+            showModal();
+            
+            // Fetch detailed compliance information for this device
+            if (device.complianceState === 'noncompliant' || device.complianceState === 'configManager') {
+                device = await fetchDeviceComplianceDetails(deviceId) || device;
+            }
             
             let complianceDetails = '';
             if ((device.complianceState === 'noncompliant' || device.complianceState === 'configManager') && device.compliancePolicies) {
@@ -1962,19 +2090,20 @@
                             </div>
                         </div>
                     `;
-                } else if (device.compliancePolicies.length > 0) {
-                    // Device has policies but none are marked as non-compliant
+                } else if (device.complianceState === 'noncompliant') {
+                    // Device is non-compliant but no specific policies found
                     complianceDetails = `
                         <div class="detail-item" style="grid-column: 1 / -1;">
-                            <div class="detail-label" style="color: #ef6c00; font-size: 16px; margin-bottom: 10px;">Compliance Policy Status</div>
+                            <div class="detail-label" style="color: #ef6c00; font-size: 16px; margin-bottom: 10px;">Compliance Status</div>
                             <div style="background: #fff3e0; padding: 15px; border-radius: 4px;">
                                 <p>Device is marked as non-compliant but no specific policy violations were found.</p>
-                                <p style="margin-top: 10px;">This might indicate:</p>
+                                <p style="margin-top: 10px;">Possible reasons:</p>
                                 <ul style="margin: 5px 0 0 20px;">
-                                    <li>Policies are still being evaluated</li>
-                                    <li>Compliance data is being synchronized</li>
-                                    <li>The device hasn't checked in recently</li>
+                                    <li>Device hasn't synced compliance status recently</li>
+                                    <li>Compliance evaluation is still in progress</li>
+                                    <li>Policy details require additional permissions</li>
                                 </ul>
+                                <p style="margin-top: 10px;">Last sync: ${formatDate(device.lastSyncDateTime)}</p>
                             </div>
                         </div>
                     `;
@@ -2063,8 +2192,6 @@
                     </div>
                 </div>
             `;
-            
-            showModal();
         }
 
         async function viewAppDetails(appId) {
