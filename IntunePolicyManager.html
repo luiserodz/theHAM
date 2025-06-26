@@ -1719,7 +1719,7 @@
             <!-- Device Details Panel -->
             <div class="device-details-panel" id="deviceDetailsPanel">
                 <div class="device-details-header">
-                    <h3>Device Details</h3>
+                    <h3>Policy Compliance Details</h3>
                     <span class="close-panel" onclick="closeDevicePanel()">&times;</span>
                 </div>
                 <div id="deviceDetailsContent">
@@ -3843,6 +3843,52 @@ if (sessionStorage.getItem('intunePolicyManagerAuth')) {
                 switchTab('upload');
                 return;
             }
+            async function fetchPolicyComplianceStates(policies) {
+            console.log('Fetching compliance states for each policy...');
+            
+            for (const policy of policies) {
+                try {
+                    policy.deviceStatuses = [];
+                    let statusEndpoint = '';
+                    
+                    // Determine the correct endpoint based on policy type
+                    switch (policy.policyType) {
+                        case 'Compliance Policy':
+                            statusEndpoint = `/deviceManagement/deviceCompliancePolicies/${policy.id}/deviceStatuses`;
+                            break;
+                        case 'Configuration Profile':
+                            statusEndpoint = `/deviceManagement/deviceConfigurations/${policy.id}/deviceStatuses`;
+                            break;
+                        case 'Settings Catalog':
+                            statusEndpoint = `/deviceManagement/configurationPolicies/${policy.id}/deviceStatuses`;
+                            break;
+                        case 'Admin Template':
+                            statusEndpoint = `/deviceManagement/groupPolicyConfigurations/${policy.id}/deviceStatuses`;
+                            break;
+                        case 'Security Policy':
+                            statusEndpoint = `/deviceManagement/intents/${policy.id}/deviceStatuses`;
+                            break;
+                        default:
+                            continue; // Skip if we don't know the endpoint
+                    }
+                    
+                    const response = await makeApiRequest(
+                        `https://graph.microsoft.com/beta${statusEndpoint}?$top=999`
+                    );
+                    
+                    if (response.ok) {
+                        const data = await response.json();
+                        policy.deviceStatuses = data.value || [];
+                        console.log(`${policy.displayName}: ${policy.deviceStatuses.length} device statuses`);
+                    }
+                } catch (error) {
+                    console.error(`Error fetching device statuses for ${policy.displayName}:`, error);
+                }
+                
+                // Add small delay to avoid rate limiting
+                await new Promise(resolve => setTimeout(resolve, 100));
+            }
+        }
             
             const policyList = document.getElementById('policyComplianceList');
             policyList.innerHTML = '<div style="padding: 20px; text-align: center;">Loading compliance data...</div>';
@@ -3870,7 +3916,12 @@ if (sessionStorage.getItem('intunePolicyManagerAuth')) {
                     );
                     if (configPoliciesResponse.ok) {
                         const data = await configPoliciesResponse.json();
-                        allPolicies.push(...(data.value || []).map(p => ({ ...p, policyType: 'Settings Catalog' })));
+                        console.log('Settings Catalog policies:', data.value); // Debug log
+                        allPolicies.push(...(data.value || []).map(p => ({ 
+                            ...p, 
+                            displayName: p.name || p.displayName || 'Unnamed Policy',
+                            policyType: 'Settings Catalog' 
+                        })));
                     }
                 } catch (error) {
                     console.error('Error fetching configuration policies:', error);
@@ -3943,6 +3994,9 @@ if (sessionStorage.getItem('intunePolicyManagerAuth')) {
                 
                 console.log(`Loaded ${allPolicies.length} total policies across all types`);
                 
+                // Fetch compliance state for each policy
+                await fetchPolicyComplianceStates(allPolicies);
+                
                 // Process the data
                 processComplianceData(devices, allPolicies);
                 updateComplianceUI();
@@ -3951,6 +4005,52 @@ if (sessionStorage.getItem('intunePolicyManagerAuth')) {
                 console.error('Error loading compliance data:', error);
                 showToast('Failed to load compliance data: ' + error.message, 'error');
                 policyList.innerHTML = '<div style="padding: 20px; text-align: center; color: #dc3545;">Failed to load compliance data</div>';
+            }
+        }
+        async function fetchPolicyComplianceStates(policies) {
+            console.log('Fetching compliance states for each policy...');
+            
+            for (const policy of policies) {
+                try {
+                    policy.deviceStatuses = [];
+                    let statusEndpoint = '';
+                    
+                    // Determine the correct endpoint based on policy type
+                    switch (policy.policyType) {
+                        case 'Compliance Policy':
+                            statusEndpoint = `/deviceManagement/deviceCompliancePolicies/${policy.id}/deviceStatuses`;
+                            break;
+                        case 'Configuration Profile':
+                            statusEndpoint = `/deviceManagement/deviceConfigurations/${policy.id}/deviceStatuses`;
+                            break;
+                        case 'Settings Catalog':
+                            statusEndpoint = `/deviceManagement/configurationPolicies/${policy.id}/deviceStatuses`;
+                            break;
+                        case 'Admin Template':
+                            statusEndpoint = `/deviceManagement/groupPolicyConfigurations/${policy.id}/deviceStatuses`;
+                            break;
+                        case 'Security Policy':
+                            statusEndpoint = `/deviceManagement/intents/${policy.id}/deviceStatuses`;
+                            break;
+                        default:
+                            continue; // Skip if we don't know the endpoint
+                    }
+                    
+                    const response = await makeApiRequest(
+                        `https://graph.microsoft.com/beta${statusEndpoint}?$top=999`
+                    );
+                    
+                    if (response.ok) {
+                        const data = await response.json();
+                        policy.deviceStatuses = data.value || [];
+                        console.log(`${policy.displayName}: ${policy.deviceStatuses.length} device statuses`);
+                    }
+                } catch (error) {
+                    console.error(`Error fetching device statuses for ${policy.displayName}:`, error);
+                }
+                
+                // Add small delay to avoid rate limiting
+                await new Promise(resolve => setTimeout(resolve, 100));
             }
         }
         function processComplianceData(devices, policies) {
@@ -4027,23 +4127,50 @@ if (sessionStorage.getItem('intunePolicyManagerAuth')) {
                 return;
             }
             
-            const devices = complianceData.devices || [];
-            const totalDevices = devices.length;
-            
             policies.forEach(policy => {
-                // For now, since we can't determine which devices are assigned to which policy without additional API calls,
-                // we'll show the overall compliance for all devices
-                const compliantDevices = devices.filter(d => d.complianceState === 'compliant').length;
-                const nonCompliantDevices = totalDevices - compliantDevices;
+                // Use policy-specific device statuses if available
+                let compliantDevices = 0;
+                let nonCompliantDevices = 0;
+                let totalDevices = 0;
+                
+                if (policy.deviceStatuses && policy.deviceStatuses.length > 0) {
+                    // Use actual policy-specific data
+                    totalDevices = policy.deviceStatuses.length;
+                    
+                    policy.deviceStatuses.forEach(status => {
+                        // Check compliance based on policy type
+                        if (policy.policyType === 'Compliance Policy') {
+                            if (status.status === 'compliant' || status.complianceGracePeriodExpirationDateTime) {
+                                compliantDevices++;
+                            } else {
+                                nonCompliantDevices++;
+                            }
+                        } else {
+                            // For configuration policies
+                            if (status.status === 'compliant' || status.status === 'succeeded' || status.complianceState === 'compliant') {
+                                compliantDevices++;
+                            } else {
+                                nonCompliantDevices++;
+                            }
+                        }
+                    });
+                } else {
+                    // Fallback to overall compliance if no specific data
+                    const devices = complianceData.devices || [];
+                    totalDevices = devices.length;
+                    compliantDevices = devices.filter(d => d.complianceState === 'compliant').length;
+                    nonCompliantDevices = totalDevices - compliantDevices;
+                }
+                
                 const rate = totalDevices > 0 ? Math.round((compliantDevices / totalDevices) * 100) : 0;
                 
                 const row = document.createElement('div');
                 row.className = 'compliance-grid-row';
-                row.onclick = () => showPolicyDevices(policy.id, policy.displayName);
+                row.onclick = () => showPolicyDevices(policy.id, policy.displayName, policy);
                 
                 row.innerHTML = `
                     <div>${policy.displayName}</div>
-                    <div><span style="font-size: 12px; padding: 2px 8px; background: ${policy.policyType === 'Compliance' ? '#e3f2fd' : '#f3e5f5'}; border-radius: 12px;">${policy.policyType || 'Configuration'}</span></div>
+                    <div><span style="font-size: 12px; padding: 2px 8px; background: ${policy.policyType === 'Compliance Policy' ? '#e3f2fd' : '#f3e5f5'}; border-radius: 12px;">${policy.policyType || 'Configuration'}</span></div>
                     <div>${rate}%</div>
                     <div>${compliantDevices}</div>
                     <div>${nonCompliantDevices}</div>
@@ -4057,6 +4184,7 @@ if (sessionStorage.getItem('intunePolicyManagerAuth')) {
                 listContainer.appendChild(row);
             });
         }
+        }
 
         function showPolicyDevices(policyId, policyName) {
             const panel = document.getElementById('deviceDetailsPanel');
@@ -4065,44 +4193,102 @@ if (sessionStorage.getItem('intunePolicyManagerAuth')) {
             content.innerHTML = `
                 <div style="padding: 20px;">
                     <h4>${policyName}</h4>
-                    <p>Loading device details...</p>
+                    <p>Loading compliance details...</p>
                 </div>
             `;
             
             panel.classList.add('active');
             
-            // Fetch and display device details
-            fetchPolicyDeviceDetails(policyId);
+            // Pass the policy name to the function
+            fetchPolicyDeviceDetails(policyId, policyName, policy);
         }
 
-        async function fetchPolicyDeviceDetails(policyId) {
+        async function fetchPolicyDeviceDetails(policyId, policyName, policy) {
             const content = document.getElementById('deviceDetailsContent');
             
             try {
-                // Use actual device data from complianceData
-                const devices = complianceData.devices || [];
-                const nonCompliantDevices = devices.filter(d => d.complianceState !== 'compliant');
+                const allDevices = complianceData.devices || [];
+                let compliantDevices = [];
+                let nonCompliantDevices = [];
                 
-                let deviceListHtml = '';
+                if (policy && policy.deviceStatuses && policy.deviceStatuses.length > 0) {
+                    // Use policy-specific device statuses
+                    for (const status of policy.deviceStatuses) {
+                        // Find the corresponding device info
+                        const device = allDevices.find(d => 
+                            d.id === status.deviceId || 
+                            d.deviceName === status.deviceDisplayName ||
+                            d.id === status.id
+                        ) || {
+                            deviceName: status.deviceDisplayName || status.deviceName || 'Unknown Device',
+                            userPrincipalName: status.userPrincipalName || status.userName || 'Unknown User',
+                            id: status.deviceId || status.id
+                        };
+                        
+                        // Determine if compliant based on status
+                        const isCompliant = 
+                            status.status === 'compliant' || 
+                            status.status === 'succeeded' ||
+                            status.complianceState === 'compliant' ||
+                            (status.complianceGracePeriodExpirationDateTime && new Date(status.complianceGracePeriodExpirationDateTime) > new Date());
+                        
+                        if (isCompliant) {
+                            compliantDevices.push({
+                                ...device,
+                                status: status.status || 'compliant'
+                            });
+                        } else {
+                            nonCompliantDevices.push({
+                                ...device,
+                                status: status.status || status.complianceState || 'non-compliant'
+                            });
+                        }
+                    }
+                } else {
+                    // Fallback to showing all devices if no specific data
+                    compliantDevices = allDevices.filter(d => d.complianceState === 'compliant');
+                    nonCompliantDevices = allDevices.filter(d => d.complianceState !== 'compliant');
+                }
+                
+                let nonCompliantListHtml = '';
                 nonCompliantDevices.forEach(device => {
-                    // Use actual device name and compliance state
                     const deviceName = device.deviceName || device.id || 'Unknown Device';
                     const userName = device.userPrincipalName || 'Unknown User';
-                    const complianceState = device.complianceState || 'Unknown';
+                    const status = device.status || device.complianceState || 'Unknown';
                     
-                    deviceListHtml += `<li style="padding: 8px 0; border-bottom: 1px solid #eee;">
-                        <strong>${deviceName}</strong> (${userName}) - Status: ${complianceState}
+                    nonCompliantListHtml += `<li style="padding: 8px 0; border-bottom: 1px solid #eee;">
+                        <strong>${deviceName}</strong> (${userName}) - Status: ${status}
+                    </li>`;
+                });
+                
+                let compliantListHtml = '';
+                compliantDevices.forEach(device => {
+                    const deviceName = device.deviceName || device.id || 'Unknown Device';
+                    const userName = device.userPrincipalName || 'Unknown User';
+                    
+                    compliantListHtml += `<li style="padding: 8px 0; border-bottom: 1px solid #eee;">
+                        <strong>${deviceName}</strong> (${userName})
                     </li>`;
                 });
                 
                 content.innerHTML = `
                     <div style="padding: 20px;">
-                        <h4>Device Compliance Details</h4>
-                        <p>Policy ID: ${policyId}</p>
+                        <h4>Compliance Details</h4>
+                        <p><strong>Policy:</strong> ${policyName}</p>
+                        <p><strong>Type:</strong> ${policy?.policyType || 'Unknown'}</p>
+                        <p><strong>Total Assigned Devices:</strong> ${compliantDevices.length + nonCompliantDevices.length}</p>
+                        
                         <div style="margin-top: 20px;">
-                            <h5>Non-Compliant Devices (${nonCompliantDevices.length}):</h5>
-                            <ul style="list-style: none; padding: 0;">
-                                ${deviceListHtml || '<li style="padding: 8px 0; color: #666;">No non-compliant devices found</li>'}
+                            <h5 style="color: #dc3545;">Non-Compliant Devices (${nonCompliantDevices.length}):</h5>
+                            <ul style="list-style: none; padding: 0; max-height: 200px; overflow-y: auto;">
+                                ${nonCompliantListHtml || '<li style="padding: 8px 0; color: #666;">No non-compliant devices found</li>'}
+                            </ul>
+                        </div>
+                        
+                        <div style="margin-top: 20px;">
+                            <h5 style="color: #28a745;">Compliant Devices (${compliantDevices.length}):</h5>
+                            <ul style="list-style: none; padding: 0; max-height: 200px; overflow-y: auto;">
+                                ${compliantListHtml || '<li style="padding: 8px 0; color: #666;">No compliant devices found</li>'}
                             </ul>
                         </div>
                     </div>
@@ -4110,7 +4296,7 @@ if (sessionStorage.getItem('intunePolicyManagerAuth')) {
             } catch (error) {
                 content.innerHTML = `
                     <div style="padding: 20px;">
-                        <p style="color: #dc3545;">Error loading device details</p>
+                        <p style="color: #dc3545;">Error loading compliance details</p>
                     </div>
                 `;
             }
