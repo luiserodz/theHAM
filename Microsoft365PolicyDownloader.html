@@ -962,8 +962,13 @@ document.addEventListener('DOMContentLoaded', function() {
                         <li>Policy.Read.All - To read Azure AD and conditional access policies</li>
                         <li>Directory.Read.All - To read directory information</li>
                         <li>Group.Read.All - To read group names for policy assignments</li>
-                        <li>Sites.Read.All - To read SharePoint policies</li>
+                        <li>Sites.Read.All - To read SharePoint settings</li>
                         <li>User.Read - To sign in and read user profile</li>
+                        <li>Organization.Read.All - To read organization settings</li>
+                        <li>InformationProtectionPolicy.Read - To read DLP and sensitivity labels</li>
+                        <li>SecurityEvents.Read.All - To read security and compliance data</li>
+                        <li>TeamSettings.Read.All - To read Teams settings</li>
+                        <li>IdentityRiskEvent.Read.All - To read identity protection policies</li>
                     </ul>
                     <small>Platform: Works on Windows, macOS, and Linux in any modern browser</small>
                 </div>
@@ -1874,62 +1879,407 @@ document.addEventListener('DOMContentLoaded', function() {
             return policies;
         }
 
-        // Fetch Exchange policies (mock implementation)
-        async function fetchExchangePolicies() {
-            // Note: Exchange policies would require Exchange Online PowerShell or specific Graph endpoints
-            return [];
-        }
-
-        // Fetch SharePoint policies (mock implementation)
-        async function fetchSharePointPolicies() {
-            // Note: SharePoint policies would require SharePoint API or specific Graph endpoints
-            return [];
-        }
-
-        // Fetch Teams policies (mock implementation)
-        async function fetchTeamsPolicies() {
-            // Note: Teams policies would require Teams PowerShell or specific Graph endpoints
-            return [];
-        }
-
-        // Fetch Azure AD policies
-        async function fetchAADPolicies() {
-            const policies = [];
-            
-            try {
-                // Fetch conditional access policies
-                const caResponse = await fetch('https://graph.microsoft.com/v1.0/identity/conditionalAccess/policies', {
-                    headers: {
-                        'Authorization': `Bearer ${accessToken}`
+        // Fetch Exchange policies
+async function fetchExchangePolicies() {
+    const policies = [];
+    
+    try {
+        // Fetch organization settings that affect Exchange
+        const orgResponse = await fetch('https://graph.microsoft.com/v1.0/organization', {
+            headers: {
+                'Authorization': `Bearer ${accessToken}`
+            }
+        });
+        
+        if (orgResponse.ok) {
+            const orgData = await orgResponse.json();
+            if (orgData.value && orgData.value.length > 0) {
+                const org = orgData.value[0];
+                policies.push({
+                    id: `exchange_org_settings`,
+                    name: 'Exchange Organization Settings',
+                    type: 'Organization Settings',
+                    service: 'exchange',
+                    created: org.createdDateTime || new Date().toISOString(),
+                    modified: new Date().toISOString(),
+                    data: {
+                        displayName: org.displayName,
+                        mail: org.mail,
+                        technicalNotificationMails: org.technicalNotificationMails
                     }
                 });
-                
-                if (caResponse.ok) {
-                    const caData = await caResponse.json();
-                    caData.value.forEach(policy => {
+            }
+        }
+        
+        // Note: Most Exchange policies require Exchange Online PowerShell
+        // This is a limitation of the Graph API
+        
+    } catch (error) {
+        console.error('Error fetching Exchange policies:', error);
+    }
+    
+    return policies;
+}
+
+        // Fetch SharePoint policies
+async function fetchSharePointPolicies() {
+    const policies = [];
+    
+    try {
+        // Fetch sites to get sharing capabilities
+        const sitesResponse = await fetch('https://graph.microsoft.com/v1.0/sites?$top=1', {
+            headers: {
+                'Authorization': `Bearer ${accessToken}`
+            }
+        });
+        
+        if (sitesResponse.ok) {
+            const sitesData = await sitesResponse.json();
+            if (sitesData.value && sitesData.value.length > 0) {
+                // Get root site settings as a proxy for tenant settings
+                const rootSite = sitesData.value[0];
+                policies.push({
+                    id: `sharepoint_tenant_settings`,
+                    name: 'SharePoint Tenant Settings',
+                    type: 'Tenant Configuration',
+                    service: 'sharepoint',
+                    created: rootSite.createdDateTime || new Date().toISOString(),
+                    modified: rootSite.lastModifiedDateTime || new Date().toISOString(),
+                    data: {
+                        displayName: rootSite.displayName,
+                        webUrl: rootSite.webUrl,
+                        id: rootSite.id
+                    }
+                });
+            }
+        }
+        
+        // Try to fetch admin settings (may require additional permissions)
+        try {
+            const adminResponse = await fetch('https://graph.microsoft.com/beta/admin/sharepoint/settings', {
+                headers: {
+                    'Authorization': `Bearer ${accessToken}`
+                }
+            });
+            
+            if (adminResponse.ok) {
+                const adminData = await adminResponse.json();
+                policies.push({
+                    id: `sharepoint_admin_settings`,
+                    name: 'SharePoint Admin Settings',
+                    type: 'Admin Settings',
+                    service: 'sharepoint',
+                    created: new Date().toISOString(),
+                    modified: new Date().toISOString(),
+                    data: adminData
+                });
+            }
+        } catch (adminError) {
+            console.log('SharePoint admin settings not accessible');
+        }
+        
+    } catch (error) {
+        console.error('Error fetching SharePoint policies:', error);
+    }
+    
+    return policies;
+}
+
+        // Fetch Teams policies
+async function fetchTeamsPolicies() {
+    const policies = [];
+    
+    try {
+        // Fetch Teams apps in the organization
+        const teamsAppsResponse = await fetch('https://graph.microsoft.com/v1.0/appCatalogs/teamsApps?$filter=distributionMethod eq \'organization\'', {
+            headers: {
+                'Authorization': `Bearer ${accessToken}`
+            }
+        });
+        
+        if (teamsAppsResponse.ok) {
+            const teamsAppsData = await teamsAppsResponse.json();
+            policies.push({
+                id: `teams_apps_catalog`,
+                name: 'Teams Apps Catalog',
+                type: 'App Management',
+                service: 'teams',
+                created: new Date().toISOString(),
+                modified: new Date().toISOString(),
+                data: {
+                    appCount: teamsAppsData.value.length,
+                    apps: teamsAppsData.value
+                }
+            });
+        }
+        
+        // Fetch Teams settings (if available)
+        try {
+            const teamsSettingsResponse = await fetch('https://graph.microsoft.com/beta/teamwork/teamsAppSettings', {
+                headers: {
+                    'Authorization': `Bearer ${accessToken}`
+                }
+            });
+            
+            if (teamsSettingsResponse.ok) {
+                const teamsSettingsData = await teamsSettingsResponse.json();
+                policies.push({
+                    id: `teams_app_settings`,
+                    name: 'Teams App Settings',
+                    type: 'App Settings',
+                    service: 'teams',
+                    created: new Date().toISOString(),
+                    modified: new Date().toISOString(),
+                    data: teamsSettingsData
+                });
+            }
+        } catch (settingsError) {
+            console.log('Teams settings not accessible');
+        }
+        
+        // Note: Meeting, messaging, and calling policies require Teams PowerShell
+        
+    } catch (error) {
+        console.error('Error fetching Teams policies:', error);
+    }
+    
+    return policies;
+}
+
+        // Fetch Azure AD policies
+async function fetchAADPolicies() {
+    const policies = [];
+    
+    try {
+        // Fetch conditional access policies
+        const caResponse = await fetch('https://graph.microsoft.com/v1.0/identity/conditionalAccess/policies', {
+            headers: {
+                'Authorization': `Bearer ${accessToken}`
+            }
+        });
+        
+        if (caResponse.ok) {
+            const caData = await caResponse.json();
+            caData.value.forEach(policy => {
+                policies.push({
+                    id: `aad_ca_${policy.id}`,
+                    name: policy.displayName,
+                    type: 'Conditional Access',
+                    service: 'aad',
+                    created: policy.createdDateTime,
+                    modified: policy.modifiedDateTime,
+                    data: policy
+                });
+            });
+        }
+        
+        // Add authorization policies
+        try {
+            const authPolicyResponse = await fetch('https://graph.microsoft.com/v1.0/policies/authorizationPolicy', {
+                headers: {
+                    'Authorization': `Bearer ${accessToken}`
+                }
+            });
+            
+            if (authPolicyResponse.ok) {
+                const authPolicyData = await authPolicyResponse.json();
+                policies.push({
+                    id: `aad_auth_policy`,
+                    name: 'Authorization Policy',
+                    type: 'Authorization Policy',
+                    service: 'aad',
+                    created: new Date().toISOString(),
+                    modified: new Date().toISOString(),
+                    data: authPolicyData
+                });
+            }
+        } catch (authError) {
+            console.log('Authorization policy not accessible');
+        }
+        
+        // Add token lifetime policies
+        try {
+            const tokenPolicyResponse = await fetch('https://graph.microsoft.com/v1.0/policies/tokenLifetimePolicies', {
+                headers: {
+                    'Authorization': `Bearer ${accessToken}`
+                }
+            });
+            
+            if (tokenPolicyResponse.ok) {
+                const tokenPolicyData = await tokenPolicyResponse.json();
+                tokenPolicyData.value.forEach(policy => {
+                    policies.push({
+                        id: `aad_token_${policy.id}`,
+                        name: policy.displayName,
+                        type: 'Token Lifetime Policy',
+                        service: 'aad',
+                        created: new Date().toISOString(),
+                        modified: new Date().toISOString(),
+                        data: policy
+                    });
+                });
+            }
+        } catch (tokenError) {
+            console.log('Token lifetime policies not accessible');
+        }
+        
+        // Add authentication methods policy
+        try {
+            const authMethodsResponse = await fetch('https://graph.microsoft.com/beta/policies/authenticationMethodsPolicy', {
+                headers: {
+                    'Authorization': `Bearer ${accessToken}`
+                }
+            });
+            
+            if (authMethodsResponse.ok) {
+                const authMethodsData = await authMethodsResponse.json();
+                policies.push({
+                    id: `aad_auth_methods`,
+                    name: 'Authentication Methods Policy',
+                    type: 'Authentication Methods',
+                    service: 'aad',
+                    created: new Date().toISOString(),
+                    modified: new Date().toISOString(),
+                    data: authMethodsData
+                });
+            }
+        } catch (methodsError) {
+            console.log('Authentication methods policy not accessible');
+        }
+        
+        // Add identity protection policies
+        try {
+            const riskPolicyResponse = await fetch('https://graph.microsoft.com/beta/identityProtection/riskDetections', {
+                headers: {
+                    'Authorization': `Bearer ${accessToken}`
+                }
+            });
+            
+            if (riskPolicyResponse.ok) {
+                const riskData = await riskPolicyResponse.json();
+                policies.push({
+                    id: `aad_risk_detections`,
+                    name: 'Identity Protection - Risk Detections',
+                    type: 'Identity Protection',
+                    service: 'aad',
+                    created: new Date().toISOString(),
+                    modified: new Date().toISOString(),
+                    data: {
+                        detectionCount: riskData.value.length,
+                        detections: riskData.value
+                    }
+                });
+            }
+        } catch (riskError) {
+            console.log('Risk detections not accessible');
+        }
+        
+    } catch (error) {
+        console.error('Error fetching Azure AD policies:', error);
+    }
+    
+    return policies;
+}
+
+        // Fetch Compliance policies
+async function fetchCompliancePolicies() {
+    const policies = [];
+    
+    try {
+        // Fetch data loss prevention policies
+        try {
+            const dlpResponse = await fetch('https://graph.microsoft.com/beta/informationProtection/dataLossPreventionPolicies', {
+                headers: {
+                    'Authorization': `Bearer ${accessToken}`
+                }
+            });
+            
+            if (dlpResponse.ok) {
+                const dlpData = await dlpResponse.json();
+                if (dlpData.value) {
+                    dlpData.value.forEach(policy => {
                         policies.push({
-                            id: `aad_ca_${policy.id}`,
-                            name: policy.displayName,
-                            type: 'Conditional Access',
-                            service: 'aad',
-                            created: policy.createdDateTime,
-                            modified: policy.modifiedDateTime,
+                            id: `compliance_dlp_${policy.id}`,
+                            name: policy.name || 'DLP Policy',
+                            type: 'DLP Policy',
+                            service: 'compliance',
+                            created: policy.createdDateTime || new Date().toISOString(),
+                            modified: policy.lastModifiedDateTime || new Date().toISOString(),
                             data: policy
                         });
                     });
                 }
-            } catch (error) {
-                console.error('Error fetching Azure AD policies:', error);
             }
+        } catch (dlpError) {
+            console.log('DLP policies not accessible');
+        }
+        
+        // Fetch sensitivity labels
+        try {
+            const labelsResponse = await fetch('https://graph.microsoft.com/beta/informationProtection/policy/labels', {
+                headers: {
+                    'Authorization': `Bearer ${accessToken}`
+                }
+            });
             
-            return policies;
+            if (labelsResponse.ok) {
+                const labelsData = await labelsResponse.json();
+                if (labelsData.value) {
+                    policies.push({
+                        id: `compliance_sensitivity_labels`,
+                        name: 'Sensitivity Labels',
+                        type: 'Information Protection',
+                        service: 'compliance',
+                        created: new Date().toISOString(),
+                        modified: new Date().toISOString(),
+                        data: {
+                            labelCount: labelsData.value.length,
+                            labels: labelsData.value
+                        }
+                    });
+                }
+            }
+        } catch (labelsError) {
+            console.log('Sensitivity labels not accessible');
         }
-
-        // Fetch Compliance policies (mock implementation)
-        async function fetchCompliancePolicies() {
-            // Note: Compliance policies would require specific Graph endpoints or PowerShell
-            return [];
+        
+        // Fetch retention policies (limited access through Graph)
+        try {
+            const retentionResponse = await fetch('https://graph.microsoft.com/beta/security/labels/retentionLabels', {
+                headers: {
+                    'Authorization': `Bearer ${accessToken}`
+                }
+            });
+            
+            if (retentionResponse.ok) {
+                const retentionData = await retentionResponse.json();
+                if (retentionData.value) {
+                    policies.push({
+                        id: `compliance_retention_labels`,
+                        name: 'Retention Labels',
+                        type: 'Retention Policy',
+                        service: 'compliance',
+                        created: new Date().toISOString(),
+                        modified: new Date().toISOString(),
+                        data: {
+                            labelCount: retentionData.value.length,
+                            labels: retentionData.value
+                        }
+                    });
+                }
+            }
+        } catch (retentionError) {
+            console.log('Retention labels not accessible');
         }
+        
+        // Note: Full compliance policies require Security & Compliance PowerShell
+        
+    } catch (error) {
+        console.error('Error fetching Compliance policies:', error);
+    }
+    
+    return policies;
+}
 
         // Display policies in the UI
         function displayPolicies(service, policies) {
