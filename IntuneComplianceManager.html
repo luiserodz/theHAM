@@ -1286,33 +1286,68 @@
             <div class="tab-content" id="exportTab">
                 <div class="auth-section">
                     <h2>Export Options</h2>
-                    <p style="margin-bottom: 20px; color: #6b7280;">Export all compliance and application data to various formats.</p>
+                    <p style="margin-bottom: 20px; color: #6b7280;">Choose what data to export and in which format.</p>
                     
+                    <!-- Data Selection -->
+                    <div style="margin-bottom: 24px;">
+                        <label style="font-weight: 600; display: block; margin-bottom: 12px;">Select Data to Export:</label>
+                        <div class="checkbox-group" style="display: flex; flex-direction: column; gap: 10px;">
+                            <div class="checkbox-item">
+                                <input type="checkbox" id="exportCompliance" checked>
+                                <label for="exportCompliance">Device Compliance Data</label>
+                            </div>
+                            <div class="checkbox-item">
+                                <input type="checkbox" id="exportApplications" checked>
+                                <label for="exportApplications">Application Inventory</label>
+                            </div>
+                            <div class="checkbox-item">
+                                <input type="checkbox" id="exportPolicies" checked>
+                                <label for="exportPolicies">Configuration Policies</label>
+                            </div>
+                            <div class="checkbox-item">
+                                <input type="checkbox" id="exportConfigurations" checked>
+                                <label for="exportConfigurations">Device Configurations</label>
+                            </div>
+                            <div class="checkbox-item">
+                                <input type="checkbox" id="exportDashboard">
+                                <label for="exportDashboard">Dashboard Summary (PDF only)</label>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Export Buttons -->
                     <div style="display: grid; gap: 16px;">
-                        <button class="btn btn-primary btn-full" onclick="exportAllData('json')" id="exportJsonBtn" disabled>
+                        <button class="btn btn-primary btn-full" onclick="exportSelectedData('json')" id="exportJsonBtn" disabled>
                             <svg width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
                                 <path d="M.5 9.9a.5.5 0 0 1 .5.5v2.5a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-2.5a.5.5 0 0 1 1 0v2.5a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2v-2.5a.5.5 0 0 1 .5-.5z"/>
                                 <path d="M7.646 1.146a.5.5 0 0 1 .708 0l3 3a.5.5 0 0 1-.708.708L8.5 2.707V11.5a.5.5 0 0 1-1 0V2.707L5.354 4.854a.5.5 0 1 1-.708-.708l3-3z"/>
                             </svg>
-                            Export All as JSON
+                            Export Selected as JSON
                         </button>
                         
-                        <button class="btn btn-secondary btn-full" onclick="exportAllData('csv')" id="exportCsvBtn" disabled>
+                        <button class="btn btn-secondary btn-full" onclick="exportSelectedData('csv')" id="exportCsvBtn" disabled>
                             <svg width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
                                 <path d="M.5 9.9a.5.5 0 0 1 .5.5v2.5a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-2.5a.5.5 0 0 1 1 0v2.5a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2v-2.5a.5.5 0 0 1 .5-.5z"/>
                                 <path d="M7.646 1.146a.5.5 0 0 1 .708 0l3 3a.5.5 0 0 1-.708.708L8.5 2.707V11.5a.5.5 0 0 1-1 0V2.707L5.354 4.854a.5.5 0 1 1-.708-.708l3-3z"/>
                             </svg>
-                            Export All as CSV
+                            Export Selected as CSV
+                        </button>
+                        
+                        <button class="btn btn-primary btn-full" onclick="exportDashboardPDF()" id="exportPdfBtn" disabled style="background: #dc2626;">
+                            <svg width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
+                                <path d="M.5 9.9a.5.5 0 0 1 .5.5v2.5a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-2.5a.5.5 0 0 1 1 0v2.5a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2v-2.5a.5.5 0 0 1 .5-.5z"/>
+                                <path d="M7.646 1.146a.5.5 0 0 1 .708 0l3 3a.5.5 0 0 1-.708.708L8.5 2.707V11.5a.5.5 0 0 1-1 0V2.707L5.354 4.854a.5.5 0 1 1-.708-.708l3-3z"/>
+                            </svg>
+                            Export Dashboard as PDF
                         </button>
                     </div>
                     
                     <div class="info-notice" style="margin-top: 24px;">
-                        <strong>Export includes:</strong>
+                        <strong>Export Options:</strong>
                         <ul>
-                            <li>All device compliance information</li>
-                            <li>Configuration policy status</li>
-                            <li>Application inventory</li>
-                            <li>Metadata and timestamps</li>
+                            <li><strong>JSON:</strong> Complete data with all fields and metadata</li>
+                            <li><strong>CSV:</strong> Tabular format for Excel/spreadsheet analysis</li>
+                            <li><strong>PDF:</strong> Dashboard summary report with charts and statistics</li>
                         </ul>
                     </div>
                 </div>
@@ -1517,6 +1552,9 @@
         let complianceData = [];
         let applicationData = [];
         let policyData = [];
+        let configurationProfiles = [];
+        let adminTemplates = [];
+        let settingsCatalog = [];
         let filteredComplianceData = [];
         let filteredApplicationData = [];
         let deviceInstallStates = [];
@@ -1660,6 +1698,7 @@
                 document.getElementById('fetchDeviceStatusBtn').disabled = false;
                 document.getElementById('exportJsonBtn').disabled = false;
                 document.getElementById('exportCsvBtn').disabled = false;
+                document.getElementById('exportPdfBtn').disabled = false;
                 document.getElementById('refreshPoliciesBtn').disabled = false;
                 document.getElementById('exportPoliciesBtn').disabled = false;
                 
@@ -1690,6 +1729,7 @@
                 document.getElementById('fetchDeviceStatusBtn').disabled = true;
                 document.getElementById('exportJsonBtn').disabled = true;
                 document.getElementById('exportCsvBtn').disabled = true;
+                document.getElementById('exportPdfBtn').disabled = true;
                 document.getElementById('refreshPoliciesBtn').disabled = true;
                 document.getElementById('exportPoliciesBtn').disabled = true;
                 
@@ -1780,7 +1820,7 @@
             }
         }
 
-        // Enhanced device compliance details fetching
+        // Enhanced device compliance details fetching to include all configuration compliance
         async function fetchDeviceComplianceDetails(deviceId) {
             try {
                 const accessToken = await getAccessToken();
@@ -1826,6 +1866,26 @@
                 } catch (error) {
                     console.error('Error fetching configuration states:', error);
                     device.configurationStates = [];
+                }
+                
+                // Try to fetch settings catalog configuration states
+                try {
+                    const settingsResponse = await fetch(
+                        `https://graph.microsoft.com/beta/deviceManagement/managedDevices/${deviceId}/configurationPolicyStates`,
+                        {
+                            headers: {
+                                'Authorization': `Bearer ${accessToken}`
+                            }
+                        }
+                    );
+                    
+                    if (settingsResponse.ok) {
+                        const settingsData = await settingsResponse.json();
+                        device.settingsCatalogStates = settingsData.value || [];
+                    }
+                } catch (error) {
+                    console.error('Error fetching settings catalog states:', error);
+                    device.settingsCatalogStates = [];
                 }
                 
                 return device;
@@ -2117,7 +2177,7 @@
             }
         }
 
-        // Policy functions
+        // Policy functions - Enhanced to fetch all configuration types
         async function refreshPolicyData() {
             if (!account) {
                 alert('Please sign in first');
@@ -2129,18 +2189,65 @@
             try {
                 const accessToken = await getAccessToken();
                 
-                const policiesResponse = await fetch('https://graph.microsoft.com/beta/deviceManagement/deviceCompliancePolicies', {
+                // Fetch compliance policies
+                const compliancePoliciesResponse = await fetch('https://graph.microsoft.com/beta/deviceManagement/deviceCompliancePolicies', {
                     headers: {
                         'Authorization': `Bearer ${accessToken}`
                     }
                 });
                 
-                if (!policiesResponse.ok) {
-                    throw new Error('Failed to fetch policies');
+                if (compliancePoliciesResponse.ok) {
+                    const compliancePoliciesData = await compliancePoliciesResponse.json();
+                    policyData = compliancePoliciesData.value || [];
                 }
                 
-                const policiesData = await policiesResponse.json();
-                policyData = policiesData.value || [];
+                // Fetch device configurations
+                try {
+                    const configResponse = await fetch('https://graph.microsoft.com/beta/deviceManagement/deviceConfigurations', {
+                        headers: {
+                            'Authorization': `Bearer ${accessToken}`
+                        }
+                    });
+                    
+                    if (configResponse.ok) {
+                        const configData = await configResponse.json();
+                        configurationProfiles = configData.value || [];
+                    }
+                } catch (error) {
+                    console.error('Error fetching device configurations:', error);
+                }
+                
+                // Fetch configuration policies (Settings Catalog)
+                try {
+                    const settingsResponse = await fetch('https://graph.microsoft.com/beta/deviceManagement/configurationPolicies', {
+                        headers: {
+                            'Authorization': `Bearer ${accessToken}`
+                        }
+                    });
+                    
+                    if (settingsResponse.ok) {
+                        const settingsData = await settingsResponse.json();
+                        settingsCatalog = settingsData.value || [];
+                    }
+                } catch (error) {
+                    console.error('Error fetching settings catalog:', error);
+                }
+                
+                // Fetch administrative templates
+                try {
+                    const adminResponse = await fetch('https://graph.microsoft.com/beta/deviceManagement/groupPolicyConfigurations', {
+                        headers: {
+                            'Authorization': `Bearer ${accessToken}`
+                        }
+                    });
+                    
+                    if (adminResponse.ok) {
+                        const adminData = await adminResponse.json();
+                        adminTemplates = adminData.value || [];
+                    }
+                } catch (error) {
+                    console.error('Error fetching administrative templates:', error);
+                }
                 
                 displayPolicyData();
                 updateDashboard();
@@ -2158,7 +2265,15 @@
             const tableContainer = document.getElementById('policiesTableContainer');
             const emptyState = document.getElementById('policiesEmpty');
             
-            if (policyData.length === 0) {
+            // Combine all policy types
+            const allPolicies = [
+                ...policyData.map(p => ({...p, policyType: 'Compliance Policy'})),
+                ...configurationProfiles.map(p => ({...p, policyType: 'Device Configuration'})),
+                ...settingsCatalog.map(p => ({...p, policyType: 'Settings Catalog'})),
+                ...adminTemplates.map(p => ({...p, policyType: 'Administrative Template'}))
+            ];
+            
+            if (allPolicies.length === 0) {
                 tableContainer.style.display = 'none';
                 emptyState.style.display = 'block';
                 document.getElementById('exportPoliciesBtn').disabled = true;
@@ -2169,15 +2284,28 @@
             emptyState.style.display = 'none';
             document.getElementById('exportPoliciesBtn').disabled = false;
             
-            tableBody.innerHTML = policyData.map(policy => `
+            // Update table header to include policy type
+            const tableHeader = tableContainer.querySelector('thead tr');
+            tableHeader.innerHTML = `
+                <th>Policy Name</th>
+                <th>Type</th>
+                <th>Description</th>
+                <th>Platform</th>
+                <th>Created</th>
+                <th>Modified</th>
+                <th>Actions</th>
+            `;
+            
+            tableBody.innerHTML = allPolicies.map(policy => `
                 <tr>
-                    <td>${policy.displayName}</td>
+                    <td>${policy.displayName || policy.name || 'Unnamed'}</td>
+                    <td><span class="policy-tag">${policy.policyType}</span></td>
                     <td>${policy.description || 'N/A'}</td>
-                    <td>${policy.platform || 'N/A'}</td>
+                    <td>${policy.platform || policy.platforms || 'All'}</td>
                     <td>${formatDate(policy.createdDateTime)}</td>
                     <td>${formatDate(policy.lastModifiedDateTime)}</td>
                     <td>
-                        <button class="btn btn-primary" onclick="viewPolicyDetails('${policy.id}')">
+                        <button class="btn btn-primary" onclick="viewPolicyDetails('${policy.id}', '${policy.policyType}')">
                             View Details
                         </button>
                     </td>
@@ -2196,9 +2324,13 @@
                 
                 const complianceRate = stats.total > 0 ? Math.round((stats.compliant / stats.total) * 100) : 0;
                 
+                // Calculate total policies across all types
+                const totalPolicies = policyData.length + configurationProfiles.length + 
+                                    settingsCatalog.length + adminTemplates.length;
+                
                 document.getElementById('dashComplianceRate').textContent = complianceRate + '%';
                 document.getElementById('dashNonCompliant').textContent = stats.noncompliant;
-                document.getElementById('dashTotalPolicies').textContent = policyData.length;
+                document.getElementById('dashTotalPolicies').textContent = totalPolicies;
                 document.getElementById('dashLastUpdate').textContent = new Date().toLocaleTimeString();
                 
                 // Update platform breakdown
@@ -2383,7 +2515,13 @@
             } else if (type === 'applications') {
                 data = filteredApplicationData;
             } else if (type === 'policies') {
-                data = policyData;
+                // Combine all policy types for export
+                data = [
+                    ...policyData.map(p => ({...p, policyType: 'Compliance Policy'})),
+                    ...configurationProfiles.map(p => ({...p, policyType: 'Device Configuration'})),
+                    ...settingsCatalog.map(p => ({...p, policyType: 'Settings Catalog'})),
+                    ...adminTemplates.map(p => ({...p, policyType: 'Administrative Template'}))
+                ];
             }
             
             const now = new Date();
@@ -2402,44 +2540,386 @@
             document.getElementById(type + 'ExportMenu').classList.remove('show');
         }
 
-        function exportAllData(format) {
+        function exportSelectedData(format) {
+            const includeCompliance = document.getElementById('exportCompliance').checked;
+            const includeApplications = document.getElementById('exportApplications').checked;
+            const includePolicies = document.getElementById('exportPolicies').checked;
+            const includeConfigurations = document.getElementById('exportConfigurations').checked;
+            const includeDashboard = document.getElementById('exportDashboard').checked;
+            
+            if (!includeCompliance && !includeApplications && !includePolicies && 
+                !includeConfigurations && !includeDashboard) {
+                alert('Please select at least one data type to export');
+                return;
+            }
+            
             const now = new Date();
             const timestamp = now.toISOString().replace(/:/g, '-').split('.')[0];
             const dateStr = now.toLocaleDateString().replace(/\//g, '-');
             const orgName = account ? account.username.split('@')[1] : 'export';
             
-            const filename = `${orgName}_intune_all_data_${dateStr}_${timestamp}`;
-            
             if (format === 'json') {
                 const exportData = {
                     metadata: {
-                        exportType: 'all',
+                        exportType: 'selected',
                         organization: orgName,
                         exportedBy: account ? account.username : 'Unknown',
                         exportDate: now.toISOString(),
-                        counts: {
-                            devices: complianceData.length,
-                            applications: applicationData.length,
-                            policies: policyData.length
-                        }
-                    },
-                    compliance: complianceData,
-                    applications: applicationData,
-                    policies: policyData
+                        dataTypes: []
+                    }
                 };
                 
+                if (includeCompliance) {
+                    exportData.compliance = complianceData;
+                    exportData.metadata.dataTypes.push('compliance');
+                }
+                
+                if (includeApplications) {
+                    exportData.applications = applicationData;
+                    exportData.metadata.dataTypes.push('applications');
+                }
+                
+                if (includePolicies) {
+                    exportData.compliancePolicies = policyData;
+                    exportData.metadata.dataTypes.push('compliancePolicies');
+                }
+                
+                if (includeConfigurations) {
+                    exportData.configurations = {
+                        deviceConfigurations: configurationProfiles,
+                        settingsCatalog: settingsCatalog,
+                        administrativeTemplates: adminTemplates
+                    };
+                    exportData.metadata.dataTypes.push('configurations');
+                }
+                
+                const filename = `${orgName}_intune_export_${dateStr}_${timestamp}.json`;
                 const jsonContent = JSON.stringify(exportData, null, 2);
-                downloadFile(jsonContent, `${filename}.json`, 'application/json');
+                downloadFile(jsonContent, filename, 'application/json');
+                
             } else if (format === 'csv') {
-                // Create multiple CSV files
-                exportToCSV(complianceData, `${filename}_compliance.csv`, 'compliance');
-                setTimeout(() => {
-                    exportToCSV(applicationData, `${filename}_applications.csv`, 'applications');
+                // Export multiple CSV files for different data types
+                if (includeCompliance) {
+                    exportToCSV(complianceData, `${orgName}_compliance_${dateStr}_${timestamp}.csv`, 'compliance');
+                }
+                
+                if (includeApplications) {
                     setTimeout(() => {
-                        exportToCSV(policyData, `${filename}_policies.csv`, 'policies');
+                        exportToCSV(applicationData, `${orgName}_applications_${dateStr}_${timestamp}.csv`, 'applications');
                     }, 500);
-                }, 500);
+                }
+                
+                if (includePolicies || includeConfigurations) {
+                    const allPolicies = [
+                        ...policyData.map(p => ({...p, policyType: 'Compliance Policy'})),
+                        ...configurationProfiles.map(p => ({...p, policyType: 'Device Configuration'})),
+                        ...settingsCatalog.map(p => ({...p, policyType: 'Settings Catalog'})),
+                        ...adminTemplates.map(p => ({...p, policyType: 'Administrative Template'}))
+                    ];
+                    setTimeout(() => {
+                        exportToCSV(allPolicies, `${orgName}_policies_${dateStr}_${timestamp}.csv`, 'policies');
+                    }, 1000);
+                }
             }
+        }
+
+        function exportDashboardPDF() {
+            if (complianceData.length === 0) {
+                alert('No data available to export. Please refresh compliance data first.');
+                return;
+            }
+            
+            const now = new Date();
+            const dateStr = now.toLocaleDateString();
+            const orgName = account ? account.username.split('@')[1] : 'Unknown';
+            
+            // Create a printable HTML version of the dashboard
+            const printWindow = window.open('', '_blank');
+            
+            const stats = {
+                total: complianceData.length,
+                compliant: complianceData.filter(d => d.complianceState === 'compliant').length,
+                noncompliant: complianceData.filter(d => d.complianceState === 'noncompliant').length,
+                unknown: complianceData.filter(d => d.complianceState === 'unknown').length
+            };
+            
+            const complianceRate = stats.total > 0 ? Math.round((stats.compliant / stats.total) * 100) : 0;
+            const totalPolicies = policyData.length + configurationProfiles.length + 
+                                settingsCatalog.length + adminTemplates.length;
+            
+            // Platform breakdown data
+            const platforms = {};
+            complianceData.forEach(device => {
+                const platform = device.operatingSystem || 'Unknown';
+                if (!platforms[platform]) {
+                    platforms[platform] = { total: 0, compliant: 0, noncompliant: 0 };
+                }
+                platforms[platform].total++;
+                if (device.complianceState === 'compliant') {
+                    platforms[platform].compliant++;
+                } else if (device.complianceState === 'noncompliant') {
+                    platforms[platform].noncompliant++;
+                }
+            });
+            
+            const pdfContent = `
+                <!DOCTYPE html>
+                <html>
+                <head>
+                    <title>Intune Compliance Dashboard Report</title>
+                    <style>
+                        body {
+                            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+                            margin: 40px;
+                            color: #1a1a1a;
+                        }
+                        .header {
+                            text-align: center;
+                            margin-bottom: 40px;
+                            padding-bottom: 20px;
+                            border-bottom: 2px solid #e5e7eb;
+                        }
+                        .header h1 {
+                            color: #2c5aa0;
+                            margin-bottom: 10px;
+                        }
+                        .header .subtitle {
+                            color: #6b7280;
+                            font-size: 18px;
+                        }
+                        .header .date {
+                            color: #6b7280;
+                            font-size: 14px;
+                            margin-top: 10px;
+                        }
+                        .stats-grid {
+                            display: grid;
+                            grid-template-columns: repeat(4, 1fr);
+                            gap: 20px;
+                            margin-bottom: 40px;
+                        }
+                        .stat-card {
+                            text-align: center;
+                            padding: 20px;
+                            background: #f9fafb;
+                            border-radius: 8px;
+                            border: 1px solid #e5e7eb;
+                        }
+                        .stat-value {
+                            font-size: 36px;
+                            font-weight: bold;
+                            color: #3b82f6;
+                            margin-bottom: 5px;
+                        }
+                        .stat-label {
+                            color: #6b7280;
+                            font-size: 14px;
+                        }
+                        .section {
+                            margin-bottom: 40px;
+                        }
+                        .section h2 {
+                            color: #1a1a1a;
+                            margin-bottom: 20px;
+                            padding-bottom: 10px;
+                            border-bottom: 1px solid #e5e7eb;
+                        }
+                        .platform-table {
+                            width: 100%;
+                            border-collapse: collapse;
+                        }
+                        .platform-table th,
+                        .platform-table td {
+                            padding: 12px;
+                            text-align: left;
+                            border-bottom: 1px solid #e5e7eb;
+                        }
+                        .platform-table th {
+                            background: #f9fafb;
+                            font-weight: 600;
+                        }
+                        .compliance-chart {
+                            margin: 20px 0;
+                            padding: 20px;
+                            background: #f9fafb;
+                            border-radius: 8px;
+                        }
+                        .chart-bar {
+                            display: flex;
+                            height: 40px;
+                            border-radius: 8px;
+                            overflow: hidden;
+                            margin-bottom: 20px;
+                        }
+                        .bar-compliant {
+                            background: #16a34a;
+                            color: white;
+                            display: flex;
+                            align-items: center;
+                            justify-content: center;
+                            font-weight: bold;
+                        }
+                        .bar-noncompliant {
+                            background: #dc2626;
+                            color: white;
+                            display: flex;
+                            align-items: center;
+                            justify-content: center;
+                            font-weight: bold;
+                        }
+                        .bar-unknown {
+                            background: #d97706;
+                            color: white;
+                            display: flex;
+                            align-items: center;
+                            justify-content: center;
+                            font-weight: bold;
+                        }
+                        .footer {
+                            margin-top: 60px;
+                            padding-top: 20px;
+                            border-top: 1px solid #e5e7eb;
+                            text-align: center;
+                            color: #6b7280;
+                            font-size: 12px;
+                        }
+                        @media print {
+                            body {
+                                margin: 20px;
+                            }
+                            .no-print {
+                                display: none;
+                            }
+                        }
+                    </style>
+                </head>
+                <body>
+                    <div class="header">
+                        <h1>Intune Compliance Dashboard Report</h1>
+                        <div class="subtitle">${orgName}</div>
+                        <div class="date">Generated on ${dateStr} at ${now.toLocaleTimeString()}</div>
+                    </div>
+                    
+                    <div class="stats-grid">
+                        <div class="stat-card">
+                            <div class="stat-value">${complianceRate}%</div>
+                            <div class="stat-label">Overall Compliance Rate</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-value">${stats.total}</div>
+                            <div class="stat-label">Total Devices</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-value">${stats.noncompliant}</div>
+                            <div class="stat-label">Non-Compliant</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-value">${totalPolicies}</div>
+                            <div class="stat-label">Total Policies</div>
+                        </div>
+                    </div>
+                    
+                    <div class="section">
+                        <h2>Compliance Overview</h2>
+                        <div class="compliance-chart">
+                            <div class="chart-bar">
+                                <div class="bar-compliant" style="width: ${(stats.compliant/stats.total)*100}%">
+                                    ${stats.compliant} Compliant
+                                </div>
+                                <div class="bar-noncompliant" style="width: ${(stats.noncompliant/stats.total)*100}%">
+                                    ${stats.noncompliant} Non-Compliant
+                                </div>
+                                <div class="bar-unknown" style="width: ${(stats.unknown/stats.total)*100}%">
+                                    ${stats.unknown} Unknown
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="section">
+                        <h2>Platform Breakdown</h2>
+                        <table class="platform-table">
+                            <thead>
+                                <tr>
+                                    <th>Platform</th>
+                                    <th>Total Devices</th>
+                                    <th>Compliant</th>
+                                    <th>Non-Compliant</th>
+                                    <th>Compliance Rate</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                ${Object.entries(platforms).map(([platform, data]) => {
+                                    const rate = data.total > 0 ? Math.round((data.compliant / data.total) * 100) : 0;
+                                    return `
+                                        <tr>
+                                            <td>${platform}</td>
+                                            <td>${data.total}</td>
+                                            <td>${data.compliant}</td>
+                                            <td>${data.noncompliant}</td>
+                                            <td>${rate}%</td>
+                                        </tr>
+                                    `;
+                                }).join('')}
+                            </tbody>
+                        </table>
+                    </div>
+                    
+                    <div class="section">
+                        <h2>Policy Summary</h2>
+                        <table class="platform-table">
+                            <thead>
+                                <tr>
+                                    <th>Policy Type</th>
+                                    <th>Count</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td>Compliance Policies</td>
+                                    <td>${policyData.length}</td>
+                                </tr>
+                                <tr>
+                                    <td>Device Configurations</td>
+                                    <td>${configurationProfiles.length}</td>
+                                </tr>
+                                <tr>
+                                    <td>Settings Catalog</td>
+                                    <td>${settingsCatalog.length}</td>
+                                </tr>
+                                <tr>
+                                    <td>Administrative Templates</td>
+                                    <td>${adminTemplates.length}</td>
+                                </tr>
+                                <tr style="font-weight: bold;">
+                                    <td>Total</td>
+                                    <td>${totalPolicies}</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                    
+                    <div class="footer">
+                        <p>Generated by Intune Compliance Manager</p>
+                        <p>Report generated by ${account ? account.username : 'Unknown User'}</p>
+                    </div>
+                    
+                    <div class="no-print" style="text-align: center; margin-top: 40px;">
+                        <button onclick="window.print()" style="padding: 10px 30px; background: #3b82f6; color: white; border: none; border-radius: 5px; cursor: pointer;">
+                            Print / Save as PDF
+                        </button>
+                    </div>
+                </body>
+                </html>
+            `;
+            
+            printWindow.document.write(pdfContent);
+            printWindow.document.close();
+            
+            // Trigger print dialog after content loads
+            printWindow.onload = function() {
+                printWindow.print();
+            };
         }
 
         function exportToCSV(data, filename, type) {
@@ -2745,20 +3225,31 @@
             showModal();
         }
 
-        async function viewPolicyDetails(policyId) {
-            const policy = policyData.find(p => p.id === policyId);
+        async function viewPolicyDetails(policyId, policyType) {
+            const allPolicies = [
+                ...policyData.map(p => ({...p, policyType: 'Compliance Policy'})),
+                ...configurationProfiles.map(p => ({...p, policyType: 'Device Configuration'})),
+                ...settingsCatalog.map(p => ({...p, policyType: 'Settings Catalog'})),
+                ...adminTemplates.map(p => ({...p, policyType: 'Administrative Template'}))
+            ];
+            
+            const policy = allPolicies.find(p => p.id === policyId);
             if (!policy) return;
             
             const modalTitle = document.getElementById('modalTitle');
             const modalBody = document.getElementById('modalBody');
             
-            modalTitle.textContent = `Policy Details: ${policy.displayName}`;
+            modalTitle.textContent = `Policy Details: ${policy.displayName || policy.name}`;
             
             modalBody.innerHTML = `
                 <div class="detail-grid">
                     <div class="detail-item">
                         <div class="detail-label">Policy Name</div>
-                        <div class="detail-value">${policy.displayName}</div>
+                        <div class="detail-value">${policy.displayName || policy.name || 'Unnamed'}</div>
+                    </div>
+                    <div class="detail-item">
+                        <div class="detail-label">Policy Type</div>
+                        <div class="detail-value"><span class="policy-tag">${policy.policyType}</span></div>
                     </div>
                     <div class="detail-item">
                         <div class="detail-label">Description</div>
@@ -2766,7 +3257,7 @@
                     </div>
                     <div class="detail-item">
                         <div class="detail-label">Platform</div>
-                        <div class="detail-value">${policy.platform || 'N/A'}</div>
+                        <div class="detail-value">${policy.platform || policy.platforms || 'All'}</div>
                     </div>
                     <div class="detail-item">
                         <div class="detail-label">Created Date</div>
