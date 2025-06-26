@@ -738,87 +738,6 @@
             font-size: 13px;
         }
 
-        .compliance-timeline {
-            margin-top: 20px;
-            padding: 16px;
-            background: #f9fafb;
-            border-radius: 6px;
-            border: 1px solid #e5e7eb;
-        }
-
-        .timeline-title {
-            font-weight: 600;
-            margin-bottom: 16px;
-            color: #1a1a1a;
-            font-size: 16px;
-        }
-
-        .timeline-item {
-            display: flex;
-            align-items: flex-start;
-            margin-bottom: 16px;
-            position: relative;
-            padding-left: 24px;
-        }
-
-        .timeline-item:before {
-            content: '';
-            position: absolute;
-            left: 6px;
-            top: 6px;
-            bottom: -22px;
-            width: 2px;
-            background: #e5e7eb;
-        }
-
-        .timeline-item:last-child:before {
-            display: none;
-        }
-
-        .timeline-dot {
-            width: 12px;
-            height: 12px;
-            border-radius: 50%;
-            position: absolute;
-            left: 0;
-            top: 6px;
-            border: 2px solid white;
-            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
-        }
-
-        .timeline-dot.compliant {
-            background: #16a34a;
-        }
-
-        .timeline-dot.noncompliant {
-            background: #dc2626;
-        }
-
-        .timeline-dot.unknown {
-            background: #d97706;
-        }
-
-        .timeline-content {
-            flex: 1;
-        }
-
-        .timeline-date {
-            font-size: 12px;
-            color: #6b7280;
-            margin-bottom: 4px;
-        }
-
-        .timeline-status {
-            font-weight: 600;
-            color: #1a1a1a;
-        }
-
-        .timeline-details {
-            font-size: 13px;
-            color: #6b7280;
-            margin-top: 4px;
-        }
-
         .platform-card {
             background: #f9fafb;
             padding: 16px;
@@ -938,10 +857,10 @@
             <!-- Tabs -->
             <div class="tabs">
                 <button class="tab active" onclick="switchTab('overview')">Overview</button>
-                <button class="tab" onclick="switchTab('dashboard')">Dashboard</button>
                 <button class="tab" onclick="switchTab('compliance')">Compliance</button>
                 <button class="tab" onclick="switchTab('applications')">Applications</button>
-                <button class="tab" onclick="switchTab('policies')">Policy Analysis</button>
+                <button class="tab" onclick="switchTab('policies')">Policies</button>
+                <button class="tab" onclick="switchTab('dashboard')">Dashboard</button>
                 <button class="tab" onclick="switchTab('export')">Export</button>
             </div>
 
@@ -1019,12 +938,6 @@
                         </svg>
                         Sign in with Microsoft
                     </button>
-                    <button class="btn btn-secondary btn-full" id="fetchAllBtn" onclick="fetchAllData()" disabled>
-                        <svg width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
-                            <path d="M8 16a2 2 0 002-2H6a2 2 0 002 2zM8 1.918l-.797.161A4.002 4.002 0 004 6c0 .628-.134 2.197-.459 3.742-.16.767-.376 1.566-.663 2.258h10.244c-.287-.692-.502-1.49-.663-2.258C12.134 8.197 12 6.628 12 6a4.002 4.002 0 00-3.203-3.92L8 1.917zM14.22 12c.223.447.481.801.78 1H1c.299-.199.557-.553.78-1C2.68 10.2 3 6.88 3 6c0-2.42 1.72-4.44 4.005-4.901a1 1 0 111.99 0A5.002 5.002 0 0113 6c0 .88.32 4.2 1.22 6z"/>
-                        </svg>
-                        Fetch All Policies
-                    </button>
                 </div>
 
                 <!-- Summary Statistics -->
@@ -1044,57 +957,6 @@
                     <div class="stat-card">
                         <div class="stat-value" id="lastSync">-</div>
                         <div class="stat-label">Last Refresh</div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Dashboard Tab -->
-            <div class="tab-content" id="dashboardTab">
-                <div class="chart-container">
-                    <div class="chart-title">Executive Compliance Dashboard</div>
-                    <div class="stats-container" style="margin-bottom: 24px;">
-                        <div class="stat-card">
-                            <div class="stat-value" id="dashComplianceRate">-</div>
-                            <div class="stat-label">Overall Compliance Rate</div>
-                        </div>
-                        <div class="stat-card">
-                            <div class="stat-value" id="dashCriticalDevices">-</div>
-                            <div class="stat-label">Critical Non-Compliant</div>
-                        </div>
-                        <div class="stat-card">
-                            <div class="stat-value" id="dashRecentSync">-</div>
-                            <div class="stat-label">Synced Last 24h</div>
-                        </div>
-                        <div class="stat-card">
-                            <div class="stat-value" id="dashPendingDevices">-</div>
-                            <div class="stat-label">Pending Evaluation</div>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Platform Breakdown -->
-                <div class="chart-container">
-                    <div class="chart-title">Compliance by Platform</div>
-                    <div id="platformBreakdown" style="padding: 20px;">
-                        <div class="loading">
-                            <p>Load compliance data to view platform breakdown</p>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Compliance Trends -->
-                <div class="chart-container">
-                    <div class="chart-title">Compliance Trend (Simulated)</div>
-                    <canvas id="complianceTrendChart" width="400" height="200" style="max-width: 100%;"></canvas>
-                </div>
-
-                <!-- Top Non-Compliant Reasons -->
-                <div class="chart-container">
-                    <div class="chart-title">Top Non-Compliance Reasons</div>
-                    <div id="nonComplianceReasons" style="padding: 20px;">
-                        <div class="loading">
-                            <p>Analyzing compliance data...</p>
-                        </div>
                     </div>
                 </div>
             </div>
@@ -1322,59 +1184,47 @@
                 </div>
             </div>
 
-            <!-- Policy Analysis Tab -->
+            <!-- Policies Tab -->
             <div class="tab-content" id="policiesTab">
-                <div class="info-notice">
-                    <strong>Policy Analysis Features:</strong>
-                    <ul>
-                        <li>Detect potential conflicts between configuration policies</li>
-                        <li>Identify devices affected by multiple policies</li>
-                        <li>Show policy assignment overlaps</li>
-                    </ul>
-                </div>
-
                 <div class="controls">
                     <div class="control-row">
-                        <button class="btn btn-primary" onclick="analyzePolicies()" id="analyzePoliciesBtn" disabled>
-                            Analyze Policies
+                        <button class="btn btn-primary" onclick="refreshPolicyData()" id="refreshPoliciesBtn" disabled>
+                            Load Configuration Policies
                         </button>
-                        <button class="btn btn-secondary" onclick="refreshPolicyData()" id="refreshPoliciesBtn" disabled>
-                            Refresh Policy Data
-                        </button>
+                        <div class="export-menu">
+                            <button class="btn btn-secondary" onclick="toggleExportMenu('policies')" disabled id="exportPoliciesBtn">
+                                Export ▼
+                            </button>
+                            <div class="export-dropdown" id="policiesExportMenu">
+                                <a href="#" onclick="exportData('policies', 'csv')">Export as CSV</a>
+                                <a href="#" onclick="exportData('policies', 'json')">Export as JSON</a>
+                            </div>
+                        </div>
                     </div>
-                </div>
-
-                <!-- Policy Conflicts -->
-                <div class="chart-container" id="policyConflictsContainer" style="display: none;">
-                    <div class="chart-title">Policy Conflicts Detected</div>
-                    <div id="policyConflictsList">
-                        <!-- Conflicts will be displayed here -->
-                    </div>
-                </div>
-
-                <!-- Policy Overview -->
-                <div class="chart-container" id="policyOverviewContainer" style="display: none;">
-                    <div class="chart-title">Configuration Policies Overview</div>
-                    <table class="data-table">
-                        <thead>
-                            <tr>
-                                <th>Policy Name</th>
-                                <th>Type</th>
-                                <th>Platform</th>
-                                <th>Assigned Devices</th>
-                                <th>Conflicts</th>
-                                <th>Actions</th>
-                            </tr>
-                        </thead>
-                        <tbody id="policyTableBody">
-                        </tbody>
-                    </table>
                 </div>
 
                 <!-- Loading State -->
                 <div class="loading" id="policiesLoading" style="display: none;">
                     <div class="spinner"></div>
-                    <p>Analyzing policies...</p>
+                    <p>Loading configuration policies...</p>
+                </div>
+
+                <!-- Policies Table -->
+                <div id="policiesTableContainer" style="display: none;">
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>Policy Name</th>
+                                <th>Description</th>
+                                <th>Platform</th>
+                                <th>Created</th>
+                                <th>Modified</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="policiesTableBody">
+                        </tbody>
+                    </table>
                 </div>
 
                 <!-- Empty State -->
@@ -1383,7 +1233,52 @@
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"></path>
                     </svg>
                     <h3>No policy data available</h3>
-                    <p>Click "Refresh Policy Data" to load configuration policies</p>
+                    <p>Click "Load Configuration Policies" to view configuration policies</p>
+                </div>
+            </div>
+
+            <!-- Dashboard Tab -->
+            <div class="tab-content" id="dashboardTab">
+                <div class="chart-container">
+                    <div class="chart-title">Executive Compliance Dashboard</div>
+                    <div class="stats-container" id="dashboardStats">
+                        <div class="stat-card">
+                            <div class="stat-value" id="dashComplianceRate">-</div>
+                            <div class="stat-label">Overall Compliance Rate</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-value" id="dashNonCompliant">-</div>
+                            <div class="stat-label">Non-Compliant Devices</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-value" id="dashTotalPolicies">-</div>
+                            <div class="stat-label">Configuration Policies</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-value" id="dashLastUpdate">-</div>
+                            <div class="stat-label">Last Update</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Platform Breakdown -->
+                <div class="chart-container">
+                    <div class="chart-title">Compliance by Platform</div>
+                    <div id="platformBreakdown" style="padding: 20px;">
+                        <div class="empty-state">
+                            <p>Load compliance data to view platform breakdown</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Top Non-Compliant Devices -->
+                <div class="chart-container">
+                    <div class="chart-title">Recent Non-Compliant Devices</div>
+                    <div id="nonCompliantDevicesList" style="padding: 20px;">
+                        <div class="empty-state">
+                            <p>Load compliance data to view non-compliant devices</p>
+                        </div>
+                    </div>
                 </div>
             </div>
 
@@ -1621,6 +1516,7 @@
         let account = null;
         let complianceData = [];
         let applicationData = [];
+        let policyData = [];
         let filteredComplianceData = [];
         let filteredApplicationData = [];
         let deviceInstallStates = [];
@@ -1711,7 +1607,7 @@
 
             try {
                 const loginRequest = {
-                    scopes: ['User.Read', 'DeviceManagementManagedDevices.Read.All', 'DeviceManagementApps.Read.All']
+                    scopes: ['User.Read', 'DeviceManagementManagedDevices.Read.All', 'DeviceManagementApps.Read.All', 'DeviceManagementConfiguration.Read.All']
                 };
                 
                 const response = await msalInstance.loginPopup(loginRequest);
@@ -1738,7 +1634,6 @@
             const authBtn = document.getElementById('authBtn');
             const authStatus = document.getElementById('authStatus');
             const connectionStatus = document.getElementById('connectionStatus');
-            const fetchAllBtn = document.getElementById('fetchAllBtn');
             
             if (account) {
                 authBtn.innerHTML = `
@@ -1758,7 +1653,6 @@
                 connectionStatus.className = 'connection-status connected';
                 
                 // Enable buttons
-                fetchAllBtn.disabled = false;
                 document.getElementById('refreshComplianceBtn').disabled = false;
                 document.getElementById('refreshAppsBtn').disabled = false;
                 document.getElementById('exportComplianceBtn').disabled = false;
@@ -1766,6 +1660,8 @@
                 document.getElementById('fetchDeviceStatusBtn').disabled = false;
                 document.getElementById('exportJsonBtn').disabled = false;
                 document.getElementById('exportCsvBtn').disabled = false;
+                document.getElementById('refreshPoliciesBtn').disabled = false;
+                document.getElementById('exportPoliciesBtn').disabled = false;
                 
                 // Show summary stats
                 document.getElementById('summaryStats').style.display = 'grid';
@@ -1787,7 +1683,6 @@
                 connectionStatus.className = 'connection-status';
                 
                 // Disable buttons
-                fetchAllBtn.disabled = true;
                 document.getElementById('refreshComplianceBtn').disabled = true;
                 document.getElementById('refreshAppsBtn').disabled = true;
                 document.getElementById('exportComplianceBtn').disabled = true;
@@ -1795,6 +1690,8 @@
                 document.getElementById('fetchDeviceStatusBtn').disabled = true;
                 document.getElementById('exportJsonBtn').disabled = true;
                 document.getElementById('exportCsvBtn').disabled = true;
+                document.getElementById('refreshPoliciesBtn').disabled = true;
+                document.getElementById('exportPoliciesBtn').disabled = true;
                 
                 // Hide summary stats
                 document.getElementById('summaryStats').style.display = 'none';
@@ -1803,7 +1700,7 @@
 
         async function getAccessToken() {
             const request = {
-                scopes: ['User.Read', 'DeviceManagementManagedDevices.Read.All', 'DeviceManagementApps.Read.All'],
+                scopes: ['User.Read', 'DeviceManagementManagedDevices.Read.All', 'DeviceManagementApps.Read.All', 'DeviceManagementConfiguration.Read.All'],
                 account: account
             };
 
@@ -1838,56 +1735,10 @@
             });
             
             document.getElementById(tabName + 'Tab').classList.add('active');
-        }
-
-        // Fetch all data
-        async function fetchAllData() {
-            if (!account) {
-                alert('Please sign in first');
-                return;
-            }
             
-            const btn = document.getElementById('fetchAllBtn');
-            btn.disabled = true;
-            btn.innerHTML = `
-                <svg width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
-                    <path d="M11.534 7h3.932a.25.25 0 0 1 .192.41l-1.966 2.36a.25.25 0 0 1-.384 0l-1.966-2.36a.25.25 0 0 1 .192-.41zm-11 2h3.932a.25.25 0 0 0 .192-.41L2.692 6.23a.25.25 0 0 0-.384 0L.342 8.59A.25.25 0 0 0 .534 9z"/>
-                    <path fill-rule="evenodd" d="M8 3c-1.552 0-2.94.707-3.857 1.818a.5.5 0 1 1-.771-.636A6.002 6.002 0 0 1 13.917 7H12.9A5.002 5.002 0 0 0 8 3zM3.1 9a5.002 5.002 0 0 0 8.757 2.182.5.5 0 1 1 .771.636A6.002 6.002 0 0 1 2.083 9H3.1z"/>
-                </svg>
-                Fetching...
-            `;
-            
-            try {
-                await refreshComplianceData();
-                await refreshApplicationData();
-                
-                btn.innerHTML = `
-                    <svg width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
-                        <path d="M10.97 4.97a.75.75 0 0 1 1.07 1.05l-3.99 4.99a.75.75 0 0 1-1.08.02L4.324 8.384a.75.75 0 1 1 1.06-1.06l2.094 2.093 3.473-4.425a.267.267 0 0 1 .02-.022z"/>
-                    </svg>
-                    All Policies Fetched
-                `;
-                
-                setTimeout(() => {
-                    btn.innerHTML = `
-                        <svg width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
-                            <path d="M8 16a2 2 0 002-2H6a2 2 0 002 2zM8 1.918l-.797.161A4.002 4.002 0 004 6c0 .628-.134 2.197-.459 3.742-.16.767-.376 1.566-.663 2.258h10.244c-.287-.692-.502-1.49-.663-2.258C12.134 8.197 12 6.628 12 6a4.002 4.002 0 00-3.203-3.92L8 1.917zM14.22 12c.223.447.481.801.78 1H1c.299-.199.557-.553.78-1C2.68 10.2 3 6.88 3 6c0-2.42 1.72-4.44 4.005-4.901a1 1 0 111.99 0A5.002 5.002 0 0113 6c0 .88.32 4.2 1.22 6z"/>
-                        </svg>
-                        Fetch All Policies
-                    `;
-                    btn.disabled = false;
-                }, 3000);
-                
-            } catch (error) {
-                console.error('Error fetching data:', error);
-                alert('Failed to fetch data. Please try again.');
-                btn.innerHTML = `
-                    <svg width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
-                        <path d="M8 16a2 2 0 002-2H6a2 2 0 002 2zM8 1.918l-.797.161A4.002 4.002 0 004 6c0 .628-.134 2.197-.459 3.742-.16.767-.376 1.566-.663 2.258h10.244c-.287-.692-.502-1.49-.663-2.258C12.134 8.197 12 6.628 12 6a4.002 4.002 0 00-3.203-3.92L8 1.917zM14.22 12c.223.447.481.801.78 1H1c.299-.199.557-.553.78-1C2.68 10.2 3 6.88 3 6c0-2.42 1.72-4.44 4.005-4.901a1 1 0 111.99 0A5.002 5.002 0 0113 6c0 .88.32 4.2 1.22 6z"/>
-                    </svg>
-                    Fetch All Policies
-                `;
-                btn.disabled = false;
+            // Update dashboard when switching to it
+            if (tabName === 'dashboard') {
+                updateDashboard();
             }
         }
 
@@ -1919,6 +1770,7 @@
                 processComplianceData();
                 filterDevices();
                 updateSummaryStats();
+                updateDashboard();
                 
             } catch (error) {
                 console.error('Error fetching compliance data:', error);
@@ -1976,27 +1828,6 @@
                     device.configurationStates = [];
                 }
                 
-                // Try to fetch non-compliance reasons from a different endpoint
-                if (device.complianceState === 'noncompliant' && (!device.compliancePolicies || device.compliancePolicies.length === 0)) {
-                    try {
-                        const nonComplianceResponse = await fetch(
-                            `https://graph.microsoft.com/beta/deviceManagement/managedDevices/${deviceId}/deviceCompliancePolicyStates`,
-                            {
-                                headers: {
-                                    'Authorization': `Bearer ${accessToken}`
-                                }
-                            }
-                        );
-                        
-                        if (nonComplianceResponse.ok) {
-                            const nonComplianceData = await nonComplianceResponse.json();
-                            device.nonComplianceReasons = nonComplianceData.value || [];
-                        }
-                    } catch (error) {
-                        console.error('Error fetching non-compliance reasons:', error);
-                    }
-                }
-                
                 return device;
             } catch (error) {
                 console.error('Error fetching device details:', error);
@@ -2013,14 +1844,6 @@
                 pending: complianceData.filter(d => d.complianceState === 'inGracePeriod' || d.complianceState === 'configManager').length
             };
             
-            updateComplianceStats(stats);
-            updateComplianceChart(stats);
-        }
-
-        function updateComplianceStats(stats) {
-            const complianceRate = stats.total > 0 ? Math.round((stats.compliant / stats.total) * 100) : 0;
-            
-            // Update chart
             updateComplianceChart(stats);
         }
 
@@ -2133,9 +1956,9 @@
                 const appsData = await appsResponse.json();
                 applicationData = appsData.value || [];
                 
-                processApplicationData();
                 filterApplications();
                 updateSummaryStats();
+                updateDashboard();
                 
             } catch (error) {
                 console.error('Error fetching application data:', error);
@@ -2201,10 +2024,6 @@
             } finally {
                 showLoading('applications', false);
             }
-        }
-
-        function processApplicationData() {
-            // Application data is processed when displayed
         }
 
         function filterApplications() {
@@ -2298,6 +2117,178 @@
             }
         }
 
+        // Policy functions
+        async function refreshPolicyData() {
+            if (!account) {
+                alert('Please sign in first');
+                return;
+            }
+
+            showLoading('policies', true);
+            
+            try {
+                const accessToken = await getAccessToken();
+                
+                const policiesResponse = await fetch('https://graph.microsoft.com/beta/deviceManagement/deviceCompliancePolicies', {
+                    headers: {
+                        'Authorization': `Bearer ${accessToken}`
+                    }
+                });
+                
+                if (!policiesResponse.ok) {
+                    throw new Error('Failed to fetch policies');
+                }
+                
+                const policiesData = await policiesResponse.json();
+                policyData = policiesData.value || [];
+                
+                displayPolicyData();
+                updateDashboard();
+                
+            } catch (error) {
+                console.error('Error fetching policy data:', error);
+                alert('Failed to fetch policy data. Please try again.');
+            } finally {
+                showLoading('policies', false);
+            }
+        }
+
+        function displayPolicyData() {
+            const tableBody = document.getElementById('policiesTableBody');
+            const tableContainer = document.getElementById('policiesTableContainer');
+            const emptyState = document.getElementById('policiesEmpty');
+            
+            if (policyData.length === 0) {
+                tableContainer.style.display = 'none';
+                emptyState.style.display = 'block';
+                document.getElementById('exportPoliciesBtn').disabled = true;
+                return;
+            }
+            
+            tableContainer.style.display = 'block';
+            emptyState.style.display = 'none';
+            document.getElementById('exportPoliciesBtn').disabled = false;
+            
+            tableBody.innerHTML = policyData.map(policy => `
+                <tr>
+                    <td>${policy.displayName}</td>
+                    <td>${policy.description || 'N/A'}</td>
+                    <td>${policy.platform || 'N/A'}</td>
+                    <td>${formatDate(policy.createdDateTime)}</td>
+                    <td>${formatDate(policy.lastModifiedDateTime)}</td>
+                    <td>
+                        <button class="btn btn-primary" onclick="viewPolicyDetails('${policy.id}')">
+                            View Details
+                        </button>
+                    </td>
+                </tr>
+            `).join('');
+        }
+
+        // Dashboard functions
+        function updateDashboard() {
+            if (complianceData.length > 0) {
+                const stats = {
+                    total: complianceData.length,
+                    compliant: complianceData.filter(d => d.complianceState === 'compliant').length,
+                    noncompliant: complianceData.filter(d => d.complianceState === 'noncompliant').length
+                };
+                
+                const complianceRate = stats.total > 0 ? Math.round((stats.compliant / stats.total) * 100) : 0;
+                
+                document.getElementById('dashComplianceRate').textContent = complianceRate + '%';
+                document.getElementById('dashNonCompliant').textContent = stats.noncompliant;
+                document.getElementById('dashTotalPolicies').textContent = policyData.length;
+                document.getElementById('dashLastUpdate').textContent = new Date().toLocaleTimeString();
+                
+                // Update platform breakdown
+                updatePlatformBreakdown();
+                
+                // Update non-compliant devices list
+                updateNonCompliantDevicesList();
+            }
+        }
+
+        function updatePlatformBreakdown() {
+            const platformBreakdown = document.getElementById('platformBreakdown');
+            
+            if (complianceData.length === 0) {
+                platformBreakdown.innerHTML = '<div class="empty-state"><p>No data available</p></div>';
+                return;
+            }
+            
+            const platforms = {};
+            complianceData.forEach(device => {
+                const platform = device.operatingSystem || 'Unknown';
+                if (!platforms[platform]) {
+                    platforms[platform] = {
+                        total: 0,
+                        compliant: 0,
+                        noncompliant: 0
+                    };
+                }
+                platforms[platform].total++;
+                if (device.complianceState === 'compliant') {
+                    platforms[platform].compliant++;
+                } else if (device.complianceState === 'noncompliant') {
+                    platforms[platform].noncompliant++;
+                }
+            });
+            
+            platformBreakdown.innerHTML = Object.entries(platforms).map(([platform, stats]) => `
+                <div class="platform-card">
+                    <div class="platform-name">${platform}</div>
+                    <div class="platform-stats">
+                        <div class="platform-stat">
+                            <span style="color: #16a34a;">✓ ${stats.compliant}</span>
+                        </div>
+                        <div class="platform-stat">
+                            <span style="color: #dc2626;">✗ ${stats.noncompliant}</span>
+                        </div>
+                        <div class="platform-stat">
+                            <span style="color: #6b7280;">Total: ${stats.total}</span>
+                        </div>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function updateNonCompliantDevicesList() {
+            const nonCompliantList = document.getElementById('nonCompliantDevicesList');
+            
+            const nonCompliantDevices = complianceData
+                .filter(d => d.complianceState === 'noncompliant')
+                .slice(0, 10);
+            
+            if (nonCompliantDevices.length === 0) {
+                nonCompliantList.innerHTML = '<div class="empty-state"><p>No non-compliant devices</p></div>';
+                return;
+            }
+            
+            nonCompliantList.innerHTML = `
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th>Device Name</th>
+                            <th>User</th>
+                            <th>Platform</th>
+                            <th>Last Sync</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${nonCompliantDevices.map(device => `
+                            <tr>
+                                <td>${device.deviceName}</td>
+                                <td>${device.userPrincipalName || 'N/A'}</td>
+                                <td>${device.operatingSystem}</td>
+                                <td>${formatDate(device.lastSyncDateTime)}</td>
+                            </tr>
+                        `).join('')}
+                    </tbody>
+                </table>
+            `;
+        }
+
         // Helper functions
         function showLoading(type, show) {
             const loadingId = type + 'Loading';
@@ -2386,7 +2377,14 @@
         }
 
         function exportData(type, format) {
-            const data = type === 'compliance' ? filteredComplianceData : filteredApplicationData;
+            let data;
+            if (type === 'compliance') {
+                data = filteredComplianceData;
+            } else if (type === 'applications') {
+                data = filteredApplicationData;
+            } else if (type === 'policies') {
+                data = policyData;
+            }
             
             const now = new Date();
             const timestamp = now.toISOString().replace(/:/g, '-').split('.')[0];
@@ -2421,21 +2419,26 @@
                         exportDate: now.toISOString(),
                         counts: {
                             devices: complianceData.length,
-                            applications: applicationData.length
+                            applications: applicationData.length,
+                            policies: policyData.length
                         }
                     },
                     compliance: complianceData,
-                    applications: applicationData
+                    applications: applicationData,
+                    policies: policyData
                 };
                 
                 const jsonContent = JSON.stringify(exportData, null, 2);
                 downloadFile(jsonContent, `${filename}.json`, 'application/json');
             } else if (format === 'csv') {
-                // Create a zip file with two CSV files
+                // Create multiple CSV files
                 exportToCSV(complianceData, `${filename}_compliance.csv`, 'compliance');
                 setTimeout(() => {
                     exportToCSV(applicationData, `${filename}_applications.csv`, 'applications');
-                }, 1000);
+                    setTimeout(() => {
+                        exportToCSV(policyData, `${filename}_policies.csv`, 'policies');
+                    }, 500);
+                }, 500);
             }
         }
 
@@ -2487,6 +2490,20 @@
                         formatDate(app.createdDateTime) || '',
                         formatDate(app.lastModifiedDateTime) || '',
                         (app.description || '').replace(/"/g, '""')
+                    ];
+                    csvContent += row.map(cell => `"${cell}"`).join(',') + '\n';
+                });
+            } else if (type === 'policies') {
+                const headers = ['Policy Name', 'Description', 'Platform', 'Created Date', 'Modified Date'];
+                csvContent += headers.map(h => `"${h}"`).join(',') + '\n';
+                
+                data.forEach(policy => {
+                    const row = [
+                        policy.displayName || '',
+                        (policy.description || '').replace(/"/g, '""'),
+                        policy.platform || '',
+                        formatDate(policy.createdDateTime) || '',
+                        formatDate(policy.lastModifiedDateTime) || ''
                     ];
                     csvContent += row.map(cell => `"${cell}"`).join(',') + '\n';
                 });
@@ -2614,34 +2631,9 @@
                 }
             }
             
-            // Configuration state details
-            let configDetails = '';
-            if (device.configurationStates && device.configurationStates.length > 0) {
-                const failedConfigs = device.configurationStates.filter(c => 
-                    c.state === 'failed' || c.state === 'error' || c.state === 'conflict'
-                );
-                
-                if (failedConfigs.length > 0) {
-                    configDetails = `
-                        <div class="detail-item" style="grid-column: 1 / -1;">
-                            <div class="detail-label" style="color: #d97706; font-size: 16px; margin-bottom: 10px;">Configuration Issues</div>
-                            <div style="background: #fef3c7; padding: 15px; border-radius: 4px;">
-                                ${failedConfigs.map(config => `
-                                    <div style="margin-bottom: 10px;">
-                                        <strong>${config.displayName || 'Unknown Configuration'}</strong>
-                                        <div style="color: #d97706;">Status: ${config.state}</div>
-                                    </div>
-                                `).join('')}
-                            </div>
-                        </div>
-                    `;
-                }
-            }
-            
             modalBody.innerHTML = `
                 <div class="detail-grid">
                     ${complianceDetails}
-                    ${configDetails}
                     <div class="detail-item">
                         <div class="detail-label">Device Name</div>
                         <div class="detail-value">${device.deviceName}</div>
@@ -2747,6 +2739,51 @@
                         <div class="detail-value">${app.notes}</div>
                     </div>
                     ` : ''}
+                </div>
+            `;
+            
+            showModal();
+        }
+
+        async function viewPolicyDetails(policyId) {
+            const policy = policyData.find(p => p.id === policyId);
+            if (!policy) return;
+            
+            const modalTitle = document.getElementById('modalTitle');
+            const modalBody = document.getElementById('modalBody');
+            
+            modalTitle.textContent = `Policy Details: ${policy.displayName}`;
+            
+            modalBody.innerHTML = `
+                <div class="detail-grid">
+                    <div class="detail-item">
+                        <div class="detail-label">Policy Name</div>
+                        <div class="detail-value">${policy.displayName}</div>
+                    </div>
+                    <div class="detail-item">
+                        <div class="detail-label">Description</div>
+                        <div class="detail-value">${policy.description || 'N/A'}</div>
+                    </div>
+                    <div class="detail-item">
+                        <div class="detail-label">Platform</div>
+                        <div class="detail-value">${policy.platform || 'N/A'}</div>
+                    </div>
+                    <div class="detail-item">
+                        <div class="detail-label">Created Date</div>
+                        <div class="detail-value">${formatDate(policy.createdDateTime)}</div>
+                    </div>
+                    <div class="detail-item">
+                        <div class="detail-label">Last Modified</div>
+                        <div class="detail-value">${formatDate(policy.lastModifiedDateTime)}</div>
+                    </div>
+                    <div class="detail-item">
+                        <div class="detail-label">Version</div>
+                        <div class="detail-value">${policy.version || 'N/A'}</div>
+                    </div>
+                    <div class="detail-item">
+                        <div class="detail-label">Policy ID</div>
+                        <div class="detail-value" style="font-family: monospace; font-size: 12px;">${policy.id}</div>
+                    </div>
                 </div>
             `;
             
