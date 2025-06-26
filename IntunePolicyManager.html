@@ -3956,11 +3956,15 @@ if (sessionStorage.getItem('intunePolicyManagerAuth')) {
                 return;
             }
             
-            // For demo purposes, we'll simulate compliance data
+            const devices = complianceData.devices || [];
+            const totalDevices = devices.length;
+            
             policies.forEach(policy => {
-                const total = Math.floor(Math.random() * 100) + 50;
-                const compliant = Math.floor(total * (0.7 + Math.random() * 0.3));
-                const rate = Math.round((compliant / total) * 100);
+                // For now, since we can't determine which devices are assigned to which policy without additional API calls,
+                // we'll show the overall compliance for all devices
+                const compliantDevices = devices.filter(d => d.complianceState === 'compliant').length;
+                const nonCompliantDevices = totalDevices - compliantDevices;
+                const rate = totalDevices > 0 ? Math.round((compliantDevices / totalDevices) * 100) : 0;
                 
                 const row = document.createElement('div');
                 row.className = 'compliance-grid-row';
@@ -3969,8 +3973,8 @@ if (sessionStorage.getItem('intunePolicyManagerAuth')) {
                 row.innerHTML = `
                     <div>${policy.displayName}</div>
                     <div>${rate}%</div>
-                    <div>${compliant}</div>
-                    <div>${total - compliant}</div>
+                    <div>${compliantDevices}</div>
+                    <div>${nonCompliantDevices}</div>
                     <div>
                         <span class="compliance-status ${rate >= 80 ? 'compliant' : 'non-compliant'}">
                             ${rate >= 80 ? 'Healthy' : 'Needs Attention'}
