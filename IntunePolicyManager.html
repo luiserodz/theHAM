@@ -3860,35 +3860,88 @@ if (sessionStorage.getItem('intunePolicyManagerAuth')) {
                 const devicesData = await devicesResponse.json();
                 const devices = devicesData.value || [];
                 
-                // Fetch compliance policies
-                const compliancePoliciesResponse = await makeApiRequest(
-                    'https://graph.microsoft.com/beta/deviceManagement/deviceCompliancePolicies'
-                );
+                // Fetch all policy types
+                const allPolicies = [];
                 
-                // Fetch configuration policies
-                const configPoliciesResponse = await makeApiRequest(
-                    'https://graph.microsoft.com/beta/deviceManagement/deviceConfigurations'
-                );
-                
-                if (!compliancePoliciesResponse.ok) {
-                    throw new Error('Failed to fetch compliance policy data');
+                // 1. Configuration Policies (Settings Catalog)
+                try {
+                    const configPoliciesResponse = await makeApiRequest(
+                        'https://graph.microsoft.com/beta/deviceManagement/configurationPolicies'
+                    );
+                    if (configPoliciesResponse.ok) {
+                        const data = await configPoliciesResponse.json();
+                        allPolicies.push(...(data.value || []).map(p => ({ ...p, policyType: 'Settings Catalog' })));
+                    }
+                } catch (error) {
+                    console.error('Error fetching configuration policies:', error);
                 }
                 
-                if (!configPoliciesResponse.ok) {
-                    throw new Error('Failed to fetch configuration policy data');
+                // 2. Device Configurations (Templates)
+                try {
+                    const deviceConfigResponse = await makeApiRequest(
+                        'https://graph.microsoft.com/beta/deviceManagement/deviceConfigurations'
+                    );
+                    if (deviceConfigResponse.ok) {
+                        const data = await deviceConfigResponse.json();
+                        allPolicies.push(...(data.value || []).map(p => ({ ...p, policyType: 'Configuration Profile' })));
+                    }
+                } catch (error) {
+                    console.error('Error fetching device configurations:', error);
                 }
                 
-                const compliancePoliciesData = await compliancePoliciesResponse.json();
-                const compliancePolicies = compliancePoliciesData.value || [];
+                // 3. Compliance Policies
+                try {
+                    const compliancePoliciesResponse = await makeApiRequest(
+                        'https://graph.microsoft.com/beta/deviceManagement/deviceCompliancePolicies'
+                    );
+                    if (compliancePoliciesResponse.ok) {
+                        const data = await compliancePoliciesResponse.json();
+                        allPolicies.push(...(data.value || []).map(p => ({ ...p, policyType: 'Compliance Policy' })));
+                    }
+                } catch (error) {
+                    console.error('Error fetching compliance policies:', error);
+                }
                 
-                const configPoliciesData = await configPoliciesResponse.json();
-                const configPolicies = configPoliciesData.value || [];
+                // 4. Group Policy Configurations (Administrative Templates)
+                try {
+                    const groupPoliciesResponse = await makeApiRequest(
+                        'https://graph.microsoft.com/beta/deviceManagement/groupPolicyConfigurations'
+                    );
+                    if (groupPoliciesResponse.ok) {
+                        const data = await groupPoliciesResponse.json();
+                        allPolicies.push(...(data.value || []).map(p => ({ ...p, policyType: 'Admin Template' })));
+                    }
+                } catch (error) {
+                    console.error('Error fetching group policies:', error);
+                }
                 
-                // Combine all policies
-                const allPolicies = [
-                    ...compliancePolicies.map(p => ({ ...p, policyType: 'Compliance' })),
-                    ...configPolicies.map(p => ({ ...p, policyType: 'Configuration' }))
-                ];
+                // 5. Intent Policies (Endpoint Security)
+                try {
+                    const intentsResponse = await makeApiRequest(
+                        'https://graph.microsoft.com/beta/deviceManagement/intents'
+                    );
+                    if (intentsResponse.ok) {
+                        const data = await intentsResponse.json();
+                        allPolicies.push(...(data.value || []).map(p => ({ ...p, policyType: 'Security Policy' })));
+                    }
+                } catch (error) {
+                    console.error('Error fetching intent policies:', error);
+                }
+                
+                // 6. Device Enrollment Configurations
+                try {
+                    const enrollmentResponse = await makeApiRequest(
+                        'https://graph.microsoft.com/beta/deviceManagement/deviceEnrollmentConfigurations'
+                    );
+                    if (enrollmentResponse.ok) {
+                        const data = await enrollmentResponse.json();
+                        allPolicies.push(...(data.value || []).map(p => ({ ...p, policyType: 'Enrollment' })));
+                    }
+                } catch (error) {
+                    console.error('Error fetching enrollment configurations:', error);
+                }
+                
+                console.log(`Loaded ${allPolicies.length} total policies across all types`);
                 
                 // Process the data
                 processComplianceData(devices, allPolicies);
@@ -3900,7 +3953,6 @@ if (sessionStorage.getItem('intunePolicyManagerAuth')) {
                 policyList.innerHTML = '<div style="padding: 20px; text-align: center; color: #dc3545;">Failed to load compliance data</div>';
             }
         }
-
         function processComplianceData(devices, policies) {
             // Calculate overall compliance
             const compliantDevices = devices.filter(d => d.complianceState === 'compliant').length;
