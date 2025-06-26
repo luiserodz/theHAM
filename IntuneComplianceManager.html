@@ -965,14 +965,19 @@
     <script>
         // ADD THE PASSWORD SECURITY CODE HERE - BEFORE ANYTHING ELSE
         // Secure Password Protection with SHA-256 Hashing
-        (async function() {
+        window.addEventListener('DOMContentLoaded', async function() {
             // Check if user has already authenticated in this session
             const isAuthenticated = sessionStorage.getItem('intuneComplianceManagerAuth');
             
             if (!isAuthenticated) {
                 await authenticateUser();
             }
-        })();
+            
+            // Only initialize the app if authenticated
+            if (sessionStorage.getItem('intuneComplianceManagerAuth')) {
+                initializeApp();
+            }
+        });
 
         async function authenticateUser() {
             const PASSWORD_HASH = '9e5c3ce7906db8e6f333df0e10deed2263b0a8738a9abe3f3612b8f52846689e';
@@ -990,7 +995,7 @@
                 // User clicked cancel
                 if (password === null) {
                     showAccessDenied('Authentication cancelled');
-                    return;
+                    return false;
                 }
                 
                 // Hash the entered password and compare
@@ -1012,8 +1017,10 @@
             
             if (!authorized) {
                 showAccessDenied('Maximum password attempts exceeded');
-                return;
+                return false;
             }
+            
+            return true;
         }
 
         // SHA-256 hashing function
@@ -1049,14 +1056,14 @@
         }
 
         // Check session expiry on each load
-        (function checkSessionExpiry() {
+        function checkSessionExpiry() {
             const authExpiry = sessionStorage.getItem('authExpiry');
             if (authExpiry && Date.now() > parseInt(authExpiry)) {
                 sessionStorage.removeItem('intuneComplianceManagerAuth');
                 sessionStorage.removeItem('authExpiry');
                 location.reload();
             }
-        })();
+        }
 
         // Auto-logout on inactivity (30 minutes)
         let inactivityTimer;
@@ -1072,16 +1079,22 @@
             }, INACTIVITY_TIMEOUT);
         }
 
-        // Start inactivity timer if authenticated
-        if (sessionStorage.getItem('intuneComplianceManagerAuth')) {
+        function initializeApp() {
+            console.log('Intune Compliance Manager initializing...');
+            
+            // Check session expiry
+            checkSessionExpiry();
+            
+            // Set up inactivity timer
             document.addEventListener('click', resetInactivityTimer);
             document.addEventListener('keypress', resetInactivityTimer);
             document.addEventListener('scroll', resetInactivityTimer);
             document.addEventListener('mousemove', resetInactivityTimer);
             resetInactivityTimer();
+            
+            // Initialize MSAL and other components
+            checkSavedConfig();
         }
-
-        console.log('Intune Compliance Manager initializing...');
 
         // Global variables
         let msalInstance = null;
@@ -1772,11 +1785,6 @@
                 });
             }
         };
-
-        // Initialize on load
-        window.addEventListener('load', () => {
-            checkSavedConfig();
-        });
     </script>
 </body>
 </html>
