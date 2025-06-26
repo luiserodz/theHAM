@@ -2067,6 +2067,25 @@
             return Math.round(bytes / Math.pow(1024, i), 2) + ' ' + sizes[i];
         }
 
+        function formatGracePeriod(dateString) {
+            if (!dateString) return 'Not configured';
+            
+            const date = new Date(dateString);
+            const year = date.getFullYear();
+            
+            // Check if it's the max date (year 9999)
+            if (year === 9999) {
+                return 'No expiration / Not applicable';
+            }
+            
+            // Check if the date is in the past
+            if (date < new Date()) {
+                return 'Expired on ' + date.toLocaleDateString();
+            }
+            
+            return date.toLocaleDateString() + ' ' + date.toLocaleTimeString();
+        }
+
         function getAppType(odataType) {
             if (!odataType) return 'Unknown';
             
@@ -2410,7 +2429,7 @@
                     </div>
                     <div class="detail-item">
                         <div class="detail-label">Compliance Grace Period</div>
-                        <div class="detail-value">${formatDate(device.complianceGracePeriodExpirationDateTime) || 'N/A'}</div>
+                        <div class="detail-value">${formatGracePeriod(device.complianceGracePeriodExpirationDateTime)}</div>
                     </div>
                     <div class="detail-item">
                         <div class="detail-label">Azure AD Registered</div>
