@@ -2939,7 +2939,6 @@ const fetchRequests = policiesToUpdate.map(policy => async () => {
     tableBody.innerHTML = allPolicies.map(policy => {
         let successRate = 'Not loaded';
         let assignedCount = 'Not loaded';
-
         // Check if a summary object exists in the cache
         let summaryState = policyDeviceStates[policy.id];
         if (summaryState && summaryState.length > 0 && summaryState[0].state === 'summary') {
