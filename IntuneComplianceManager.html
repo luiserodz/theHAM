@@ -2687,20 +2687,31 @@
                 for (const policy of allPolicies) {
                     try {
                         // For Settings Catalog policies, use a different approach
-                        if (policy.policyType === 'Settings Catalog') {
-                            try {
-                                console.log(`Fetching device statuses for Settings Catalog policy: ${policy.name || policy.id}`);
-                                
-                                // Try multiple endpoint formats as Graph API can be inconsistent
-                                let response = await fetch(
-                                    `https://graph.microsoft.com/beta/deviceManagement/configurationPolicies/${policy.id}/deviceStatuses`,
-                                    {
-                                        headers: {
-                                            'Authorization': `Bearer ${accessToken}`,
-                                            'ConsistencyLevel': 'eventual'  // Add this header
-                                        }
+                        try {
+                        console.log(`Fetching device statuses for Settings Catalog policy: ${policy.name || policy.id}`);
+
+                        let response = await fetch(
+                            `https://graph.microsoft.com/beta/deviceManagement/configurationPolicies/${policy.id}/deviceStatuses?$top=999`, // <-- ✅ CHANGED LINE
+                            {
+                                headers: {
+                                    'Authorization': `Bearer ${accessToken}`,
+                                    'ConsistencyLevel': 'eventual'
+                                }
+                            }
+                        );
+
+                        if (!response.ok) {
+                            console.log(`First attempt failed with ${response.status}, trying alternative format...`);
+                            response = await fetch(
+                                `https://graph.microsoft.com/beta/deviceManagement/configurationPolicies('${policy.id}')/deviceStatuses?$top=999`, // <-- ✅ CHANGED LINE
+                                {
+                                    headers: {
+                                        'Authorization': `Bearer ${accessToken}`,
+                                        'ConsistencyLevel': 'eventual'
                                     }
-                                );
+                                }
+                            );
+                        }
                                 
                                 // If first attempt fails, try with parentheses format
                                 if (!response.ok) {
