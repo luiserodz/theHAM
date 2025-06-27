@@ -2153,9 +2153,15 @@
 
         // Enhanced device compliance details fetching to include all configuration compliance
         async function fetchDeviceComplianceDetails(deviceId) {
-            try {
-                const accessToken = await getAccessToken();
-                const device = complianceData.find(d => d.id === deviceId);
+    try {
+        // Get a fresh access token
+        const accessToken = await getAccessToken();
+        if (!accessToken) {
+            console.error('No access token available');
+            return null;
+        }
+        
+        const device = complianceData.find(d => d.id === deviceId);
                 
                 if (!device) return null;
                 
