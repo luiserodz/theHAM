@@ -3436,7 +3436,7 @@ function mapSettingsCatalogState(state) {
                                         ${(() => {
                         // Get top non-compliant devices
                         const nonCompliantDevices = complianceData
-                            .filter(d => d.complianceState === ‘noncompliant’)
+                            .filter(d => d.complianceState === 'noncompliant')
                             .slice(0, 15);
                         
                         if (nonCompliantDevices.length > 0) {
@@ -3456,17 +3456,17 @@ function mapSettingsCatalogState(state) {
                                             ${nonCompliantDevices.map(device => `
                                                 <tr>
                                                     <td>${device.deviceName}</td>
-                                                    <td>${device.userPrincipalName || ‘N/A’}</td>
+                                                    <td>${device.userPrincipalName || 'N/A'}</td>
                                                     <td>${device.operatingSystem}</td>
                                                     <td>${formatDate(device.lastSyncDateTime)}</td>
                                                 </tr>
-                                            `).join(‘’)}
+                                            `).join('')}
                                         </tbody>
                                     </table>
                                 </div>
                             `;
                         }
-                        return ‘’;
+                        return '';
                     })()}
                     
                     <div class="section">
