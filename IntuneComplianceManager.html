@@ -2640,94 +2640,78 @@
         return;
     }
 
+    // Filter for only the Settings Catalog policies that haven't been loaded yet
+    const policiesToUpdate = settingsCatalog.filter(p => !policyDeviceStates[p.id]);
+
+    if (policiesToUpdate.length === 0) {
+        showNotification('All policy statuses are already loaded or up to date.', 'info');
+        return;
+    }
+
     const btn = document.getElementById('loadDeviceStatusBtn');
     btn.disabled = true;
-    btn.textContent = 'Loading Device Status...';
-    showNotification('Fetching aggregate status for all policies...', 'info');
+    btn.textContent = 'Loading...';
+    showNotification(`Fetching status for ${policiesToUpdate.length} Settings Catalog policies...`, 'info');
 
     try {
         const accessToken = await getAccessToken();
 
-        // Combine all policies into one list for processing
-        const allPolicies = [
-            ...policyData.map(p => ({ ...p, policyType: 'Compliance Policy', endpoint: `deviceCompliancePolicies/${p.id}/deviceStatusOverview` })),
-            ...configurationProfiles.map(p => ({ ...p, policyType: 'Device Configuration', endpoint: `deviceConfigurations/${p.id}/deviceStatusOverview` })),
-            ...settingsCatalog.map(p => ({ ...p, policyType: 'Settings Catalog', endpoint: `configurationPolicies/${p.id}/deviceSettingStateSummaries` })),
-            ...adminTemplates.map(p => ({ ...p, policyType: 'Administrative Template', endpoint: `groupPolicyConfigurations/${p.id}/deviceStatusOverview` }))
-        ];
-
         // Create an array of fetch functions to be rate-limited
-        const fetchRequests = allPolicies.map(policy => async () => {
+        const fetchRequests = policiesToUpdate.map(policy => async () => {
             try {
-                const response = await fetch(`https://graph.microsoft.com/beta/deviceManagement/${policy.endpoint}`, {
+                // Use the deviceSettingStateSummaries endpoint, which is the most appropriate for Settings Catalog
+                const endpoint = `deviceManagement/configurationPolicies/${policy.id}/deviceSettingStateSummaries`;
+                const response = await fetch(`https://graph.microsoft.com/beta/${endpoint}`, {
                     headers: { 'Authorization': `Bearer ${accessToken}` }
                 });
 
                 if (!response.ok) {
-                    console.error(`Failed to fetch overview for policy '${policy.displayName}' (${policy.id}): ${response.status}`);
-                    return null; // Return null on failure
+                    console.error(`Failed to fetch summary for policy '${policy.name}' (${policy.id}): ${response.status}`);
+                    // Mark as failed so we don't try again
+                    policyDeviceStates[policy.id] = [{ state: 'summary', total: 'Error', compliant: 0, noncompliant: 0, pending: 0 }];
+                    return;
                 }
 
-                const overviewData = await response.json();
+                const summaryData = await response.json();
+                const settingStates = summaryData.value || [];
 
-                // Process the returned data to create a consistent format
-                let successCount = 0;
-                let errorCount = 0;
-                let pendingCount = 0;
-                let notApplicableCount = 0;
-
-                // Handle different data structures from different endpoints
-                if (policy.policyType === 'Settings Catalog') {
-                    // The 'deviceSettingStateSummaries' endpoint returns an array of setting states
-                    successCount = overviewData.value?.filter(s => s.state === 'compliant' || s.state === 'succeeded').length || 0;
-                    errorCount = overviewData.value?.filter(s => s.state === 'error' || s.state === 'nonCompliant' || s.state === 'conflict').length || 0;
-                    pendingCount = overviewData.value?.filter(s => s.state === 'pending').length || 0;
-                    notApplicableCount = overviewData.value?.filter(s => s.state === 'notApplicable').length || 0;
-                } else {
-                    // Overview endpoints have a standard structure
-                    successCount = overviewData.successCount || 0;
-                    errorCount = overviewData.errorCount || 0;
-                    pendingCount = overviewData.pendingCount || 0;
-                    notApplicableCount = overviewData.notApplicableCount || 0;
-                }
-
+                // Calculate the overview from the setting states returned by the API
+                const successCount = settingStates.filter(s => s.state === 'compliant' || s.state === 'succeeded').length;
+                const errorCount = settingStates.filter(s => s.state === 'error' || s.state === 'nonCompliant' || s.state === 'conflict').length;
+                const pendingCount = settingStates.filter(s => s.state === 'pending').length;
+                const notApplicableCount = settingStates.filter(s => s.state === 'notApplicable').length;
                 const totalDevices = successCount + errorCount + pendingCount + notApplicableCount;
 
-                if (totalDevices > 0) {
-                    // Simulate device states for summary purposes.
-                    // This creates a summary object, not a full device list.
-                    policyDeviceStates[policy.id] = [{
-                        state: 'summary',
-                        total: totalDevices,
-                        compliant: successCount + notApplicableCount, // Treat N/A as compliant for success rate
-                        noncompliant: errorCount,
-                        pending: pendingCount
-                    }];
-                } else {
-                    policyDeviceStates[policy.id] = [];
-                }
+                // Cache the calculated summary
+                policyDeviceStates[policy.id] = [{
+                    state: 'summary',
+                    total: totalDevices,
+                    compliant: successCount + notApplicableCount, // Treat N/A as compliant
+                    noncompliant: errorCount,
+                    pending: pendingCount
+                }];
 
             } catch (error) {
-                console.error(`Error processing policy ${policy.displayName}:`, error);
+                console.error(`Error processing Settings Catalog policy ${policy.name}:`, error);
+                policyDeviceStates[policy.id] = [{ state: 'summary', total: 'Error', compliant: 0, noncompliant: 0, pending: 0 }];
             }
         });
 
         // Use the rate-limiting function to execute all requests
         await fetchWithRateLimit(fetchRequests, 5, 1000);
 
-        // Refresh the display with the new summary data
+        // Re-render the entire policy table with the new data
         displayPolicyData();
         updateDashboard();
 
-        btn.textContent = 'Refresh Device Status';
-        showNotification('Device status loading complete.', 'success');
+        showNotification('Settings Catalog status loading complete.', 'success');
 
     } catch (error) {
-        console.error('Error loading policy device status:', error);
-        showNotification('Failed to load device status. Please try again.', 'error');
-        btn.textContent = 'Load Device Status';
+        console.error('A critical error occurred while loading device status:', error);
+        showNotification('Failed to load device status. Please check the console.', 'error');
     } finally {
         btn.disabled = false;
+        btn.textContent = 'Load Device Status';
     }
 }
 
