@@ -1629,8 +1629,8 @@
         // Auto-load data if we have a valid token
         setTimeout(() => {
             refreshComplianceData();
-            refreshPolicies();
-            refreshApps();
+            refreshPolicyData();
+            refreshApplicationData();
         }, 1000);
     }
 
@@ -2033,8 +2033,8 @@
             console.log('Auto-loading data after authentication...');
             setTimeout(() => {
                 refreshComplianceData();
-                refreshPolicies();
-                refreshApps();
+                refreshPolicyData();      // Correct function name
+                refreshApplicationData(); // Correct function name
             }, 500);
         }
     }
@@ -2195,7 +2195,7 @@
                 
                 const devicesResponse = await fetch('https://graph.microsoft.com/v1.0/deviceManagement/managedDevices', {
                     headers: {
-                        'Authorization': `Bearer ${token}`
+                        'Authorization': `Bearer ${accessToken}`
                     }
                 });
                 
@@ -2442,7 +2442,7 @@
                 
                 const appsResponse = await fetch('https://graph.microsoft.com/v1.0/deviceAppManagement/mobileApps', {
                     headers: {
-                        'Authorization': `Bearer ${token}`
+                        'Authorization': `Bearer ${accessToken}`
                     }
                 });
                 
@@ -2651,10 +2651,10 @@
 };
 
         const [complianceRes, configRes, settingsRes, adminRes] = await Promise.all([
-            fetch(`https://graph.microsoft.com/beta/${endpoints.compliance}`, { headers: { 'Authorization': `Bearer ${token}` } }),
-            fetch(`https://graph.microsoft.com/beta/${endpoints.configurations}`, { headers: { 'Authorization': `Bearer ${token}` } }),
-            fetch(`https://graph.microsoft.com/beta/${endpoints.settingsCatalog}`, { headers: { 'Authorization': `Bearer ${token}` } }),
-            fetch(`https://graph.microsoft.com/beta/${endpoints.adminTemplates}`, { headers: { 'Authorization': `Bearer ${token}` } })
+            fetch(`https://graph.microsoft.com/beta/${endpoints.compliance}`, { headers: { 'Authorization': `Bearer ${accessToken}` } }),
+            fetch(`https://graph.microsoft.com/beta/${endpoints.configurations}`, { headers: { 'Authorization': `Bearer ${accessToken}` } }),
+            fetch(`https://graph.microsoft.com/beta/${endpoints.settingsCatalog}`, { headers: { 'Authorization': `Bearer ${accessToken}` } }),
+            fetch(`https://graph.microsoft.com/beta/${endpoints.adminTemplates}`, { headers: { 'Authorization': `Bearer ${accessToken}` } })
         ]);
 
         if (complianceRes.ok) policyData = (await complianceRes.json()).value || [];
