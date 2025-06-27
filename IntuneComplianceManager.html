@@ -1492,136 +1492,79 @@
     <!-- Include MSAL library -->
     <script src="https://alcdn.msauth.net/browser/2.30.0/js/msal-browser.min.js"></script>
 
-    <script>
-        // Enhanced Protection System
-        (async function() {
-            'use strict';
-            
-            // Anti-tampering measures
-            const _0x1a2b = ['intuneComplianceManagerAuth', 'intuneComplianceClientId', 'authExpiry'];
-            const _0x3c4d = function(x) { return btoa(x).split('').reverse().join(''); };
-            const _0x5e6f = function(x) { return x.split('').reverse().join(''); };
-            
-            // Clear any saved data
-            _0x1a2b.forEach(key => {
-                localStorage.removeItem(key);
-                sessionStorage.removeItem(key);
-            });
-            
-            // Integrity check
-            let integrityCheckInterval;
-            const startIntegrityCheck = () => {
-                integrityCheckInterval = setInterval(() => {
-                    const authKey = _0x5e6f(_0x3c4d(_0x1a2b[0]));
-                    if (!sessionStorage.getItem(_0x1a2b[0])) {
-                        document.documentElement.style.display = 'none';
-                        document.documentElement.classList.remove('authenticated');
-                        clearInterval(integrityCheckInterval);
-                        window.location.reload();
-                    }
-                }, 500);
-            };
-            
-            try {
-                const isAuthenticated = sessionStorage.getItem(_0x1a2b[0]);
+        <script>
+    // ADD THE PASSWORD SECURITY CODE HERE - BEFORE ANYTHING ELSE
+    // Secure Password Protection with SHA-256 Hashing
+    (function() {
+        // Check if user has already authenticated in this session
+        const isAuthenticated = sessionStorage.getItem('intunePolicyManagerAuth');
         
         if (!isAuthenticated) {
-            const authenticated = await authenticateUser();
-            if (!authenticated) {
-                // This should never happen due to throw in authenticateUser
-                throw new Error('Authentication failed');
-            }
+            authenticateUser();
         }
-        
-        // Only show the page after successful authentication
-        document.documentElement.style.display = 'block';
-        document.documentElement.classList.add('authenticated');
-        
-        initializeApp();
-        
-    } catch (error) {
-    // Authentication failed - page remains hidden except for error message
-    console.error('Authentication failed:', error);
-    // Error message is already shown by showAccessDenied
-}
-})();
+    })();
 
-        async function authenticateUser() {
-            // Hash validation
-            const PASSWORD_HASH = '9e5c3ce7906db8e6f333df0e10deed2263b0a8738a9abe3f3612b8f52846689e';
-            const maxAttempts = 3;
-            let attempts = 0;
-            let authorized = false;
+    async function authenticateUser() {
+        const PASSWORD_HASH = '9e5c3ce7906db8e6f333df0e10deed2263b0a8738a9abe3f3612b8f52846689e';
+        
+        const maxAttempts = 3;
+        let attempts = 0;
+        let authorized = false;
+        
+        while (attempts < maxAttempts && !authorized) {
+            const password = prompt(
+                `🔒 Intune Policy Manager - Secure Access\n\n` +
+                `Enter password (${maxAttempts - attempts} attempt${attempts === 2 ? '' : 's'} remaining):`
+            );
             
-            // Add timestamp validation
-            const sessionStart = Date.now();
+            // User clicked cancel
+            if (password === null) {
+                showAccessDenied('Authentication cancelled');
+                throw new Error('Access cancelled by user');
+            }
             
-            while (attempts < maxAttempts && !authorized) {
-                const password = prompt(
-                    `🔒 Intune Compliance Manager - Secure Access\n\n` +
-                    `Enter password (${maxAttempts - attempts} attempt${attempts === 2 ? '' : 's'} remaining):`
-                );
+            // Hash the entered password and compare
+            const enteredHash = await hashPassword(password);
+            
+            if (enteredHash === PASSWORD_HASH) {
+                authorized = true;
+                sessionStorage.setItem('intunePolicyManagerAuth', 'true');
                 
-                if (password === null) {
-                    // Show the page to display access denied message
-                    document.documentElement.style.display = 'block';
-                    showAccessDenied('Authentication cancelled');
-                    // Throw error to stop all execution
-                    throw new Error('Authentication cancelled by user');
-                }
-                
-                // Multi-step validation
-                const enteredHash = await hashPassword(password);
-                const secondaryCheck = btoa(password.split('').reverse().join(''));
-                
-                if (enteredHash === _0x7g8h && secondaryCheck === _0x9i0j) {
-                    authorized = true;
-                    
-                    // Set multiple session markers
-                    sessionStorage.setItem('intuneComplianceManagerAuth', 'true');
-                    sessionStorage.setItem('authExpiry', Date.now() + (2 * 60 * 60 * 1000));
-                    sessionStorage.setItem('sessionStart', sessionStart);
-                    sessionStorage.setItem('sessionToken', generateSessionToken());
-                } else {
-                    attempts++;
-                    if (attempts < maxAttempts) {
-                        alert(`❌ Incorrect password.\n\n${maxAttempts - attempts} attempt${attempts === 2 ? '' : 's'} remaining.`);
-                    }
+                // Add session timeout (2 hours)
+                sessionStorage.setItem('authExpiry', Date.now() + (2 * 60 * 60 * 1000));
+            } else {
+                attempts++;
+                if (attempts < maxAttempts) {
+                    alert(`❌ Incorrect password.\n\n${maxAttempts - attempts} attempt${attempts === 2 ? '' : 's'} remaining.`);
                 }
             }
-            
-            if (!authorized) {
-                // Show the page to display access denied message
-                document.documentElement.style.display = 'block';
-                showAccessDenied('Maximum password attempts exceeded');
-                // Throw error to stop all execution
-                throw new Error('Authentication failed - maximum attempts exceeded');
-            }
-            
-            return true;
         }
         
-        // Add session token generator
-        function generateSessionToken() {
-            const array = new Uint8Array(32);
-            crypto.getRandomValues(array);
-            return Array.from(array, byte => byte.toString(16).padStart(2, '0')).join('');
+        if (!authorized) {
+            showAccessDenied('Maximum password attempts exceeded');
+            throw new Error('Unauthorized - Maximum attempts exceeded');
         }
+    }
 
-        async function hashPassword(password) {
-            const msgUint8 = new TextEncoder().encode(password);
-            const hashBuffer = await crypto.subtle.digest('SHA-256', msgUint8);
-            const hashArray = Array.from(new Uint8Array(hashBuffer));
-            const hashHex = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
-            return hashHex;
-        }
+    // SHA-256 hashing function
+    async function hashPassword(password) {
+        const msgUint8 = new TextEncoder().encode(password);
+        const hashBuffer = await crypto.subtle.digest('SHA-256', msgUint8);
+        const hashArray = Array.from(new Uint8Array(hashBuffer));
+        const hashHex = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+        return hashHex;
+    }
 
-        function showAccessDenied(message) {
-            // Make sure the page is visible to show the error
-            document.documentElement.style.display = 'block';
-            document.documentElement.classList.remove('authenticated');
-            
-            document.body.innerHTML = `
+    function showAccessDenied(message) {
+        document.body.innerHTML = `
+            <!DOCTYPE html>
+            <html>
+            <head>
+                <meta charset="UTF-8">
+                <meta name="viewport" content="width=device-width, initial-scale=1.0">
+                <title>Access Denied</title>
+            </head>
+            <body style="margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;">
                 <div style="display: flex; justify-content: center; align-items: center; min-height: 100vh; background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);">
                     <div style="text-align: center; background: white; padding: 60px 40px; border-radius: 20px; box-shadow: 0 20px 60px rgba(0,0,0,0.3); max-width: 450px; margin: 20px;">
                         <h1 style="color: #1a1a1a; margin-bottom: 25px; font-size: 36px; font-weight: 700; font-style: italic;">No HAM for you...</h1>
@@ -1636,130 +1579,48 @@
                         
                         <div style="margin-top: 35px; padding-top: 25px; border-top: 1px solid #eee;">
                             <p style="color: #999; font-size: 15px;">Please contact support for access credentials.</p>
-                            <p style="color: #bbb; font-size: 13px; margin-top: 15px;">Intune Compliance Manager</p>
+                            <p style="color: #bbb; font-size: 13px; margin-top: 15px;">Intune Policy Manager</p>
                         </div>
                     </div>
                 </div>
-            `;
+            </body>
+            </html>
+        `;
+    }
+
+    // Check session expiry on each load
+    (function checkSessionExpiry() {
+        const authExpiry = sessionStorage.getItem('authExpiry');
+        if (authExpiry && Date.now() > parseInt(authExpiry)) {
+            sessionStorage.removeItem('intunePolicyManagerAuth');
+            sessionStorage.removeItem('authExpiry');
+            location.reload();
         }
+    })();
 
-        function checkSessionExpiry() {
-            const authExpiry = sessionStorage.getItem('authExpiry');
-            if (authExpiry && Date.now() > parseInt(authExpiry)) {
-                sessionStorage.removeItem('intuneComplianceManagerAuth');
-                sessionStorage.removeItem('authExpiry');
-                sessionStorage.removeItem('sessionStart');
-                sessionStorage.removeItem('sessionToken');
-                location.reload();
-            }
-        }
-        
-        // Enhanced session validation
-        function validateSession() {
-            const requiredKeys = ['intuneComplianceManagerAuth', 'authExpiry', 'sessionStart', 'sessionToken'];
-            const allKeysPresent = requiredKeys.every(key => sessionStorage.getItem(key) !== null);
-            
-            if (!allKeysPresent) {
-                return false;
-            }
-            
-            // Validate session token format
-            const token = sessionStorage.getItem('sessionToken');
-            if (!token || token.length !== 64) {
-                return false;
-            }
-            
-            // Check session age
-            const sessionStart = parseInt(sessionStorage.getItem('sessionStart'));
-            if (Date.now() - sessionStart > 24 * 60 * 60 * 1000) { // 24 hours max
-                return false;
-            }
-            
-            return true;
-        }
+    // Auto-logout on inactivity (30 minutes)
+    let inactivityTimer;
+    const INACTIVITY_TIMEOUT = 30 * 60 * 1000; // 30 minutes
 
-        // Enhanced protection against bypassing
-        (function() {
-            'use strict';
-            
-            // Disable console in production
-            if (!window.location.hostname.includes('localhost')) {
-                const noop = () => {};
-                ['log', 'debug', 'info', 'warn', 'error', 'trace', 'dir'].forEach(method => {
-                    console[method] = noop;
-                });
-            }
-            
-            // Enhanced authentication check
-            let checkCount = 0;
-            let authCheck = setInterval(() => {
-                checkCount++;
-                
-                if (!validateSession()) {
-                    document.documentElement.style.display = 'none';
-                    document.documentElement.classList.remove('authenticated');
-                    
-                    // Clear all storage
-                    ['intuneComplianceManagerAuth', 'authExpiry', 'sessionStart', 'sessionToken'].forEach(key => {
-                        sessionStorage.removeItem(key);
-                    });
-                    
-                    clearInterval(authCheck);
-                    
-                    // Delay reload to prevent rapid refresh attacks
-                    setTimeout(() => {
-                        location.reload();
-                    }, Math.random() * 1000 + 500);
-                }
-                
-                // Random interval to make timing attacks harder
-                if (checkCount % 10 === 0) {
-                    clearInterval(authCheck);
-                    setTimeout(() => {
-                        authCheck = setInterval(arguments.callee, 800 + Math.random() * 400);
-                    }, 100);
-                }
-            }, 1000);
-            
-            // Prevent developer tools
-            let devtools = {open: false, orientation: null};
-            const threshold = 160;
-            const emitEvent = (state) => {
-                if (state) {
-                    document.documentElement.style.display = 'none';
-                    sessionStorage.clear();
-                }
-            };
-            
-            setInterval(() => {
-                if (window.outerHeight - window.innerHeight > threshold || 
-                    window.outerWidth - window.innerWidth > threshold) {
-                    if (!devtools.open) {
-                        emitEvent(true);
-                        devtools.open = true;
-                    }
-                } else {
-                    devtools.open = false;
-                }
-            }, 500);
-        })();
+    function resetInactivityTimer() {
+        clearTimeout(inactivityTimer);
+        inactivityTimer = setTimeout(() => {
+            sessionStorage.removeItem('intunePolicyManagerAuth');
+            sessionStorage.removeItem('authExpiry');
+            alert('⏱️ Session expired due to inactivity.\n\nPlease refresh the page to log in again.');
+            location.reload();
+        }, INACTIVITY_TIMEOUT);
+    }
 
-        let inactivityTimer;
-        const INACTIVITY_TIMEOUT = 30 * 60 * 1000;
+    // Start inactivity timer if authenticated
+    if (sessionStorage.getItem('intunePolicyManagerAuth')) {
+        document.addEventListener('click', resetInactivityTimer);
+        document.addEventListener('keypress', resetInactivityTimer);
+        document.addEventListener('scroll', resetInactivityTimer);
+        document.addEventListener('mousemove', resetInactivityTimer);
+        resetInactivityTimer();
+    }
 
-        function resetInactivityTimer() {
-            clearTimeout(inactivityTimer);
-            inactivityTimer = setTimeout(() => {
-                sessionStorage.removeItem('intuneComplianceManagerAuth');
-                sessionStorage.removeItem('authExpiry');
-                sessionStorage.removeItem('sessionStart');
-                sessionStorage.removeItem('sessionToken');
-                alert('⏱️ Session expired due to inactivity.\n\nPlease refresh the page to log in again.');
-                location.reload();
-            }, INACTIVITY_TIMEOUT);
-        }
-
-        function initializeApp() {
             console.log('Intune Compliance Manager initializing...');
             
             checkSessionExpiry();
