@@ -2312,15 +2312,34 @@
             `).join('');
         }
 
-        function getComplianceClass(state) {
-            switch(state) {
-                case 'compliant': return 'compliant';
-                case 'noncompliant': return 'noncompliant';
-                case 'inGracePeriod':
-                case 'configManager': return 'pending';
-                default: return 'unknown';
-            }
-        }
+        function mapSettingsCatalogState(state) {
+    if (typeof state === 'string') {
+        state = state.toLowerCase();
+    }
+    
+    switch(state) {
+        case 'compliant':
+        case 'succeeded':
+        case 'success':
+        case 0:
+            return 'compliant';
+        case 'conflict':
+        case 'failed':
+        case 'error':
+        case 'noncompliant':
+        case 2:
+            return 'noncompliant';
+        case 'notapplicable':
+        case 3:
+            return 'unknown';
+        case 'pending':
+        case 'inprogress':
+        case 1:
+            return 'pending';
+        default:
+            return 'unknown';
+    }
+}
 
         // Application functions
         async function refreshApplicationData() {
@@ -2698,8 +2717,31 @@
         });
 
         // Use the rate-limiting function to execute all requests
-        await fetchWithRateLimit(fetchRequests, 5, 1000);
-
+const accessToken = await getAccessToken();
+const results = [];
+for (const policy of policiesToUpdate) {
+    try {
+        const response = await fetch(
+            `https://graph.microsoft.com/beta/deviceManagement/configurationPolicies/${policy.id}/deviceStatusOverview`,
+            {
+                headers: { 'Authorization': `Bearer ${accessToken}` }
+            }
+        );
+        
+        if (response.ok) {
+            const data = await response.json();
+            policyDeviceStates[policy.id] = [{
+                state: 'summary',
+                total: data.pendingCount + data.successCount + data.errorCount + data.notApplicableCount,
+                compliant: data.successCount + data.notApplicableCount,
+                noncompliant: data.errorCount,
+                pending: data.pendingCount
+            }];
+        }
+    } catch (error) {
+        console.error(`Error fetching status for ${policy.name}:`, error);
+    }
+}
         // Re-render the entire policy table with the new data
         displayPolicyData();
         updateDashboard();
@@ -2837,7 +2879,7 @@
                     if (!response.ok) {
                         console.log(`First format failed, trying with parentheses...`);
                         response = await fetch(
-                            `https://graph.microsoft.com/beta/deviceManagement/configurationPolicies('${policyId}')?$expand=deviceStatusOverview`,
+                            `https://graph.microsoft.com/beta/deviceManagement/configurationPolicies/${policyId}/deviceStatuses`,
                             {
                                 headers: {
                                     'Authorization': `Bearer ${accessToken}`,
