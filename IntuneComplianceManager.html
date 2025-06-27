@@ -2919,33 +2919,13 @@ if (policy.policyType === 'Settings Catalog') {
     } catch (e) {
         // Not JSON error response
     }
-}
+        }
     } catch (error) {
         console.error(`Error fetching device statuses for Settings Catalog policy ${policy.id}:`, error);
     }
-}
-                    
-                    if (response.ok) {
-                        const data = await response.json();
-                        const deviceStatuses = data.value || [];
-                        
-                        const deviceStates = deviceStatuses.map(status => ({
-                            deviceId: status.deviceId || status.id,
-                            deviceName: status.deviceDisplayName || status.deviceName || 'Unknown Device',
-                            userPrincipalName: status.userPrincipalName || status.userName || status.userDisplayName || 'N/A',
-                            state: mapSettingsCatalogState(status.state || status.complianceState),
-                            lastReported: status.lastReportedDateTime || status.checkinDateTime,
-                            errorDescription: status.errorDescription || (status.state === 'error' ? 'Configuration failed to apply' : null),
-                            settingStates: status.settingStates || []
-                        }));
-                        
-                        if (deviceStates.length > 0) {
-                            policyDeviceStates[policy.id] = deviceStates;
-                        }
-                    }
-                } else {
-                    // For other policy types, use the device-based approach
-                    if (complianceData.length > 0) {
+} else {
+    // For other policy types, use the device-based approach
+    if (complianceData.length > 0) {
                         const deviceStates = [];
                         
                         // Sample a subset of devices to avoid too many API calls
@@ -2995,40 +2975,6 @@ if (policy.policyType === 'Settings Catalog') {
                                 deviceStates.push(result);
                             }
                         });
-                        
-                        if (deviceStates.length > 0) {
-                            policyDeviceStates[policy.id] = deviceStates;
-                        }
-                    }
-                }
-                                    `https://graph.microsoft.com/beta/deviceManagement/managedDevices/${device.id}/${policy.endpoint}`,
-                                    {
-                                        headers: {
-                                            'Authorization': `Bearer ${accessToken}`
-                                        }
-                                    }
-                                );
-                                
-                                if (response.ok) {
-                                    const data = await response.json();
-                                    const policyState = data.value?.find(s => s.id?.includes(policy.id));
-                                    
-                                    if (policyState) {
-                                        deviceStates.push({
-                                            deviceId: device.id,
-                                            deviceName: device.deviceName,
-                                            userPrincipalName: device.userPrincipalName,
-                                            state: policyState.state,
-                                            lastReported: policyState.settingStatesLastReportedDateTime || policyState.lastReportedDateTime,
-                                            errorDescription: policyState.errorDescription,
-                                            settingStates: policyState.settingStates
-                                        });
-                                    }
-                                }
-                            } catch (error) {
-                                console.error(`Error fetching device state for ${device.deviceName}:`, error);
-                            }
-                        }
                         
                         if (deviceStates.length > 0) {
                             policyDeviceStates[policy.id] = deviceStates;
