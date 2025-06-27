@@ -3307,6 +3307,24 @@ for (const policy of policiesToUpdate) {
             return date.toLocaleDateString() + ' ' + date.toLocaleTimeString();
         }
 
+function getComplianceClass(state) {
+    if (!state) return 'unknown';
+    
+    switch(state.toLowerCase()) {
+        case 'compliant':
+            return 'compliant';
+        case 'noncompliant':
+            return 'noncompliant';
+        case 'unknown':
+            return 'unknown';
+        case 'ingracePeriod':
+        case 'configmanager':
+            return 'pending';
+        default:
+            return 'unknown';
+    }
+}
+        
         function getAppType(odataType) {
             if (!odataType) return 'Unknown';
             
