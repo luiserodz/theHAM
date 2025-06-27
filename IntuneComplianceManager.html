@@ -3489,12 +3489,12 @@
             <title>Intune Environment Report</title>
             <style>
                 @import url('https://fonts.googleapis.com/css2?family=Segoe+UI:wght@400;600;700&display=swap');
-                body { font-family: 'Segoe UI', -apple-system, BlinkMacSystemFont, sans-serif; margin: 0; padding: 0; background: #f8f9fa; color: #212529; -webkit-print-color-adjust: exact; }
+                body { font-family: 'Segoe UI', -apple-system, BlinkMacSystemFont, sans-serif; margin: 0; padding: 0; background: #f8f9fa; color: #212529; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
                 .report-container { max-width: 800px; margin: auto; padding: 30px; background: white; }
                 .report-header { text-align: center; border-bottom: 2px solid #dee2e6; padding-bottom: 20px; margin-bottom: 30px; }
                 .report-header h1 { font-size: 28px; color: #0078D4; margin: 0; }
                 .report-header p { font-size: 16px; color: #6c757d; margin: 5px 0 0; }
-                .section { margin-bottom: 30px; break-inside: avoid; }
+                .section { margin-bottom: 30px; break-inside: avoid; page-break-inside: avoid; }
                 .section-title { font-size: 20px; font-weight: 600; color: #343a40; border-bottom: 1px solid #dee2e6; padding-bottom: 8px; margin-bottom: 15px; }
                 .kpi-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; }
                 .kpi-card { background-color: #f8f9fa; border: 1px solid #dee2e6; border-radius: 8px; padding: 20px; text-align: center; }
@@ -3505,10 +3505,15 @@
                 .data-table th { background-color: #e9ecef; font-weight: 600; font-size: 14px; }
                 .data-table td { font-size: 14px; }
                 .data-table tr:nth-child(even) { background-color: #f8f9fa; }
-                .progress-bar { display: flex; height: 25px; border-radius: 5px; overflow: hidden; background: #e9ecef; }
+                .progress-bar { display: flex; height: 25px; border-radius: 5px; overflow: hidden; background: #e9ecef; margin-bottom: 15px; }
                 .progress-segment { color: white; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 600; }
                 .footer { text-align: center; font-size: 12px; color: #6c757d; margin-top: 40px; padding-top: 20px; border-top: 1px solid #dee2e6; }
-                @media print { .no-print { display: none; } }
+                @media print { 
+                    .no-print { display: none !important; }
+                    body { background: white; }
+                    .report-container { padding: 20px; }
+                }
+                @page { margin: 0.5in; }
             </style>
         </head>
         <body>
@@ -3545,6 +3550,21 @@
                         <div class="progress-segment" style="background-color: #ffc107; color: #212529; width: ${(complianceStats.ingrace / complianceStats.total) * 100}%;" title="In Grace Period">${complianceStats.ingrace}</div>
                         <div class="progress-segment" style="background-color: #6c757d; width: ${(complianceStats.unknown / complianceStats.total) * 100}%;" title="Unknown">${complianceStats.unknown}</div>
                     </div>
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>Status</th>
+                                <th>Count</th>
+                                <th>Percentage</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr><td>Compliant</td><td>${complianceStats.compliant}</td><td>${Math.round((complianceStats.compliant / complianceStats.total) * 100)}%</td></tr>
+                            <tr><td>Non-Compliant</td><td>${complianceStats.noncompliant}</td><td>${Math.round((complianceStats.noncompliant / complianceStats.total) * 100)}%</td></tr>
+                            <tr><td>In Grace Period</td><td>${complianceStats.ingrace}</td><td>${Math.round((complianceStats.ingrace / complianceStats.total) * 100)}%</td></tr>
+                            <tr><td>Unknown</td><td>${complianceStats.unknown}</td><td>${Math.round((complianceStats.unknown / complianceStats.total) * 100)}%</td></tr>
+                        </tbody>
+                    </table>
                 </div>
 
                 <div class="section">
@@ -3563,12 +3583,198 @@
                         </tbody>
                     </table>
                 </div>
+
+                <div class="section">
+                    <h2 class="section-title">Policy Application Success Rate</h2>
+                    <table class="data-table">
+                        <thead><tr><th>Policy Name</th><th>Type</th><th>Success Rate</th><th>Applied Devices</th></tr></thead>
+                        <tbody>
+                            ${(() => {
+                                const policyRows = [];
+                                allPolicies.forEach(policy => {
+                                    let successRate = 'N/A';
+                                    let deviceCount = 0;
+                                    let policyType = policy.policyType || 'Configuration';
+                                    let overview = policy.deviceStatusOverview;
+                                    let summaryState = policyDeviceStates[policy.id];
+                                    
+                                    if (overview) {
+                                        const total = overview.successCount + overview.errorCount + overview.pendingCount + overview.notApplicableCount;
+                                        deviceCount = total;
+                                        if (total > 0) {
+                                            const successful = overview.successCount + overview.notApplicableCount;
+                                            successRate = Math.round((successful / total) * 100) + '%';
+                                        }
+                                    } else if (summaryState && summaryState.length > 0 && summaryState[0].state === 'summary' && summaryState[0].total !== 'Error') {
+                                        deviceCount = summaryState[0].total;
+                                        if (deviceCount > 0) {
+                                            successRate = Math.round((summaryState[0].compliant / deviceCount) * 100) + '%';
+                                        }
+                                    }
+                                    
+                                    if (deviceCount > 0) {
+                                        policyRows.push({
+                                            name: policy.displayName || policy.name || 'Unnamed',
+                                            type: policyType,
+                                            successRate: successRate,
+                                            deviceCount: deviceCount
+                                        });
+                                    }
+                                });
+                                
+                                policyRows.sort((a, b) => {
+                                    const aRate = parseInt(a.successRate) || 100;
+                                    const bRate = parseInt(b.successRate) || 100;
+                                    return aRate - bRate;
+                                });
+                                
+                                return policyRows.slice(0, 10).map(row => `
+                                    <tr>
+                                        <td>${row.name}</td>
+                                        <td>${row.type}</td>
+                                        <td>${row.successRate}</td>
+                                        <td>${row.deviceCount}</td>
+                                    </tr>
+                                `).join('');
+                            })()}
+                        </tbody>
+                    </table>
+                </div>
+
+                <div class="section">
+                    <h2 class="section-title">Top Failed Policies</h2>
+                    <table class="data-table">
+                        <thead><tr><th>Policy Name</th><th>Failed Devices</th><th>Total Devices</th><th>Failure Rate</th></tr></thead>
+                        <tbody>
+                            ${(() => {
+                                const failedPolicies = [];
+                                allPolicies.forEach(policy => {
+                                    let failedCount = 0;
+                                    let totalCount = 0;
+                                    let overview = policy.deviceStatusOverview;
+                                    let summaryState = policyDeviceStates[policy.id];
+                                    
+                                    if (overview) {
+                                        failedCount = overview.errorCount;
+                                        totalCount = overview.successCount + overview.errorCount + overview.pendingCount + overview.notApplicableCount;
+                                    } else if (summaryState && summaryState.length > 0 && summaryState[0].state === 'summary' && summaryState[0].total !== 'Error') {
+                                        failedCount = summaryState[0].noncompliant;
+                                        totalCount = summaryState[0].total;
+                                    }
+                                    
+                                    if (failedCount > 0) {
+                                        failedPolicies.push({
+                                            name: policy.displayName || policy.name || 'Unnamed',
+                                            failed: failedCount,
+                                            total: totalCount,
+                                            rate: totalCount > 0 ? Math.round((failedCount / totalCount) * 100) : 0
+                                        });
+                                    }
+                                });
+                                
+                                failedPolicies.sort((a, b) => b.failed - a.failed);
+                                
+                                if (failedPolicies.length === 0) {
+                                    return '<tr><td colspan="4" style="text-align: center;">No failed policies found</td></tr>';
+                                }
+                                
+                                return failedPolicies.slice(0, 10).map(policy => `
+                                    <tr>
+                                        <td>${policy.name}</td>
+                                        <td>${policy.failed}</td>
+                                        <td>${policy.total}</td>
+                                        <td>${policy.rate}%</td>
+                                    </tr>
+                                `).join('');
+                            })()}
+                        </tbody>
+                    </table>
+                </div>
+
+                <div class="section">
+                    <h2 class="section-title">Device Sync Status</h2>
+                    ${(() => {
+                        const now = new Date();
+                        const syncGroups = {
+                            'Last 24 hours': 0,
+                            '2-7 days': 0,
+                            '8-30 days': 0,
+                            'Over 30 days': 0,
+                            'Never synced': 0
+                        };
+                        
+                        complianceData.forEach(device => {
+                            if (!device.lastSyncDateTime) {
+                                syncGroups['Never synced']++;
+                                return;
+                            }
+                            
+                            const lastSync = new Date(device.lastSyncDateTime);
+                            const daysDiff = Math.floor((now - lastSync) / (1000 * 60 * 60 * 24));
+                            
+                            if (daysDiff <= 1) syncGroups['Last 24 hours']++;
+                            else if (daysDiff <= 7) syncGroups['2-7 days']++;
+                            else if (daysDiff <= 30) syncGroups['8-30 days']++;
+                            else syncGroups['Over 30 days']++;
+                        });
+                        
+                        return `
+                            <table class="data-table">
+                                <thead><tr><th>Sync Period</th><th>Device Count</th><th>Percentage</th></tr></thead>
+                                <tbody>
+                                    ${Object.entries(syncGroups).map(([period, count]) => {
+                                        const percentage = complianceData.length > 0 ? Math.round((count / complianceData.length) * 100) : 0;
+                                        return `
+                                            <tr>
+                                                <td>${period}</td>
+                                                <td>${count}</td>
+                                                <td>${percentage}%</td>
+                                            </tr>
+                                        `;
+                                    }).join('')}
+                                </tbody>
+                            </table>
+                        `;
+                    })()}
+                </div>
+
+                <div class="section">
+                    <h2 class="section-title">Recent Non-Compliant Devices</h2>
+                    <table class="data-table">
+                        <thead><tr><th>Device Name</th><th>User</th><th>Last Sync</th><th>Days Since Sync</th></tr></thead>
+                        <tbody>
+                            ${(() => {
+                                const nonCompliantDevices = complianceData
+                                    .filter(d => d.complianceState === 'noncompliant')
+                                    .slice(0, 10);
+                                
+                                if (nonCompliantDevices.length === 0) {
+                                    return '<tr><td colspan="4" style="text-align: center;">No non-compliant devices found</td></tr>';
+                                }
+                                
+                                return nonCompliantDevices.map(device => {
+                                    const lastSync = device.lastSyncDateTime ? new Date(device.lastSyncDateTime) : null;
+                                    const daysSince = lastSync ? Math.floor((new Date() - lastSync) / (1000 * 60 * 60 * 24)) : 'N/A';
+                                    return `
+                                        <tr>
+                                            <td>${device.deviceName}</td>
+                                            <td>${device.userPrincipalName || 'N/A'}</td>
+                                            <td>${formatDate(device.lastSyncDateTime)}</td>
+                                            <td>${daysSince}</td>
+                                        </tr>
+                                    `;
+                                }).join('');
+                            })()}
+                        </tbody>
+                    </table>
+                </div>
                 
                 <div class="footer">
-                    Generated by Intune Compliance Manager
+                    Generated by Intune Compliance Manager<br>
+                    ${new Date().toLocaleString()}
                 </div>
             </div>
-            <div class="no-print" style="position: fixed; top: 10px; right: 10px;">
+            <div style="position: fixed; top: 10px; right: 10px; z-index: 1000;">
                 <button onclick="window.print()" style="padding: 10px 20px; background: #0078D4; color: white; border: none; border-radius: 5px; cursor: pointer; font-size: 16px;">Print Report</button>
             </div>
         </body>
