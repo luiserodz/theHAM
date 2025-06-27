@@ -2727,59 +2727,150 @@ if (adminRes.ok) {
         // Create an array of fetch functions to be rate-limited
 const fetchRequests = policiesToUpdate.map(policy => async () => {
     try {
-        // Check if this is a configuration policy (Settings Catalog)
-        if (policy['@odata.type'] && policy['@odata.type'].includes('configurationPolicy')) {
-            // Use Reports API for configuration policies
-            const reportRequest = {
-                filter: `(PolicyId eq '${policy.id}')`,
-                select: ["PolicyId", "PolicyName", "DeviceId", "DeviceName", "UserId", "UPN", "ComplianceState", "SettingCount", "SucceededCount", "ErrorCount", "ConflictCount", "NotApplicableCount"],
-                skip: 0,
-                top: 50
-            };
+        // Settings Catalog policies have specific templateIds or can be identified by their settings structure
+        // Check if this is a Settings Catalog policy (they typically have templateReference or specific properties)
+        const isSettingsCatalog = policy.templateReference || 
+                                 policy.technologies === 'mdm' || 
+                                 policy.platforms === 'windows10';
 
-            const response = await fetch(
-                'https://graph.microsoft.com/beta/deviceManagement/reports/getConfigurationPolicyNonComplianceReport',
-                {
-                    method: 'POST',
-                    headers: { 
-                        'Authorization': `Bearer ${accessToken}`,
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify(reportRequest)
+        if (isSettingsCatalog) {
+            // Try the device status endpoint first for Settings Catalog
+            try {
+                const statusResponse = await fetch(
+                    `https://graph.microsoft.com/beta/deviceManagement/configurationPolicies/${policy.id}/deviceStatuses`,
+                    {
+                        headers: { 'Authorization': `Bearer ${accessToken}` }
+                    }
+                );
+
+                if (statusResponse.ok) {
+                    const statusData = await statusResponse.json();
+                    const deviceStatuses = statusData.value || [];
+                    
+                    let compliant = 0, noncompliant = 0, pending = 0, error = 0;
+                    
+                    deviceStatuses.forEach(status => {
+                        switch(status.state?.toLowerCase()) {
+                            case 'compliant':
+                            case 'succeeded':
+                                compliant++;
+                                break;
+                            case 'noncompliant':
+                            case 'error':
+                            case 'conflict':
+                                noncompliant++;
+                                break;
+                            case 'pending':
+                            case 'notassigned':
+                            default:
+                                pending++;
+                                break;
+                        }
+                    });
+
+                    policyDeviceStates[policy.id] = [{
+                        state: 'summary',
+                        total: deviceStatuses.length || 'No devices',
+                        compliant: compliant,
+                        noncompliant: noncompliant,
+                        pending: pending
+                    }];
+                    return;
                 }
-            );
+            } catch (err) {
+                console.debug(`Device status endpoint not available for ${policy.name}, trying assignments...`);
+            }
+
+            // If device status doesn't work, check assignments at least
+            try {
+                const assignResponse = await fetch(
+                    `https://graph.microsoft.com/beta/deviceManagement/configurationPolicies/${policy.id}/assignments`,
+                    {
+                        headers: { 'Authorization': `Bearer ${accessToken}` }
+                    }
+                );
+
+                if (assignResponse.ok) {
+                    const assignData = await assignResponse.json();
+                    const hasAssignments = assignData.value && assignData.value.length > 0;
+                    
+                    policyDeviceStates[policy.id] = [{
+                        state: 'summary',
+                        total: hasAssignments ? 'Assigned' : 'Not assigned',
+                        compliant: 0,
+                        noncompliant: 0,
+                        pending: 0,
+                        note: 'Device status not available for Settings Catalog policies'
+                    }];
+                    return;
+                }
+            } catch (err) {
+                console.debug(`Assignment check failed for ${policy.name}`);
+            }
+
+            // If all else fails for Settings Catalog
+            policyDeviceStates[policy.id] = [{
+                state: 'summary',
+                total: 'Not available',
+                compliant: 0,
+                noncompliant: 0,
+                pending: 0,
+                note: 'Settings Catalog policy - status unavailable'
+            }];
+
+        } else {
+            // Original code for standard device configuration policies
+            const endpoint = `deviceManagement/deviceConfigurations/${policy.id}/deviceStatuses`;
+            const response = await fetch(`https://graph.microsoft.com/beta/${endpoint}`, {
+                headers: { 'Authorization': `Bearer ${accessToken}` }
+            });
 
             if (!response.ok) {
-                console.error(`Failed to fetch report for policy '${policy.name}': ${response.status}`);
+                // Try the summary endpoint as fallback
+                const summaryResponse = await fetch(
+                    `https://graph.microsoft.com/beta/deviceManagement/deviceConfigurations/${policy.id}/deviceStatusOverview`,
+                    {
+                        headers: { 'Authorization': `Bearer ${accessToken}` }
+                    }
+                );
+
+                if (summaryResponse.ok) {
+                    const summary = await summaryResponse.json();
+                    policyDeviceStates[policy.id] = [{
+                        state: 'summary',
+                        total: summary.configurationVersion || 0,
+                        compliant: summary.compliantDeviceCount || 0,
+                        noncompliant: summary.errorDeviceCount || 0,
+                        pending: summary.pendingDeviceCount || 0
+                    }];
+                    return;
+                }
+
+                console.error(`Failed to fetch status for policy '${policy.name}': ${response.status}`);
                 policyDeviceStates[policy.id] = [{ state: 'summary', total: 'Error', compliant: 0, noncompliant: 0, pending: 0 }];
                 return;
             }
 
-            const reportData = await response.json();
-            const devices = reportData.values || [];
+            const deviceStatuses = await response.json();
+            const statuses = deviceStatuses.value || [];
+
+            // Calculate summary for regular policies
+            let compliant = 0, noncompliant = 0, pending = 0;
             
-            // Calculate summary from the report data
-            let compliant = 0, noncompliant = 0, pending = 0, error = 0;
-            
-            devices.forEach(device => {
-                // The report returns arrays, so we need to get the values by index
-                // Adjust these indices based on the actual response structure
-                const complianceState = device[6]; // ComplianceState index
-                
-                switch(complianceState?.toLowerCase()) {
+            statuses.forEach(status => {
+                switch(status.status) {
                     case 'compliant':
+                    case 'succeeded':
                         compliant++;
                         break;
-                    case 'noncompliant':
                     case 'nonCompliant':
-                        noncompliant++;
-                        break;
                     case 'error':
                     case 'conflict':
-                        error++;
+                        noncompliant++;
                         break;
                     case 'pending':
-                    case 'unknown':
+                    case 'notApplicable':
+                    default:
                         pending++;
                         break;
                 }
@@ -2787,41 +2878,10 @@ const fetchRequests = policiesToUpdate.map(policy => async () => {
 
             policyDeviceStates[policy.id] = [{
                 state: 'summary',
-                total: devices.length || 'No data',
+                total: statuses.length,
                 compliant: compliant,
-                noncompliant: noncompliant + error,
+                noncompliant: noncompliant,
                 pending: pending
-            }];
-
-        } else {
-            // Use the original endpoint for other policy types
-            const endpoint = `deviceManagement/configurationPolicies/${policy.id}/deviceSettingStateSummaries`;
-            const response = await fetch(`https://graph.microsoft.com/beta/${endpoint}`, {
-                headers: { 'Authorization': `Bearer ${accessToken}` }
-            });
-
-            if (!response.ok) {
-                console.error(`Failed to fetch summary for policy '${policy.name}': ${response.status}`);
-                policyDeviceStates[policy.id] = [{ state: 'summary', total: 'Error', compliant: 0, noncompliant: 0, pending: 0 }];
-                return;
-            }
-
-            const summaryData = await response.json();
-            const settingStates = summaryData?.value || [];
-
-            // Your existing calculation code here...
-            const successCount = settingStates.length > 0 ? settingStates.filter(s => s && (s.state === 'compliant' || s.state === 'succeeded')).length : 0;
-            const errorCount = settingStates.length > 0 ? settingStates.filter(s => s && (s.state === 'error' || s.state === 'nonCompliant' || s.state === 'conflict')).length : 0;
-            const pendingCount = settingStates.length > 0 ? settingStates.filter(s => s && s.state === 'pending').length : 0;
-            const notApplicableCount = settingStates.length > 0 ? settingStates.filter(s => s && s.state === 'notApplicable').length : 0;
-            const totalDevices = successCount + errorCount + pendingCount + notApplicableCount;
-
-            policyDeviceStates[policy.id] = [{
-                state: 'summary',
-                total: totalDevices,
-                compliant: successCount + notApplicableCount,
-                noncompliant: errorCount,
-                pending: pendingCount
             }];
         }
 
