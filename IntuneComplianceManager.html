@@ -2068,23 +2068,26 @@
         }
 
         async function getAccessToken() {
-            const request = {
-                scopes: ['User.Read', 'DeviceManagementManagedDevices.Read.All', 'DeviceManagementApps.Read.All', 'DeviceManagementConfiguration.Read.All'],
-                account: account
-            };
+    const request = {
+        scopes: ['User.Read', 'DeviceManagementManagedDevices.Read.All', 'DeviceManagementApps.Read.All', 'DeviceManagementConfiguration.Read.All'],
+        account: account
+    };
 
-            try {
-                const response = await msalInstance.acquireTokenSilent(request);
-                return response.accessToken;
-            } catch (error) {
-                try {
-                    const response = await msalInstance.acquireTokenPopup(request);
-                    return response.accessToken;
-                } catch (popupError) {
-                    console.error('Token acquisition failed:', popupError);
-                    throw popupError;
-                }
-            }
+    try {
+        console.log('Attempting to acquire token silently...');
+        const response = await msalInstance.acquireTokenSilent(request);
+        console.log('Token acquired successfully');
+        return response.accessToken;
+    } catch (error) {
+        console.log('Silent token acquisition failed, trying popup...', error);
+        try {
+            const response = await msalInstance.acquireTokenPopup(request);
+            console.log('Token acquired via popup');
+            return response.accessToken;
+        } catch (popupError) {
+            console.error('Token acquisition failed:', popupError);
+            // Return null instead of throwing to prevent unhandled errors
+            return null;
         }
 
         // Tab switching
@@ -2154,16 +2157,27 @@
         // Enhanced device compliance details fetching to include all configuration compliance
         async function fetchDeviceComplianceDetails(deviceId) {
     try {
-        // Get a fresh access token
-        const accessToken = await getAccessToken();
-        if (!accessToken) {
-            console.error('No access token available');
+        // Ensure we have an account
+        if (!account) {
+            console.error('No account available - user needs to sign in');
             return null;
         }
         
+        // Get a fresh access token
+        const accessToken = await getAccessToken();
+        if (!accessToken) {
+            console.error('Failed to acquire access token');
+            showNotification('Authentication failed. Please sign in again.', 'error');
+            return null;
+        }
+        
+        console.log('Access token acquired, fetching device details for:', deviceId);
+        
         const device = complianceData.find(d => d.id === deviceId);
-                
-                if (!device) return null;
+        if (!device) {
+            console.error('Device not found in local data');
+            return null;
+        }
                 
                 // Try to fetch compliance policy states
                 try {
