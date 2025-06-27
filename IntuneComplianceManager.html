@@ -2746,7 +2746,7 @@ if (adminRes.ok) {
                 // Calculate the overview from the setting states returned by the API
                 const successCount = settingStates.filter(s => s.state === 'compliant' || s.state === 'succeeded').length;
                 const errorCount = settingStates.filter(s => s.state === 'error' || s.state === 'nonCompliant' || s.state === 'conflict').length;
-                const pendingCount = settingStates.filter(s => s.state === 'pending').length;
+                const pendingCount = settingStates ? settingStates.filter(s => s && s.state === 'pending').length : 0;
                 const notApplicableCount = settingStates.filter(s => s.state === 'notApplicable').length;
                 const totalDevices = successCount + errorCount + pendingCount + notApplicableCount;
 
