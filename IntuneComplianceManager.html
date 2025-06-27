@@ -3579,11 +3579,6 @@
     printWindow.document.write(pdfContent);
     printWindow.document.close();
 }
-            
-            // Trigger print dialog after content loads
-            printWindow.onload = function() {
-                printWindow.print();
-            };
 
         function exportToCSV(data, filename, type) {
             if (data.length === 0) {
