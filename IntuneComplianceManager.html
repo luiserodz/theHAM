@@ -2773,9 +2773,6 @@
     }
 }
 
-        // Use the rate-limiting function to execute all requests
-        await fetchWithRateLimit(fetchRequests, 5, 1000);
-
         // Refresh the display with the new summary data
         function displayPolicyData() {
     const tableBody = document.getElementById('policiesTableBody');
