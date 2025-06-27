@@ -2252,7 +2252,7 @@
                         `https://graph.microsoft.com/beta/deviceManagement/managedDevices/${deviceId}/deviceCompliancePolicyStates?$expand=settingStates`,
                         {
                             headers: {
-                                'Authorization': `Bearer ${token}`
+                                'Authorization': `Bearer ${accessToken}`
                             }
                         }
                     );
@@ -2272,7 +2272,7 @@
                         `https://graph.microsoft.com/beta/deviceManagement/managedDevices/${deviceId}/deviceConfigurationStates`,
                         {
                             headers: {
-                                'Authorization': `Bearer ${token}`
+                                'Authorization': `Bearer ${accessToken}`
                             }
                         }
                     );
@@ -2292,7 +2292,7 @@
                         `https://graph.microsoft.com/beta/deviceManagement/managedDevices/${deviceId}/configurationPolicyStates`,
                         {
                             headers: {
-                                'Authorization': `Bearer ${token}`
+                                'Authorization': `Bearer ${accessToken}`
                             }
                         }
                     );
@@ -2492,7 +2492,7 @@
                             `https://graph.microsoft.com/beta/deviceManagement/managedDevices/${device.id}/detectedApps`,
                             {
                                 headers: {
-                                    'Authorization': `Bearer ${token}`
+                                    'Authorization': `Bearer ${accessToken}`
                                 }
                             }
                         );
