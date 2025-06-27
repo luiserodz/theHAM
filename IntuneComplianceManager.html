@@ -1628,9 +1628,9 @@
         console.log('Found existing token, auto-loading data...');
         // Auto-load data if we have a valid token
         setTimeout(() => {
-            loadCompliancePolicies();
-            loadConfigurationPolicies();
-            loadApplications();
+            refreshComplianceData();
+            refreshPolicies();
+            refreshApps();
         }, 1000);
     }
 
@@ -2011,36 +2011,35 @@
             msalInstance.logout(logoutRequest);
         }
 
-        function handleResponse(response) {
-    // Store account
-    account = response.account;
-    
-    // Store token in multiple places
-    window.accessToken = response.accessToken; // Store globally
-    accessToken = response.accessToken; // Store in local variable
-    
-    // Save to sessionStorage as backup
-    sessionStorage.setItem('intuneAccessToken', response.accessToken);
-    sessionStorage.setItem('intuneAccount', JSON.stringify(response.account)); // ADD THIS LINE
-    
-    console.log('Token stored successfully:', accessToken ? 'Token present' : 'No token!');
-    
-    // Update UI
-    updateUI();
-    
-    // If we have a token, start loading data automatically
-    if (accessToken) {
-        console.log('Auto-loading policies after authentication...');
-        setTimeout(() => {
-            loadCompliancePolicies();
-            loadConfigurationPolicies();
-            loadApplications();
-        }, 500);
+            function handleResponse(response) {
+        // Store account
+        account = response.account;
+        
+        // Store token in multiple places
+        window.accessToken = response.accessToken; // Store globally
+        accessToken = response.accessToken; // Store in local variable
+        
+        // Save to sessionStorage as backup
+        sessionStorage.setItem('intuneAccessToken', response.accessToken);
+        sessionStorage.setItem('intuneAccount', JSON.stringify(response.account)); // ADD THIS LINE
+        
+        console.log('Token stored successfully:', accessToken ? 'Token present' : 'No token!');
+        
+        // Update UI
+        updateUI();
+        
+        // If we have a token, start loading data automatically
+        if (accessToken) {
+            console.log('Auto-loading data after authentication...');
+            setTimeout(() => {
+                refreshComplianceData();
+                refreshPolicies();
+                refreshApps();
+            }, 500);
+        }
     }
-}
-
-        function updateUI() {
-            const authBtn = document.getElementById('authBtn');
+            function updateUI() {
+                const authBtn = document.getElementById('authBtn');
             const authStatus = document.getElementById('authStatus');
             const connectionStatus = document.getElementById('connectionStatus');
             
