@@ -5,14 +5,15 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Intune Compliance Manager</title>
     <style>
-    * {
-        margin: 0;
-        padding: 0;
-        box-sizing: border-box;
-    }
+        /* Your existing CSS here */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
 
         body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            font-family: -apple-system, BlinkMacMacSystemFont, 'Segoe UI', Roboto, sans-serif;
             background-color: #2c5aa0;
             min-height: 100vh;
             padding: 20px;
@@ -894,7 +895,7 @@
     </style>
 </head>
 <body>
-    <div class="container">
+    <div class="container" id="mainAppContainer" style="display: none;">
         <div class="header">
             <div class="header-content">
                 <svg class="header-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -912,7 +913,6 @@
         </div>
 
         <div class="main-content">
-            <!-- Tabs -->
             <div class="tabs">
                 <button class="tab active" onclick="switchTab('overview')">Overview</button>
                 <button class="tab" onclick="switchTab('compliance')">Compliance</button>
@@ -922,9 +922,7 @@
                 <button class="tab" onclick="switchTab('export')">Export</button>
             </div>
 
-            <!-- Overview Tab -->
             <div class="tab-content active" id="overviewTab">
-                <!-- Collapsible How to Section -->
                 <div class="collapsible-section">
                     <div class="collapsible-header" onclick="toggleCollapsible(this)">
                         <h3>How to Get Your Entra ID Client ID</h3>
@@ -979,7 +977,6 @@
                     </div>
                 </div>
 
-                <!-- Authentication Section -->
                 <div class="auth-section">
                     <h2>Authentication</h2>
                     <div class="form-group">
@@ -998,7 +995,6 @@
                     </button>
                 </div>
 
-                <!-- Summary Statistics -->
                 <div class="stats-container" id="summaryStats" style="display: none;">
                     <div class="stat-card">
                         <div class="stat-value" id="totalDevices">-</div>
@@ -1019,7 +1015,6 @@
                 </div>
             </div>
 
-            <!-- Compliance Tab -->
             <div class="tab-content" id="complianceTab">
                 <div class="compliance-details-notice">
                     <strong>Note:</strong> Some devices may not show specific compliance policy violations. This can occur when:
@@ -1070,7 +1065,6 @@
                     </div>
                 </div>
 
-                <!-- Compliance Chart -->
                 <div class="chart-container">
                     <div class="chart-title">Compliance Overview</div>
                     <div class="progress-bar" id="complianceChart">
@@ -1099,13 +1093,11 @@
                     </div>
                 </div>
 
-                <!-- Loading State -->
                 <div class="loading" id="complianceLoading" style="display: none;">
                     <div class="spinner"></div>
                     <p>Loading compliance data...</p>
                 </div>
 
-                <!-- Data Table -->
                 <div id="complianceTableContainer" style="display: none;">
                     <table class="data-table">
                         <thead>
@@ -1123,7 +1115,6 @@
                     </table>
                 </div>
 
-                <!-- Empty State -->
                 <div class="empty-state" id="complianceEmpty">
                     <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
@@ -1133,7 +1124,6 @@
                 </div>
             </div>
 
-            <!-- Applications Tab -->
             <div class="tab-content" id="applicationsTab">
                 <div class="info-notice">
                     <strong>Note about Application Deployment Data:</strong>
@@ -1189,13 +1179,11 @@
                     </div>
                 </div>
 
-                <!-- Loading State -->
                 <div class="loading" id="applicationsLoading" style="display: none;">
                     <div class="spinner"></div>
                     <p>Loading application data...</p>
                 </div>
 
-                <!-- Applications Table -->
                 <div id="applicationsTableContainer" style="display: none;">
                     <table class="data-table">
                         <thead>
@@ -1214,7 +1202,6 @@
                     </table>
                 </div>
 
-                <!-- Device Install Status Table -->
                 <div id="deviceStatusTableContainer" style="display: none;">
                     <table class="data-table">
                         <thead>
@@ -1232,7 +1219,6 @@
                     </table>
                 </div>
 
-                <!-- Empty State -->
                 <div class="empty-state" id="applicationsEmpty">
                     <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 3v2m6-2v2M9 19v2m6-2v2M5 9H3m2 6H3m18-6h-2m2 6h-2M7 19h10a2 2 0 002-2V7a2 2 0 00-2-2H7a2 2 0 00-2 2v10a2 2 0 002 2zM9 9h6v6H9V9z"></path>
@@ -1242,7 +1228,6 @@
                 </div>
             </div>
 
-            <!-- Policies Tab -->
             <div class="tab-content" id="policiesTab">
                 <div class="controls">
                     <div class="control-row">
@@ -1264,13 +1249,11 @@
                     </div>
                 </div>
 
-                <!-- Loading State -->
                 <div class="loading" id="policiesLoading" style="display: none;">
                     <div class="spinner"></div>
                     <p>Loading configuration policies...</p>
                 </div>
 
-                <!-- Policies Table -->
                 <div id="policiesTableContainer" style="display: none;">
                     <table class="data-table">
                         <thead>
@@ -1289,7 +1272,6 @@
                     </table>
                 </div>
 
-                <!-- Policy Device Status Container -->
                 <div id="policyDeviceStatusContainer" style="display: none; margin-top: 24px;">
                     <div class="chart-container">
                         <div class="chart-title" id="policyDeviceStatusTitle">Device Status</div>
@@ -1310,7 +1292,6 @@
                     </div>
                 </div>
 
-                <!-- Empty State -->
                 <div class="empty-state" id="policiesEmpty">
                     <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"></path>
@@ -1320,7 +1301,6 @@
                 </div>
             </div>
 
-            <!-- Dashboard Tab -->
             <div class="tab-content" id="dashboardTab">
                 <div class="chart-container">
                     <div class="chart-title">Executive Compliance Dashboard</div>
@@ -1344,7 +1324,6 @@
                     </div>
                 </div>
 
-                <!-- Platform Breakdown -->
                 <div class="chart-container">
                     <div class="chart-title">Compliance by Platform</div>
                     <div id="platformBreakdown" style="padding: 20px;">
@@ -1354,7 +1333,6 @@
                     </div>
                 </div>
 
-                <!-- Policy Success Rate -->
                 <div class="chart-container">
                     <div class="chart-title">Policy Application Success Rate</div>
                     <div id="policySuccessRate" style="padding: 20px;">
@@ -1364,7 +1342,6 @@
                     </div>
                 </div>
 
-                <!-- Top Failed Policies -->
                 <div class="chart-container">
                     <div class="chart-title">Top Failed Policies</div>
                     <div id="topFailedPolicies" style="padding: 20px;">
@@ -1374,7 +1351,6 @@
                     </div>
                 </div>
 
-                <!-- Recent Non-Compliant Devices -->
                 <div class="chart-container">
                     <div class="chart-title">Recent Non-Compliant Devices</div>
                     <div id="nonCompliantDevicesList" style="padding: 20px;">
@@ -1384,7 +1360,6 @@
                     </div>
                 </div>
 
-                <!-- Compliance Trend by Day -->
                 <div class="chart-container">
                     <div class="chart-title">Device Sync Status (Last 7 Days)</div>
                     <div id="syncStatusBreakdown" style="padding: 20px;">
@@ -1395,13 +1370,11 @@
                 </div>
             </div>
 
-            <!-- Export Tab -->
             <div class="tab-content" id="exportTab">
                 <div class="auth-section">
                     <h2>Export Options</h2>
                     <p style="margin-bottom: 20px; color: #6b7280;">Choose what data to export and in which format.</p>
                     
-                    <!-- Data Selection -->
                     <div style="margin-bottom: 24px;">
                         <label style="font-weight: 600; display: block; margin-bottom: 12px;">Select Data to Export:</label>
                         <div class="checkbox-group" style="display: flex; flex-direction: column; gap: 10px;">
@@ -1428,7 +1401,6 @@
                         </div>
                     </div>
                     
-                    <!-- Export Buttons -->
                     <div style="display: grid; gap: 16px;">
                         <button class="btn btn-primary btn-full" onclick="exportSelectedData('json')" id="exportJsonBtn" disabled>
                             <svg width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
@@ -1468,7 +1440,6 @@
         </div>
     </div>
 
-    <!-- Detail Modal -->
     <div class="modal" id="detailModal">
         <div class="modal-content">
             <div class="modal-header">
@@ -1480,153 +1451,177 @@
         </div>
     </div>
 
-    <!-- Include MSAL library -->
+    <div id="initialLoadingScreen" style="display: flex; justify-content: center; align-items: center; min-height: 100vh; background-color: #2c5aa0; color: white; flex-direction: column;">
+        <div class="spinner"></div>
+        <p style="margin-top: 20px; font-size: 18px;">Initializing application...</p>
+    </div>
+
     <script src="https://alcdn.msauth.net/browser/2.30.0/js/msal-browser.min.js"></script>
 
-        <script>
-    // ADD THE PASSWORD SECURITY CODE HERE - BEFORE ANYTHING ELSE
-    // Secure Password Protection with SHA-256 Hashing
-    (function() {
-        // Check if user has already authenticated in this session
-        const isAuthenticated = sessionStorage.getItem('intunePolicyManagerAuth');
-        
-        if (!isAuthenticated) {
-            authenticateUser();
-        }
-    })();
-
-    async function authenticateUser() {
+    <script>
+        // ADD THE PASSWORD SECURITY CODE HERE - BEFORE ANYTHING ELSE
+        // Secure Password Protection with SHA-256 Hashing
         const PASSWORD_HASH = '9e5c3ce7906db8e6f333df0e10deed2263b0a8738a9abe3f3612b8f52846689e';
-        
-        const maxAttempts = 3;
-        let attempts = 0;
-        let authorized = false;
-        
-        while (attempts < maxAttempts && !authorized) {
-            const password = prompt(
-                `🔒 Intune Policy Manager - Secure Access\n\n` +
-                `Enter password (${maxAttempts - attempts} attempt${attempts === 2 ? '' : 's'} remaining):`
-            );
-            
-            // User clicked cancel
-            if (password === null) {
-                showAccessDenied('Authentication cancelled');
-                throw new Error('Access cancelled by user');
-            }
-            
-            // Hash the entered password and compare
-            const enteredHash = await hashPassword(password);
-            
-            if (enteredHash === PASSWORD_HASH) {
-                authorized = true;
-                sessionStorage.setItem('intunePolicyManagerAuth', 'true');
-                
-                // Add session timeout (2 hours)
-                sessionStorage.setItem('authExpiry', Date.now() + (2 * 60 * 60 * 1000));
-            } else {
-                attempts++;
-                if (attempts < maxAttempts) {
-                    alert(`❌ Incorrect password.\n\n${maxAttempts - attempts} attempt${attempts === 2 ? '' : 's'} remaining.`);
+
+        async function authenticateUser() {
+            const maxAttempts = 3;
+            let attempts = 0;
+            let authorized = false;
+
+            while (attempts < maxAttempts && !authorized) {
+                const password = prompt(
+                    `🔒 Intune Policy Manager - Secure Access\n\n` +
+                    `Enter password (${maxAttempts - attempts} attempt${attempts === 2 ? '' : 's'} remaining):`
+                );
+
+                // User clicked cancel
+                if (password === null) {
+                    showAccessDenied('Authentication cancelled');
+                    throw new Error('Access cancelled by user');
+                }
+
+                // Hash the entered password and compare
+                const enteredHash = await hashPassword(password);
+
+                if (enteredHash === PASSWORD_HASH) {
+                    authorized = true;
+                    sessionStorage.setItem('intunePolicyManagerAuth', 'true');
+
+                    // Add session timeout (2 hours)
+                    sessionStorage.setItem('authExpiry', Date.now() + (2 * 60 * 60 * 1000));
+                } else {
+                    attempts++;
+                    if (attempts < maxAttempts) {
+                        alert(`❌ Incorrect password.\n\n${maxAttempts - attempts} attempt${attempts === 2 ? '' : 's'} remaining.`);
+                    }
                 }
             }
-        }
-        
-        if (!authorized) {
-            showAccessDenied('Maximum password attempts exceeded');
-            throw new Error('Unauthorized - Maximum attempts exceeded');
-        }
-    }
 
-    // SHA-256 hashing function
-    async function hashPassword(password) {
-        const msgUint8 = new TextEncoder().encode(password);
-        const hashBuffer = await crypto.subtle.digest('SHA-256', msgUint8);
-        const hashArray = Array.from(new Uint8Array(hashBuffer));
-        const hashHex = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
-        return hashHex;
-    }
+            if (!authorized) {
+                showAccessDenied('Maximum password attempts exceeded');
+                throw new Error('Unauthorized - Maximum attempts exceeded');
+            }
+        }
 
-    function showAccessDenied(message) {
-        document.body.innerHTML = `
-            <!DOCTYPE html>
-            <html>
-            <head>
-                <meta charset="UTF-8">
-                <meta name="viewport" content="width=device-width, initial-scale=1.0">
-                <title>Access Denied</title>
-            </head>
-            <body style="margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;">
-                <div style="display: flex; justify-content: center; align-items: center; min-height: 100vh; background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);">
-                    <div style="text-align: center; background: white; padding: 60px 40px; border-radius: 20px; box-shadow: 0 20px 60px rgba(0,0,0,0.3); max-width: 450px; margin: 20px;">
-                        <h1 style="color: #1a1a1a; margin-bottom: 25px; font-size: 36px; font-weight: 700; font-style: italic;">No HAM for you...</h1>
-                        
-                        <div style="margin: 30px 0;">
-                            <img src="https://luiserodz.github.io/theHAM/Ham.jpg" 
-                                 alt="No Ham for You" 
-                                 style="max-width: 300px; width: 100%; height: auto; border-radius: 10px; box-shadow: 0 5px 20px rgba(0,0,0,0.2);">
-                        </div>
-                        
-                        <p style="color: #666; margin-bottom: 10px; font-size: 18px; line-height: 1.5;">${message}</p>
-                        
-                        <div style="margin-top: 35px; padding-top: 25px; border-top: 1px solid #eee;">
-                            <p style="color: #999; font-size: 15px;">Please contact support for access credentials.</p>
-                            <p style="color: #bbb; font-size: 13px; margin-top: 15px;">Intune Policy Manager</p>
+        // SHA-256 hashing function
+        async function hashPassword(password) {
+            const msgUint8 = new TextEncoder().encode(password);
+            const hashBuffer = await crypto.subtle.digest('SHA-256', msgUint8);
+            const hashArray = Array.from(new Uint8Array(hashBuffer));
+            const hashHex = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+            return hashHex;
+        }
+
+        function showAccessDenied(message) {
+            document.body.innerHTML = `
+                <!DOCTYPE html>
+                <html>
+                <head>
+                    <meta charset="UTF-8">
+                    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+                    <title>Access Denied</title>
+                </head>
+                <body style="margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;">
+                    <div style="display: flex; justify-content: center; align-items: center; min-height: 100vh; background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);">
+                        <div style="text-align: center; background: white; padding: 60px 40px; border-radius: 20px; box-shadow: 0 20px 60px rgba(0,0,0,0.3); max-width: 450px; margin: 20px;">
+                            <h1 style="color: #1a1a1a; margin-bottom: 25px; font-size: 36px; font-weight: 700; font-style: italic;">No HAM for you...</h1>
+                            
+                            <div style="margin: 30px 0;">
+                                <img src="https://luiserodz.github.io/theHAM/Ham.jpg" 
+                                    alt="No Ham for You" 
+                                    style="max-width: 300px; width: 100%; height: auto; border-radius: 10px; box-shadow: 0 5px 20px rgba(0,0,0,0.2);">
+                            </div>
+                            
+                            <p style="color: #666; margin-bottom: 10px; font-size: 18px; line-height: 1.5;">${message}</p>
+                            
+                            <div style="margin-top: 35px; padding-top: 25px; border-top: 1px solid #eee;">
+                                <p style="color: #999; font-size: 15px;">Please contact support for access credentials.</p>
+                                <p style="color: #bbb; font-size: 13px; margin-top: 15px;">Intune Policy Manager</p>
+                            </div>
                         </div>
                     </div>
-                </div>
-            </body>
-            </html>
-        `;
-    }
-
-    // Check session expiry on each load
-    (function checkSessionExpiry() {
-        const authExpiry = sessionStorage.getItem('authExpiry');
-        if (authExpiry && Date.now() > parseInt(authExpiry)) {
-            sessionStorage.removeItem('intunePolicyManagerAuth');
-            sessionStorage.removeItem('authExpiry');
-            location.reload();
+                </body>
+                </html>
+            `;
         }
-    })();
 
-    // Auto-logout on inactivity (30 minutes)
-    let inactivityTimer;
-    const INACTIVITY_TIMEOUT = 30 * 60 * 1000; // 30 minutes
+        // --- Start of general app logic after password check ---
 
-    function resetInactivityTimer() {
-        clearTimeout(inactivityTimer);
-        inactivityTimer = setTimeout(() => {
-            sessionStorage.removeItem('intunePolicyManagerAuth');
-            sessionStorage.removeItem('authExpiry');
-            alert('⏱️ Session expired due to inactivity.\n\nPlease refresh the page to log in again.');
-            location.reload();
-        }, INACTIVITY_TIMEOUT);
-    }
+        // Function to show the main application and hide the loading screen
+        function showMainApplication() {
+            document.getElementById('initialLoadingScreen').style.display = 'none';
+            document.getElementById('mainAppContainer').style.display = 'block';
+        }
 
-    // Start inactivity timer if authenticated
-    if (sessionStorage.getItem('intunePolicyManagerAuth')) {
-        document.addEventListener('click', resetInactivityTimer);
-        document.addEventListener('keypress', resetInactivityTimer);
-        document.addEventListener('scroll', resetInactivityTimer);
-        document.addEventListener('mousemove', resetInactivityTimer);
-        resetInactivityTimer();
-    }
+        // Check session expiry on each load
+        function checkSessionExpiry() {
+            const authExpiry = sessionStorage.getItem('authExpiry');
+            if (authExpiry && Date.now() > parseInt(authExpiry)) {
+                sessionStorage.removeItem('intunePolicyManagerAuth');
+                sessionStorage.removeItem('authExpiry');
+                // Reload to re-trigger authentication
+                location.reload();
+                return true; // Session expired
+            }
+            return false; // Session still valid or no session
+        }
+
+        // Auto-logout on inactivity (30 minutes)
+        let inactivityTimer;
+        const INACTIVITY_TIMEOUT = 30 * 60 * 1000; // 30 minutes
+
+        function resetInactivityTimer() {
+            clearTimeout(inactivityTimer);
+            inactivityTimer = setTimeout(() => {
+                sessionStorage.removeItem('intunePolicyManagerAuth');
+                sessionStorage.removeItem('authExpiry');
+                alert('⏱️ Session expired due to inactivity.\n\nPlease refresh the page to log in again.');
+                location.reload();
+            }, INACTIVITY_TIMEOUT);
+        }
+
+        // Execute when the DOM is fully loaded
+        document.addEventListener('DOMContentLoaded', async function() {
+            // Check for authentication first
+            if (!checkSessionExpiry() && sessionStorage.getItem('intunePolicyManagerAuth')) {
+                // If already authenticated in this session, show the app immediately
+                showMainApplication();
+            } else {
+                // If not authenticated, run the password prompt
+                try {
+                    await authenticateUser();
+                    showMainApplication(); // Only show if authentication passes
+                } catch (error) {
+                    console.error("Authentication failed:", error.message);
+                    // showAccessDenied() handles displaying the appropriate screen
+                    return; // Stop further script execution if authentication failed
+                }
+            }
 
             console.log('Intune Compliance Manager initializing...');
             
-            checkSessionExpiry();
-            
-            document.addEventListener('click', resetInactivityTimer);
-            document.addEventListener('keypress', resetInactivityTimer);
-            document.addEventListener('scroll', resetInactivityTimer);
-            document.addEventListener('mousemove', resetInactivityTimer);
-            resetInactivityTimer();
-            
+            // Start inactivity timer if authenticated and main app is shown
+            if (sessionStorage.getItem('intunePolicyManagerAuth')) {
+                document.addEventListener('click', resetInactivityTimer);
+                document.addEventListener('keypress', resetInactivityTimer);
+                document.addEventListener('scroll', resetInactivityTimer);
+                document.addEventListener('mousemove', resetInactivityTimer);
+                resetInactivityTimer();
+            }
+
             const redirectUri = window.location.origin + window.location.pathname;
             document.getElementById('redirectUri').textContent = redirectUri;
             
-            // Don't check for saved config - start fresh
-        }
+            // Don't check for saved config initially - let user enter it
+            // const savedClientId = localStorage.getItem('intuneComplianceClientId');
+            // if (savedClientId) {
+            //     document.getElementById('clientId').value = savedClientId;
+            //     initializeMSAL(savedClientId);
+            // } else {
+            //     // Ensure the clientId input is enabled if no saved ID
+            //     document.getElementById('clientId').disabled = false;
+            // }
+        });
 
 // Notification system
         function showNotification(message, type = 'info', duration = 5000) {
@@ -1678,7 +1673,7 @@
                 const progress = Math.min(i + limit, requests.length);
                 showNotification(`Processing ${progress} of ${requests.length} requests...`, 'info', 2000);
                 
-                const batchResults = await Promise.allSettled(batch);
+                const batchResults = await Promise.allSettled(batch.map(req => req())); // Execute each function in the batch
                 
                 // Process results
                 batchResults.forEach(result => {
@@ -2254,7 +2249,7 @@
                     device.complianceState === statusFilter;
                     
                 const matchesPlatform = platformFilter === 'all' || 
-                    device.operatingSystem.toLowerCase() === platformFilter;
+                    device.operatingSystem.toLowerCase().includes(platformFilter); // Changed to includes for broader matching
                 
                 return matchesSearch && matchesStatus && matchesPlatform;
             });
@@ -2549,24 +2544,24 @@
                 }
                 
                 // Fetch configuration policies (Settings Catalog)
-try {
-    const settingsResponse = await fetch('https://graph.microsoft.com/beta/deviceManagement/configurationPolicies', {
-        headers: {
-            'Authorization': `Bearer ${accessToken}`
-        }
-    });
-    
-    if (settingsResponse.ok) {
-        const settingsData = await settingsResponse.json();
-        settingsCatalog = settingsData.value || [];
-        console.log('Settings Catalog policies loaded:', settingsCatalog.length);
-        settingsCatalog.forEach(policy => {
-            console.log(`Policy: ${policy.name}, Device Statuses:`, policy.deviceStatuses?.length || 0);
-        });
-    }
-} catch (error) {
-    console.error('Error fetching settings catalog:', error);
-}
+                try {
+                    const settingsResponse = await fetch('https://graph.microsoft.com/beta/deviceManagement/configurationPolicies', {
+                        headers: {
+                            'Authorization': `Bearer ${accessToken}`
+                        }
+                    });
+                    
+                    if (settingsResponse.ok) {
+                        const settingsData = await settingsResponse.json();
+                        settingsCatalog = settingsData.value || [];
+                        console.log('Settings Catalog policies loaded:', settingsCatalog.length);
+                        settingsCatalog.forEach(policy => {
+                            console.log(`Policy: ${policy.name}, Device Statuses:`, policy.deviceStatuses?.length || 0);
+                        });
+                    }
+                } catch (error) {
+                    console.error('Error fetching settings catalog:', error);
+                }
                 
                 // Fetch administrative templates
                 try {
@@ -2627,370 +2622,362 @@ try {
             
             tableBody.innerHTML = allPolicies.map(policy => {
                 // Calculate success rate if device states are available
-let deviceStates = policyDeviceStates[policy.id];
-let successRate = 'Not loaded';
-let assignedCount = 'Unknown';
+                let deviceStates = policyDeviceStates[policy.id];
+                let successRate = 'Not loaded';
+                let assignedCount = 'Unknown';
 
-// Debug logging
-if (policy.policyType === 'Settings Catalog') {
-    console.log(`Displaying ${policy.name}: cached states = ${deviceStates?.length || 0}`);
-}
+                // Debug logging
+                if (policy.policyType === 'Settings Catalog') {
+                    console.log(`Displaying ${policy.name}: cached states = ${deviceStates?.length || 0}`);
+                }
 
-if (deviceStates && deviceStates.length > 0) {
-    const successCount = deviceStates.filter(s => 
-        s.state === 'compliant' || s.state === 'succeeded' || s.state === 'notApplicable'
-    ).length;
-    successRate = `${Math.round((successCount / deviceStates.length) * 100)}%`;
-    assignedCount = deviceStates.length;
-}
+                if (deviceStates && deviceStates.length > 0) {
+                    const successCount = deviceStates.filter(s => 
+                        s.state === 'compliant' || s.state === 'succeeded' || s.state === 'notApplicable'
+                    ).length;
+                    successRate = `${Math.round((successCount / deviceStates.length) * 100)}%`;
+                    assignedCount = deviceStates.length;
+                }
                 
                 return `
-    <tr>
-        <td>${policy.displayName || policy.name || 'Unnamed'}
-            ${policy.policyType === 'Settings Catalog' && policy.deviceStatuses ? 
-                ` <small style="color: #059669;">(${policy.deviceStatuses.length} devices)</small>` : 
-                ''}
-        </td>
-        <td><span class="policy-tag">${policy.policyType}</span></td>
-        <td>${policy.description || 'N/A'}</td>
-        <td>${policy.platform || policy.platforms || 'All'}</td>
-        <td>${assignedCount}</td>
-        <td>${successRate}</td>
-        <td>
-            <button class="btn btn-primary" onclick="viewPolicyDeviceStatus('${policy.id}', '${policy.policyType}', '${policy.displayName || policy.name}')">
-                View Devices
-            </button>
-        </td>
-    </tr>
-`;
+                    <tr>
+                        <td>${policy.displayName || policy.name || 'Unnamed'}
+                            ${policy.policyType === 'Settings Catalog' && policy.deviceStatuses ? 
+                                ` <small style="color: #059669;">(${policy.deviceStatuses.length} devices)</small>` : 
+                                ''}
+                        </td>
+                        <td><span class="policy-tag">${policy.policyType}</span></td>
+                        <td>${policy.description || 'N/A'}</td>
+                        <td>${policy.platform || policy.platforms || 'All'}</td>
+                        <td>${assignedCount}</td>
+                        <td>${successRate}</td>
+                        <td>
+                            <button class="btn btn-primary" onclick="viewPolicyDeviceStatus('${policy.id}', '${policy.policyType}', '${policy.displayName || policy.name}')">
+                                View Devices
+                            </button>
+                        </td>
+                    </tr>
+                `;
             }).join('');
         }
 
         // Load device status for all policies
         async function loadPolicyDeviceStatus() {
-    if (!account) {
-        alert('Please sign in first');
-        return;
-    }
+            if (!account) {
+                alert('Please sign in first');
+                return;
+            }
 
-    const btn = document.getElementById('loadDeviceStatusBtn');
-    btn.disabled = true;
-    btn.textContent = 'Loading Device Status...';
-    
-    try {
-        const accessToken = await getAccessToken();
-        
-        // Get all policies
-        const allPolicies = [
-            ...policyData.map(p => ({...p, policyType: 'Compliance Policy', endpoint: 'deviceCompliancePolicyStates'})),
-            ...configurationProfiles.map(p => ({...p, policyType: 'Device Configuration', endpoint: 'deviceConfigurationStates'})),
-            ...settingsCatalog.map(p => ({...p, policyType: 'Settings Catalog', endpoint: 'settingsCatalog'})),
-            ...adminTemplates.map(p => ({...p, policyType: 'Administrative Template', endpoint: 'groupPolicyConfigurations'}))
-        ];
-        
-        // Load device states for each policy
-        for (const policy of allPolicies) {
+            const btn = document.getElementById('loadDeviceStatusBtn');
+            btn.disabled = true;
+            btn.textContent = 'Loading Device Status...';
+            
             try {
-                // For Settings Catalog policies, use a different approach
-if (policy.policyType === 'Settings Catalog') {
-    try {
-        console.log(`Fetching device statuses for Settings Catalog policy: ${policy.name || policy.id}`);
-        
-        // Try multiple endpoint formats as Graph API can be inconsistent
-        let response = await fetch(
-            `https://graph.microsoft.com/beta/deviceManagement/configurationPolicies/${policy.id}/deviceStatuses`,
-            {
-                headers: {
-                    'Authorization': `Bearer ${accessToken}`,
-                    'ConsistencyLevel': 'eventual'  // Add this header
-                }
-            }
-        );
-        
-        // If first attempt fails, try with parentheses format
-        if (!response.ok) {
-            console.log(`First attempt failed with ${response.status}, trying alternative format...`);
-            response = await fetch(
-                `https://graph.microsoft.com/beta/deviceManagement/configurationPolicies('${policy.id}')/deviceStatuses`,
-                {
-                    headers: {
-                        'Authorization': `Bearer ${accessToken}`,
-                        'ConsistencyLevel': 'eventual'
-                    }
-                }
-            );
-        }
-        
-        if (response.ok) {
-            const data = await response.json();
-            const deviceStatuses = data.value || [];
-            
-            console.log(`Found ${deviceStatuses.length} device statuses for ${policy.name}`);
-            
-            const deviceStates = deviceStatuses.map(status => ({
-                deviceId: status.id || 'unknown',
-                deviceName: status.deviceDisplayName || 'Unknown Device',
-                userPrincipalName: status.userPrincipalName || status.userName || 'N/A',
-                state: mapSettingsCatalogState(status.state || status.complianceState || 'unknown'),
-                lastReported: status.lastReportedDateTime || status.checkinDateTime,
-                errorDescription: status.errorDescription || null,
-                settingStates: []
-            }));
-            
-            if (deviceStates.length > 0) {
-                policyDeviceStates[policy.id] = deviceStates;
-                console.log(`Cached ${deviceStates.length} device states for policy ${policy.id}`);
-            }
-        } else {
-    console.error(`Failed to fetch device statuses: ${response.status} ${response.statusText}`);
-    const errorText = await response.text();
-    console.error('Error response:', errorText);
-    
-    // Try to parse error for more details
-    try {
-        const errorJson = JSON.parse(errorText);
-        if (errorJson.error) {
-            console.error('Error code:', errorJson.error.code);
-            console.error('Error message:', errorJson.error.message);
-            
-            // Store empty array to prevent repeated failed attempts
-            policyDeviceStates[policy.id] = [];
-            
-            // Show user-friendly message
-            if (errorJson.error.code === 'Forbidden' || response.status === 403) {
-                        console.warn('Settings Catalog device status requires additional permissions');
-                        showNotification('Some Settings Catalog data requires additional permissions', 'warning');
-                    }
-        }
-    } catch (e) {
-        // Not JSON error response
-    }
-        }
-    } catch (error) {
-        console.error(`Error fetching device statuses for Settings Catalog policy ${policy.id}:`, error);
-    }
-} else {
-    // For other policy types, use the device-based approach
-    if (complianceData.length > 0) {
-                        const deviceStates = [];
-                        
-                        // Sample a subset of devices to avoid too many API calls
-                        const devicesToCheck = complianceData.slice(0, 50);
-                        
-                        // Create fetch functions for rate limiting
-                        const fetchRequests = devicesToCheck.map(device => async () => {
+                const accessToken = await getAccessToken();
+                
+                // Get all policies
+                const allPolicies = [
+                    ...policyData.map(p => ({...p, policyType: 'Compliance Policy', endpoint: 'deviceCompliancePolicyStates'})),
+                    ...configurationProfiles.map(p => ({...p, policyType: 'Device Configuration', endpoint: 'deviceConfigurationStates'})),
+                    ...settingsCatalog.map(p => ({...p, policyType: 'Settings Catalog', endpoint: 'configurationPolicies'})), // Corrected endpoint for Settings Catalog
+                    ...adminTemplates.map(p => ({...p, policyType: 'Administrative Template', endpoint: 'groupPolicyConfigurations'}))
+                ];
+                
+                // Load device states for each policy
+                for (const policy of allPolicies) {
+                    try {
+                        // For Settings Catalog policies, use a different approach
+                        if (policy.policyType === 'Settings Catalog') {
                             try {
-                                const response = await fetch(
-                                    `https://graph.microsoft.com/beta/deviceManagement/managedDevices/${device.id}/${policy.endpoint}`,
+                                console.log(`Fetching device statuses for Settings Catalog policy: ${policy.name || policy.id}`);
+                                
+                                // Try multiple endpoint formats as Graph API can be inconsistent
+                                let response = await fetch(
+                                    `https://graph.microsoft.com/beta/deviceManagement/configurationPolicies/${policy.id}/deviceStatuses`,
                                     {
                                         headers: {
-                                            'Authorization': `Bearer ${accessToken}`
+                                            'Authorization': `Bearer ${accessToken}`,
+                                            'ConsistencyLevel': 'eventual'  // Add this header
                                         }
                                     }
                                 );
                                 
+                                // If first attempt fails, try with parentheses format
+                                if (!response.ok) {
+                                    console.log(`First attempt failed with ${response.status}, trying alternative format...`);
+                                    response = await fetch(
+                                        `https://graph.microsoft.com/beta/deviceManagement/configurationPolicies('${policy.id}')/deviceStatuses`,
+                                        {
+                                            headers: {
+                                                'Authorization': `Bearer ${accessToken}`,
+                                                'ConsistencyLevel': 'eventual'
+                                            }
+                                        }
+                                    );
+                                }
+                                
                                 if (response.ok) {
                                     const data = await response.json();
-                                    const policyState = data.value?.find(s => s.id?.includes(policy.id));
+                                    const deviceStatuses = data.value || [];
                                     
-                                    if (policyState) {
-                                        return {
-                                            deviceId: device.id,
-                                            deviceName: device.deviceName,
-                                            userPrincipalName: device.userPrincipalName,
-                                            state: policyState.state,
-                                            lastReported: policyState.settingStatesLastReportedDateTime || policyState.lastReportedDateTime,
-                                            errorDescription: policyState.errorDescription,
-                                            settingStates: policyState.settingStates
-                                        };
+                                    console.log(`Found ${deviceStatuses.length} device statuses for ${policy.name}`);
+                                    
+                                    const deviceStates = deviceStatuses.map(status => ({
+                                        deviceId: status.id || 'unknown',
+                                        deviceDisplayName: status.deviceDisplayName || 'Unknown Device', // Ensure deviceDisplayName is used
+                                        userPrincipalName: status.userPrincipalName || status.userName || 'N/A',
+                                        state: mapSettingsCatalogState(status.state || status.complianceState || 'unknown'),
+                                        lastReported: status.lastReportedDateTime || status.checkinDateTime,
+                                        errorDescription: status.errorDescription || null,
+                                        settingStates: []
+                                    }));
+                                    
+                                    if (deviceStates.length > 0) {
+                                        policyDeviceStates[policy.id] = deviceStates;
+                                        console.log(`Cached ${deviceStates.length} device states for policy ${policy.id}`);
+                                    }
+                                } else {
+                                    console.error(`Failed to fetch device statuses for Settings Catalog policy ${policy.id}: ${response.status} ${response.statusText}`);
+                                    const errorText = await response.text();
+                                    console.error('Error response:', errorText);
+                                    
+                                    // Try to parse error for more details
+                                    try {
+                                        const errorJson = JSON.parse(errorText);
+                                        if (errorJson.error) {
+                                            console.error('Error code:', errorJson.error.code);
+                                            console.error('Error message:', errorJson.error.message);
+                                            
+                                            // Store empty array to prevent repeated failed attempts
+                                            policyDeviceStates[policy.id] = [];
+                                            
+                                            // Show user-friendly message
+                                            if (errorJson.error.code === 'Forbidden' || response.status === 403) {
+                                                console.warn('Settings Catalog device status requires additional permissions');
+                                                showNotification('Some Settings Catalog data requires additional permissions', 'warning');
+                                            }
+                                        }
+                                    } catch (e) {
+                                        // Not JSON error response
                                     }
                                 }
-                                return null;
                             } catch (error) {
-                                console.error(`Error fetching device state for ${device.deviceName}:`, error);
-                                return null;
+                                console.error(`Error fetching device statuses for Settings Catalog policy ${policy.id}:`, error);
                             }
-                        });
-                        
-                        // Fetch with rate limiting
-                        const results = await fetchWithRateLimit(fetchRequests, 5, 1000);
-                        
-                        // Filter out null results and add to deviceStates
-                        results.forEach(result => {
-                            if (result) {
-                                deviceStates.push(result);
+                        } else {
+                            // For other policy types, use the device-based approach
+                            if (complianceData.length > 0) {
+                                const deviceStatesForPolicy = [];
+                                
+                                // Sample a subset of devices to avoid too many API calls
+                                const devicesToCheck = complianceData.slice(0, 50); // Limit to first 50 devices for performance
+
+                                // Fetch in parallel for a batch
+                                const fetchPromises = devicesToCheck.map(async device => {
+                                    try {
+                                        const response = await fetch(
+                                            `https://graph.microsoft.com/beta/deviceManagement/managedDevices/${device.id}/${policy.endpoint}`,
+                                            {
+                                                headers: {
+                                                    'Authorization': `Bearer ${accessToken}`
+                                                }
+                                            }
+                                        );
+                                        
+                                        if (response.ok) {
+                                            const data = await response.json();
+                                            const policyState = data.value?.find(s => s.id?.includes(policy.id));
+                                            
+                                            if (policyState) {
+                                                deviceStatesForPolicy.push({
+                                                    deviceId: device.id,
+                                                    deviceName: device.deviceName,
+                                                    userPrincipalName: device.userPrincipalName,
+                                                    state: policyState.state,
+                                                    lastReported: policyState.settingStatesLastReportedDateTime || policyState.lastReportedDateTime,
+                                                    errorDescription: policyState.errorDescription,
+                                                    settingStates: policyState.settingStates
+                                                });
+                                            }
+                                        }
+                                    } catch (error) {
+                                        console.error(`Error fetching device state for ${device.deviceName} and policy ${policy.id}:`, error);
+                                    }
+                                });
+
+                                // Wait for all promises in the batch to settle
+                                await Promise.allSettled(fetchPromises);
+                                
+                                if (deviceStatesForPolicy.length > 0) {
+                                    policyDeviceStates[policy.id] = deviceStatesForPolicy;
+                                }
                             }
-                        });
-                        
-                        if (deviceStates.length > 0) {
-                            policyDeviceStates[policy.id] = deviceStates;
                         }
+                    } catch (error) {
+                        console.error(`Error processing policy ${policy.id} of type ${policy.policyType}:`, error);
+                        showNotification(`Failed to load some device statuses. Check console for details.`, 'warning');
                     }
                 }
+                
+                // Refresh the display with success rates
+                displayPolicyData();
+                updateDashboard();
+                
+                btn.textContent = 'Refresh Device Status';
+                showNotification('Device status loading complete.', 'success');
+                
             } catch (error) {
-                console.error(`Error loading device states for policy ${policy.id}:`, error);
-                showNotification(`Failed to load device status for some policies. Check console for details.`, 'warning');
+                console.error('Error loading policy device status:', error);
+                showNotification('Failed to load device status. Please try again.', 'error');
+                btn.textContent = 'Load Device Status';
+            } finally {
+                btn.disabled = false;
             }
         }
-        
-        // Refresh the display with success rates
-        displayPolicyData();
-        updateDashboard();
-        
-        btn.textContent = 'Refresh Device Status';
-        
-    } catch (error) {
-        console.error('Error loading policy device status:', error);
-        alert('Failed to load device status. Please try again.');
-        btn.textContent = 'Load Device Status';
-    } finally {
-        btn.disabled = false;
-    }
-}
         // Helper function to map Settings Catalog states to standard states
-function mapSettingsCatalogState(state) {
-    // Handle both the state string and potential numeric values
-    if (typeof state === 'string') {
-        state = state.toLowerCase();
-    }
-    
-    switch(state) {
-        case 'compliant':
-        case 'succeeded':
-        case 'success':
-        case 0: // Success
-            return 'compliant';
-        case 'conflict':
-        case 'failed':
-        case 'error':
-        case 'noncompliant':
-        case 2: // Error
-            return 'nonCompliant';
-        case 'notapplicable':
-        case 'notApplicable':
-        case 3: // Not applicable
-            return 'notApplicable';
-        case 'pending':
-        case 'inprogress':
-        case 1: // In progress
-            return 'pending';
-        default:
-            return 'unknown';
-    }
-}
+        function mapSettingsCatalogState(state) {
+            // Handle both the state string and potential numeric values
+            if (typeof state === 'string') {
+                state = state.toLowerCase();
+            }
+            
+            switch(state) {
+                case 'compliant':
+                case 'succeeded':
+                case 'success':
+                case 0: // Success
+                    return 'compliant';
+                case 'conflict':
+                case 'failed':
+                case 'error':
+                case 'noncompliant':
+                case 2: // Error
+                    return 'noncompliant'; // changed from nonCompliant to noncompliant for consistency with CSS
+                case 'notapplicable':
+                case 'notApplicable':
+                case 3: // Not applicable
+                    return 'unknown'; // often treated as compliant for policy application, but "unknown" is safer for a dashboard
+                case 'pending':
+                case 'inprogress':
+                case 1: // In progress
+                    return 'pending';
+                default:
+                    return 'unknown';
+            }
+        }
         // View device status for a specific policy
         async function viewPolicyDeviceStatus(policyId, policyType, policyName) {
-    const container = document.getElementById('policyDeviceStatusContainer');
-    const title = document.getElementById('policyDeviceStatusTitle');
-    const tbody = document.getElementById('policyDeviceStatusBody');
-    
-    title.textContent = `Device Status for: ${policyName}`;
-    container.style.display = 'block';
-    
-    let deviceStates = policyDeviceStates[policyId];
-    
-    // If no cached data and it's a Settings Catalog policy, try to fetch it
-if ((!deviceStates || deviceStates.length === 0) && policyType === 'Settings Catalog') {
-    try {
-        const accessToken = await getAccessToken();
-        
-        // Try both endpoint formats
-        let response = await fetch(
-            `https://graph.microsoft.com/beta/deviceManagement/configurationPolicies/${policyId}/deviceStatuses`,
-            {
-                headers: {
-                    'Authorization': `Bearer ${accessToken}`,
-                    'ConsistencyLevel': 'eventual'
+            const container = document.getElementById('policyDeviceStatusContainer');
+            const title = document.getElementById('policyDeviceStatusTitle');
+            const tbody = document.getElementById('policyDeviceStatusBody');
+            
+            title.textContent = `Device Status for: ${policyName}`;
+            container.style.display = 'block';
+            
+            let deviceStates = policyDeviceStates[policyId];
+            
+            // If no cached data and it's a Settings Catalog policy, try to fetch it
+            if ((!deviceStates || deviceStates.length === 0) && policyType === 'Settings Catalog') {
+                try {
+                    const accessToken = await getAccessToken();
+                    
+                    // Try both endpoint formats
+                    let response = await fetch(
+                        `https://graph.microsoft.com/beta/deviceManagement/configurationPolicies/${policyId}/deviceStatuses`,
+                        {
+                            headers: {
+                                'Authorization': `Bearer ${accessToken}`,
+                                'ConsistencyLevel': 'eventual'
+                            }
+                        }
+                    );
+                    
+                    if (!response.ok) {
+                        console.log(`First format failed, trying with parentheses...`);
+                        response = await fetch(
+                            `https://graph.microsoft.com/beta/deviceManagement/configurationPolicies('${policyId}')/deviceStatuses`,
+                            {
+                                headers: {
+                                    'Authorization': `Bearer ${accessToken}`,
+                                    'ConsistencyLevel': 'eventual'
+                                }
+                            }
+                        );
+                    }
+                    
+                    if (response.ok) {
+                        const data = await response.json();
+                        const deviceStatuses = data.value || [];
+                        
+                        deviceStates = deviceStatuses.map(status => ({
+                            deviceId: status.id,
+                            deviceName: status.deviceDisplayName || 'Unknown Device',
+                            userPrincipalName: status.userPrincipalName || 'N/A',
+                            state: mapSettingsCatalogState(status.state),
+                            lastReported: status.lastReportedDateTime,
+                            errorDescription: status.errorDescription || null,
+                            settingStates: [] // Settings Catalog doesn't provide detailed setting states in this endpoint
+                        }));
+                        
+                        // Cache the results
+                        if (deviceStates.length > 0) {
+                            policyDeviceStates[policyId] = deviceStates;
+                        }
+                    }
+                } catch (error) {
+                    console.error('Error fetching Settings Catalog device status:', error);
                 }
             }
-        );
-        
-        if (!response.ok) {
-            console.log(`First format failed, trying with parentheses...`);
-            response = await fetch(
-                `https://graph.microsoft.com/beta/deviceManagement/configurationPolicies('${policyId}')/deviceStatuses`,
-                {
-                    headers: {
-                        'Authorization': `Bearer ${accessToken}`,
-                        'ConsistencyLevel': 'eventual'
-                    }
-                }
-            );
-        }
             
-            if (response.ok) {
-    const data = await response.json();
-    const deviceStatuses = data.value || [];
-    
-    deviceStates = deviceStatuses.map(status => ({
-        deviceId: status.id,
-        deviceName: status.deviceDisplayName || 'Unknown Device',
-        userPrincipalName: status.userPrincipalName || 'N/A',
-        state: mapSettingsCatalogState(status.state),
-        lastReported: status.lastReportedDateTime,
-        errorDescription: status.errorDescription || null,
-        settingStates: [] // Settings Catalog doesn't provide detailed setting states in this endpoint
-    }));
-    
-    // Cache the results
-    if (deviceStates.length > 0) {
-        policyDeviceStates[policyId] = deviceStates;
-    }
-}
-        } catch (error) {
-            console.error('Error fetching Settings Catalog device status:', error);
+            if (!deviceStates || deviceStates.length === 0) {
+                tbody.innerHTML = `
+                    <tr>
+                        <td colspan="6" style="text-align: center; padding: 20px; color: #6b7280;">
+                            No device status data available. Click "Load Device Status" to fetch device compliance information.
+                        </td>
+                    </tr>
+                `;
+                return;
+            }
+            
+            tbody.innerHTML = deviceStates.map(state => {
+                const statusClass = (state.state === 'compliant' || state.state === 'succeeded') ? 
+                    'compliant' : (state.state === 'noncompliant' || state.state === 'failed') ? 
+                    'noncompliant' : 'unknown';
+                
+                // Count failed settings
+                let failedSettingsCount = 0;
+                if (state.settingStates && Array.isArray(state.settingStates)) {
+                    failedSettingsCount = state.settingStates.filter(s => 
+                        s.state === 'noncompliant' || s.state === 'failed' || s.state === 'error'
+                    ).length;
+                }
+                
+                return `
+                    <tr>
+                        <td>${state.deviceName || state.deviceDisplayName || 'N/A'}</td>
+                        <td>${state.userPrincipalName || 'N/A'}</td>
+                        <td>
+                            <span class="status-badge status-${statusClass}">
+                                ${state.state}
+                            </span>
+                        </td>
+                        <td>${formatDate(state.lastReported)}</td>
+                        <td>${failedSettingsCount > 0 ? failedSettingsCount : '-'}</td>
+                        <td>
+                            ${state.deviceId ? `
+                                <button class="btn btn-primary" onclick="viewDeviceDetails('${state.deviceId}')">
+                                    View Details
+                                </button>
+                            ` : '-'}
+                        </td>
+                    </tr>
+                `;
+            }).join('');
+            
+            // Scroll to the device status section
+            container.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
         }
-    }
-    
-    if (!deviceStates || deviceStates.length === 0) {
-        tbody.innerHTML = `
-            <tr>
-                <td colspan="6" style="text-align: center; padding: 20px; color: #6b7280;">
-                    No device status data available. Click "Load Device Status" to fetch device compliance information.
-                </td>
-            </tr>
-        `;
-        return;
-    }
-    
-    tbody.innerHTML = deviceStates.map(state => {
-        const statusClass = (state.state === 'compliant' || state.state === 'succeeded') ? 
-            'compliant' : (state.state === 'nonCompliant' || state.state === 'failed') ? 
-            'noncompliant' : 'unknown';
-        
-        // Count failed settings
-        let failedSettingsCount = 0;
-        if (state.settingStates && Array.isArray(state.settingStates)) {
-            failedSettingsCount = state.settingStates.filter(s => 
-                s.state === 'nonCompliant' || s.state === 'failed' || s.state === 'error'
-            ).length;
-        }
-        
-        return `
-            <tr>
-                <td>${state.deviceName}</td>
-                <td>${state.userPrincipalName || 'N/A'}</td>
-                <td>
-                    <span class="status-badge status-${statusClass}">
-                        ${state.state}
-                    </span>
-                </td>
-                <td>${formatDate(state.lastReported)}</td>
-                <td>${failedSettingsCount > 0 ? failedSettingsCount : '-'}</td>
-                <td>
-                    ${state.deviceId ? `
-                        <button class="btn btn-primary" onclick="viewDeviceDetails('${state.deviceId}')">
-                            View Details
-                        </button>
-                    ` : '-'}
-                </td>
-            </tr>
-        `;
-    }).join('');
-    
-    // Scroll to the device status section
-    container.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-}
 
         // Dashboard functions
         function updateDashboard() {
@@ -2998,7 +2985,8 @@ if ((!deviceStates || deviceStates.length === 0) && policyType === 'Settings Cat
                 const stats = {
                     total: complianceData.length,
                     compliant: complianceData.filter(d => d.complianceState === 'compliant').length,
-                    noncompliant: complianceData.filter(d => d.complianceState === 'noncompliant').length
+                    noncompliant: complianceData.filter(d => d.complianceState === 'noncompliant').length,
+                    unknown: complianceData.filter(d => d.complianceState === 'unknown').length
                 };
                 
                 const complianceRate = stats.total > 0 ? Math.round((stats.compliant / stats.total) * 100) : 0;
@@ -3111,7 +3099,7 @@ if ((!deviceStates || deviceStates.length === 0) && policyType === 'Settings Cat
                 if (!policy || states.length === 0) return null;
                 
                 const failedCount = states.filter(s => 
-                    s.state === 'nonCompliant' || s.state === 'failed' || s.state === 'error'
+                    s.state === 'noncompliant' || s.state === 'failed' || s.state === 'error'
                 ).length;
                 
                 if (failedCount === 0) return null;
@@ -3200,8 +3188,8 @@ if ((!deviceStates || deviceStates.length === 0) && policyType === 'Settings Cat
                     ${Object.entries(syncGroups).map(([period, count]) => {
                         const percentage = complianceData.length > 0 ? Math.round((count / complianceData.length) * 100) : 0;
                         const color = period === 'Last 24 hours' ? '#16a34a' : 
-                                    period === '2-7 days' ? '#3b82f6' :
-                                    period === '8-30 days' ? '#d97706' : '#dc2626';
+                                        period === '2-7 days' ? '#3b82f6' :
+                                        period === '8-30 days' ? '#d97706' : '#dc2626';
                         
                         return `
                             <div style="text-align: center; padding: 15px; background: #f9fafb; border-radius: 8px;">
@@ -3353,11 +3341,18 @@ if ((!deviceStates || deviceStates.length === 0) && policyType === 'Settings Cat
                 'iosStoreApp': 'iOS',
                 'androidStoreApp': 'Android',
                 'managedIOSStoreApp': 'iOS',
-                'managedAndroidStoreApp': 'Android'
+                'managedAndroidStoreApp': 'Android',
+                'androidLobApp': 'Android LOB',
+                'macOSMicrosoftDefenderApp': 'macOS Defender',
+                'macOSOfficeSuiteApp': 'macOS Office',
+                'macOSApp': 'macOS',
+                'iosVppApp': 'iOS VPP',
+                'microsoftAppStoreApp': 'Microsoft Store App', // New Graph type for some store apps
+                'winAppX': 'Windows AppX/MSIX'
             };
             
             const typeName = odataType.split('.').pop();
-            return typeMap[typeName] || typeName;
+            return typeMap[typeName] || typeName.replace(/([A-Z])/g, ' $1').trim(); // Basic camelCase to space conversion
         }
 
         function updateSummaryStats() {
@@ -3519,7 +3514,7 @@ if ((!deviceStates || deviceStates.length === 0) && policyType === 'Settings Cat
             
             const complianceRate = stats.total > 0 ? Math.round((stats.compliant / stats.total) * 100) : 0;
             const totalPolicies = policyData.length + configurationProfiles.length + 
-                                settingsCatalog.length + adminTemplates.length;
+                                    settingsCatalog.length + adminTemplates.length;
             
             // Platform breakdown data
             const platforms = {};
@@ -3556,6 +3551,7 @@ if ((!deviceStates || deviceStates.length === 0) && policyType === 'Settings Cat
                         .header h1 {
                             color: #2c5aa0;
                             margin-bottom: 10px;
+                            font-size: 28px;
                         }
                         .header .subtitle {
                             color: #6b7280;
@@ -3597,10 +3593,12 @@ if ((!deviceStates || deviceStates.length === 0) && policyType === 'Settings Cat
                             margin-bottom: 20px;
                             padding-bottom: 10px;
                             border-bottom: 1px solid #e5e7eb;
+                            font-size: 20px;
                         }
                         .platform-table {
                             width: 100%;
                             border-collapse: collapse;
+                            margin-top: 15px;
                         }
                         .platform-table th,
                         .platform-table td {
@@ -3632,6 +3630,7 @@ if ((!deviceStates || deviceStates.length === 0) && policyType === 'Settings Cat
                             align-items: center;
                             justify-content: center;
                             font-weight: bold;
+                            font-size: 14px;
                         }
                         .bar-noncompliant {
                             background: #dc2626;
@@ -3640,6 +3639,7 @@ if ((!deviceStates || deviceStates.length === 0) && policyType === 'Settings Cat
                             align-items: center;
                             justify-content: center;
                             font-weight: bold;
+                            font-size: 14px;
                         }
                         .bar-unknown {
                             background: #d97706;
@@ -3648,6 +3648,7 @@ if ((!deviceStates || deviceStates.length === 0) && policyType === 'Settings Cat
                             align-items: center;
                             justify-content: center;
                             font-weight: bold;
+                            font-size: 14px;
                         }
                         .footer {
                             margin-top: 60px;
@@ -3724,17 +3725,17 @@ if ((!deviceStates || deviceStates.length === 0) && policyType === 'Settings Cat
                             </thead>
                             <tbody>
                                 ${Object.entries(platforms).map(([platform, data]) => {
-                                    const rate = data.total > 0 ? Math.round((data.compliant / data.total) * 100) : 0;
-                                    return `
-                                        <tr>
-                                            <td>${platform}</td>
-                                            <td>${data.total}</td>
-                                            <td>${data.compliant}</td>
-                                            <td>${data.noncompliant}</td>
-                                            <td>${rate}%</td>
-                                        </tr>
-                                    `;
-                                }).join('')}
+                                        const rate = data.total > 0 ? Math.round((data.compliant / data.total) * 100) : 0;
+                                        return `
+                                            <tr>
+                                                <td>${platform}</td>
+                                                <td>${data.total}</td>
+                                                <td>${data.compliant}</td>
+                                                <td>${data.noncompliant}</td>
+                                                <td>${rate}%</td>
+                                            </tr>
+                                        `;
+                                    }).join('')}
                             </tbody>
                         </table>
                     </div>
@@ -3751,51 +3752,51 @@ if ((!deviceStates || deviceStates.length === 0) && policyType === 'Settings Cat
                             </thead>
                             <tbody>
                                 ${(() => {
-                                    const syncGroups = {
-                                        'Last 24 hours': 0,
-                                        '2-7 days': 0,
-                                        '8-30 days': 0,
-                                        'Over 30 days': 0,
-                                        'Never synced': 0
-                                    };
-                                    
-                                    const now = new Date();
-                                    complianceData.forEach(device => {
-                                        if (!device.lastSyncDateTime) {
-                                            syncGroups['Never synced']++;
-                                            return;
-                                        }
+                                        const syncGroups = {
+                                            'Last 24 hours': 0,
+                                            '2-7 days': 0,
+                                            '8-30 days': 0,
+                                            'Over 30 days': 0,
+                                            'Never synced': 0
+                                        };
                                         
-                                        const lastSync = new Date(device.lastSyncDateTime);
-                                        const daysDiff = Math.floor((now - lastSync) / (1000 * 60 * 60 * 24));
+                                        const now = new Date();
+                                        complianceData.forEach(device => {
+                                            if (!device.lastSyncDateTime) {
+                                                syncGroups['Never synced']++;
+                                                return;
+                                            }
+                                            
+                                            const lastSync = new Date(device.lastSyncDateTime);
+                                            const daysDiff = Math.floor((now - lastSync) / (1000 * 60 * 60 * 24));
+                                            
+                                            if (daysDiff <= 1) {
+                                                syncGroups['Last 24 hours']++;
+                                            } else if (daysDiff <= 7) {
+                                                syncGroups['2-7 days']++;
+                                            } else if (daysDiff <= 30) {
+                                                syncGroups['8-30 days']++;
+                                            } else {
+                                                syncGroups['Over 30 days']++;
+                                            }
+                                        });
                                         
-                                        if (daysDiff <= 1) {
-                                            syncGroups['Last 24 hours']++;
-                                        } else if (daysDiff <= 7) {
-                                            syncGroups['2-7 days']++;
-                                        } else if (daysDiff <= 30) {
-                                            syncGroups['8-30 days']++;
-                                        } else {
-                                            syncGroups['Over 30 days']++;
-                                        }
-                                    });
-                                    
-                                    return Object.entries(syncGroups).map(([period, count]) => {
-                                        const percentage = stats.total > 0 ? Math.round((count / stats.total) * 100) : 0;
-                                        return `
-                                            <tr>
-                                                <td>${period}</td>
-                                                <td>${count}</td>
-                                                <td>${percentage}%</td>
-                                            </tr>
-                                        `;
-                                    }).join('');
-                                })()}
+                                        return Object.entries(syncGroups).map(([period, count]) => {
+                                            const percentage = stats.total > 0 ? Math.round((count / stats.total) * 100) : 0;
+                                            return `
+                                                <tr>
+                                                    <td>${period}</td>
+                                                    <td>${count}</td>
+                                                    <td>${percentage}%</td>
+                                                </tr>
+                                            `;
+                                        }).join('');
+                                    })()}
                             </tbody>
                         </table>
                     </div>
 
-                                        ${(() => {
+                    ${(() => {
                         // Get top non-compliant devices
                         const nonCompliantDevices = complianceData
                             .filter(d => d.complianceState === 'noncompliant')
@@ -3803,9 +3804,9 @@ if ((!deviceStates || deviceStates.length === 0) && policyType === 'Settings Cat
                         
                         if (nonCompliantDevices.length > 0) {
                             return `
-                                <div class=“section”>
+                                <div class="section">
                                     <h2>Non-Compliant Devices (Top 15)</h2>
-                                    <table class=“platform-table”>
+                                    <table class="platform-table">
                                         <thead>
                                             <tr>
                                                 <th>Device Name</th>
@@ -3864,80 +3865,80 @@ if ((!deviceStates || deviceStates.length === 0) && policyType === 'Settings Cat
                             </tbody>
                         </table>
                     </div>
-                                       
+                                                
                     ${(() => {
-    // Add policy success rates for ALL policies
-    // Get all policies from all sources
-    const allPolicies = [
-        ...policyData.map(p => ({...p, policyType: 'Compliance Policy'})),
-        ...configurationProfiles.map(p => ({...p, policyType: 'Device Configuration'})),
-        ...settingsCatalog.map(p => ({...p, policyType: 'Settings Catalog'})),
-        ...adminTemplates.map(p => ({...p, policyType: 'Administrative Template'}))
-    ];
+                        // Add policy success rates for ALL policies
+                        // Get all policies from all sources
+                        const allPolicies = [
+                            ...policyData.map(p => ({...p, policyType: 'Compliance Policy'})),
+                            ...configurationProfiles.map(p => ({...p, policyType: 'Device Configuration'})),
+                            ...settingsCatalog.map(p => ({...p, policyType: 'Settings Catalog'})),
+                            ...adminTemplates.map(p => ({...p, policyType: 'Administrative Template'}))
+                        ];
 
-    const policiesWithStates = allPolicies.map(policy => {
-        const states = policyDeviceStates[policy.id] || [];
-        
-        if (states.length === 0) {
-            return {
-                name: policy.displayName || policy.name || 'Unnamed',
-                type: policy.policyType,
-                total: 0,
-                success: 0,
-                rate: 'N/A'
-            };
-        }
-        
-        const successCount = states.filter(s => 
-            s.state === 'compliant' || s.state === 'succeeded' || s.state === 'notApplicable'
-        ).length;
-        
-        return {
-            name: policy.displayName || policy.name,
-            type: policy.policyType,
-            total: states.length,
-            success: successCount,
-            rate: Math.round((successCount / states.length) * 100)
-        };
-    });
-    
-    if (allPolicies.length > 0) {
-        // Sort by rate (N/A goes to bottom)
-        policiesWithStates.sort((a, b) => {
-            if (a.rate === 'N/A' && b.rate === 'N/A') return 0;
-            if (a.rate === 'N/A') return 1;
-            if (b.rate === 'N/A') return -1;
-            return a.rate - b.rate;
-        });
-        
-        return `
-            <div class="section">
-                <h2>Policy Success Rates</h2>
-                <table class="platform-table">
-                    <thead>
-                        <tr>
-                            <th>Policy Name</th>
-                            <th>Type</th>
-                            <th>Success Rate</th>
-                            <th>Devices</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        ${policiesWithStates.map(policy => `
-                            <tr>
-                                <td>${policy.name}</td>
-                                <td>${policy.type}</td>
-                                <td>${policy.rate === 'N/A' ? 'Not loaded' : policy.rate + '%'}</td>
-                                <td>${policy.total === 0 ? 'No data' : `${policy.success} of ${policy.total}`}</td>
-                            </tr>
-                        `).join('')}
-                    </tbody>
-                </table>
-            </div>
-        `;
-    }
-    return '';
-})()} 
+                        const policiesWithStates = allPolicies.map(policy => {
+                            const states = policyDeviceStates[policy.id] || [];
+                            
+                            if (states.length === 0) {
+                                return {
+                                    name: policy.displayName || policy.name || 'Unnamed',
+                                    type: policy.policyType,
+                                    total: 0,
+                                    success: 0,
+                                    rate: 'N/A'
+                                };
+                            }
+                            
+                            const successCount = states.filter(s => 
+                                s.state === 'compliant' || s.state === 'succeeded' || s.state === 'notApplicable'
+                            ).length;
+                            
+                            return {
+                                name: policy.displayName || policy.name,
+                                type: policy.policyType,
+                                total: states.length,
+                                success: successCount,
+                                rate: Math.round((successCount / states.length) * 100)
+                            };
+                        });
+                        
+                        if (allPolicies.length > 0) {
+                            // Sort by rate (N/A goes to bottom)
+                            policiesWithStates.sort((a, b) => {
+                                if (a.rate === 'N/A' && b.rate === 'N/A') return 0;
+                                if (a.rate === 'N/A') return 1;
+                                if (b.rate === 'N/A') return -1;
+                                return a.rate - b.rate;
+                            });
+                            
+                            return `
+                                <div class="section">
+                                    <h2>Policy Success Rates</h2>
+                                    <table class="platform-table">
+                                        <thead>
+                                            <tr>
+                                                <th>Policy Name</th>
+                                                <th>Type</th>
+                                                <th>Success Rate</th>
+                                                <th>Devices</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            ${policiesWithStates.map(policy => `
+                                                <tr>
+                                                    <td>${policy.name}</td>
+                                                    <td>${policy.type}</td>
+                                                    <td>${policy.rate === 'N/A' ? 'Not loaded' : policy.rate + '%'}</td>
+                                                    <td>${policy.total === 0 ? 'No data' : `${policy.success} of ${policy.total}`}</td>
+                                                </tr>
+                                            `).join('')}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            `;
+                        }
+                        return '';
+                    })()}
                     
                     <div class="footer">
                         <p>Generated by Intune Compliance Manager</p>
@@ -4081,7 +4082,7 @@ if ((!deviceStates || deviceStates.length === 0) && policyType === 'Settings Cat
             if (device.complianceState === 'noncompliant' || device.complianceState === 'configManager') {
                 if (device.compliancePolicies && device.compliancePolicies.length > 0) {
                     const nonCompliantPolicies = device.compliancePolicies.filter(p => 
-                        p.state === 'nonCompliant' || p.state === 'failed' || p.state === 'error'
+                        p.state === 'noncompliant' || p.state === 'failed' || p.state === 'error' // Ensure 'noncompliant' matches
                     );
                     
                     if (nonCompliantPolicies.length > 0) {
@@ -4100,7 +4101,7 @@ if ((!deviceStates || deviceStates.length === 0) && policyType === 'Settings Cat
                                         
                                         if (policy.settingStates && policy.settingStates.length > 0) {
                                             const failedSettings = policy.settingStates.filter(s => 
-                                                s.state === 'nonCompliant' || s.state === 'failed' || s.state === 'error'
+                                                s.state === 'noncompliant' || s.state === 'failed' || s.state === 'error' // Ensure 'noncompliant' matches
                                             );
                                             
                                             if (failedSettings.length > 0) {
@@ -4129,8 +4130,89 @@ if ((!deviceStates || deviceStates.length === 0) && policyType === 'Settings Cat
                             </div>
                         `;
                     }
-                } else {
-                    // Device is non-compliant but no specific policies found
+                } else if (device.configurationStates && device.configurationStates.length > 0) { // Check for device config states
+                    const nonCompliantConfigs = device.configurationStates.filter(c =>
+                        c.settingStates.some(s => s.settingState === 'failed' || s.settingState === 'error')
+                    );
+                    if (nonCompliantConfigs.length > 0) {
+                        complianceDetails += `
+                            <div class="detail-item" style="grid-column: 1 / -1;">
+                                <div class="detail-label" style="color: #dc2626; font-size: 16px; margin-bottom: 10px;">Failed Device Configurations</div>
+                                <div style="background: #fee2e2; padding: 15px; border-radius: 4px;">
+                                    ${nonCompliantConfigs.map(config => {
+                                        const failedSettings = config.settingStates.filter(s =>
+                                            s.settingState === 'failed' || s.settingState === 'error'
+                                        );
+                                        return `
+                                            <div style="margin-bottom: 15px; padding-bottom: 15px; border-bottom: 1px solid #fecaca;">
+                                                <strong style="color: #b91c1c;">${config.displayName || 'Unknown Configuration'}</strong>
+                                                <div style="margin-top: 5px; color: #666;">
+                                                    <span style="color: #dc2626; font-weight: 600;">${config.state}</span>
+                                                </div>
+                                                <div style="margin-top: 10px;">
+                                                    <strong>Failed Settings:</strong>
+                                                    <ul style="margin: 8px 0 0 20px; line-height: 1.6;">
+                                                        ${failedSettings.map(setting => `
+                                                            <li>
+                                                                <strong>${setting.settingName || 'Unknown setting'}</strong>
+                                                                <br><span style="color: #dc2626;">Status: ${setting.settingState}</span>
+                                                                ${setting.errorMessage ? `<br><small style="color: #ef4444;">${setting.errorMessage}</small>` : ''}
+                                                            </li>
+                                                        `).join('')}
+                                                    </ul>
+                                                </div>
+                                            </div>
+                                        `;
+                                    }).join('')}
+                                </div>
+                            </div>
+                        `;
+                    }
+                }
+                
+                // Also check for Settings Catalog states
+                if (device.settingsCatalogStates && device.settingsCatalogStates.length > 0) {
+                    const nonCompliantSettingsCatalog = device.settingsCatalogStates.filter(s =>
+                        s.settingStates.some(ss => mapSettingsCatalogState(ss.settingState) === 'noncompliant')
+                    );
+                    if (nonCompliantSettingsCatalog.length > 0) {
+                        complianceDetails += `
+                            <div class="detail-item" style="grid-column: 1 / -1;">
+                                <div class="detail-label" style="color: #dc2626; font-size: 16px; margin-bottom: 10px;">Failed Settings Catalog Policies</div>
+                                <div style="background: #fee2e2; padding: 15px; border-radius: 4px;">
+                                    ${nonCompliantSettingsCatalog.map(policy => {
+                                        const failedSettings = policy.settingStates.filter(s =>
+                                            mapSettingsCatalogState(s.settingState) === 'noncompliant'
+                                        );
+                                        return `
+                                            <div style="margin-bottom: 15px; padding-bottom: 15px; border-bottom: 1px solid #fecaca;">
+                                                <strong style="color: #b91c1c;">${policy.displayName || 'Unknown Policy'}</strong>
+                                                <div style="margin-top: 5px; color: #666;">
+                                                    <span style="color: #dc2626; font-weight: 600;">${policy.state}</span>
+                                                </div>
+                                                <div style="margin-top: 10px;">
+                                                    <strong>Failed Settings:</strong>
+                                                    <ul style="margin: 8px 0 0 20px; line-height: 1.6;">
+                                                        ${failedSettings.map(setting => `
+                                                            <li>
+                                                                <strong>${setting.settingName || 'Unknown setting'}</strong>
+                                                                <br><span style="color: #dc2626;">Status: ${setting.settingState}</span>
+                                                                ${setting.errorCode ? `<br><small style="color: #ef4444;">Error Code: ${setting.errorCode}</small>` : ''}
+                                                            </li>
+                                                        `).join('')}
+                                                    </ul>
+                                                </div>
+                                            </div>
+                                        `;
+                                    }).join('')}
+                                </div>
+                            </div>
+                        `;
+                    }
+                }
+
+                // Generic message if no specific policy/config violations found but still non-compliant
+                if (complianceDetails === '') {
                     complianceDetails = `
                         <div class="detail-item" style="grid-column: 1 / -1;">
                             <div class="detail-label" style="color: #d97706; font-size: 16px; margin-bottom: 10px;">Compliance Status Information</div>
@@ -4338,7 +4420,8 @@ if ((!deviceStates || deviceStates.length === 0) && policyType === 'Settings Cat
                 closeModal();
             }
             
-            if (!event.target.matches('.btn-secondary')) {
+            // Close export dropdowns if clicked outside
+            if (!event.target.closest('.export-menu')) { // Use .closest to check if click is within the menu
                 document.querySelectorAll('.export-dropdown').forEach(menu => {
                     menu.classList.remove('show');
                 });
