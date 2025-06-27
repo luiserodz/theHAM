@@ -4,12 +4,25 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Intune Compliance Manager</title>
+    <script>
+        // Immediately hide everything until authenticated
+        document.documentElement.style.display = 'none';
+    </script>
     <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
+    /* Authentication visibility control */
+    html {
+        display: none;
+    }
+    
+    html.authenticated {
+        display: block !important;
+    }
+    
+    * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+    }
 
         body {
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
@@ -1428,20 +1441,32 @@
     <script>
         // Password Protection
         (async function() {
-            // Clear any saved Client ID first
-            localStorage.removeItem('intuneComplianceClientId');
-            
-            const isAuthenticated = sessionStorage.getItem('intuneComplianceManagerAuth');
-            
-            if (!isAuthenticated) {
-                const authenticated = await authenticateUser();
-                if (!authenticated) {
-                    return;
-                }
+    try {
+        // Clear any saved Client ID first
+        localStorage.removeItem('intuneComplianceClientId');
+        
+        const isAuthenticated = sessionStorage.getItem('intuneComplianceManagerAuth');
+        
+        if (!isAuthenticated) {
+            const authenticated = await authenticateUser();
+            if (!authenticated) {
+                // This should never happen due to throw in authenticateUser
+                throw new Error('Authentication failed');
             }
-            
-            initializeApp();
-        })();
+        }
+        
+        // Only show the page after successful authentication
+        document.documentElement.style.display = 'block';
+        document.documentElement.classList.add('authenticated');
+        
+        initializeApp();
+        
+    } catch (error) {
+        // Authentication failed - page remains hidden except for error message
+        console.error('Authentication failed:', error);
+        // Error message is already shown by showAccessDenied
+    }
+})();
 
         async function authenticateUser() {
             const PASSWORD_HASH = '9e5c3ce7906db8e6f333df0e10deed2263b0a8738a9abe3f3612b8f52846689e';
@@ -1457,9 +1482,12 @@
                 );
                 
                 if (password === null) {
-                    showAccessDenied('Authentication cancelled');
-                    return false;
-                }
+    // Show the page to display access denied message
+    document.documentElement.style.display = 'block';
+    showAccessDenied('Authentication cancelled');
+    // Throw error to stop all execution
+    throw new Error('Authentication cancelled by user');
+}
                 
                 const enteredHash = await hashPassword(password);
                 
@@ -1476,11 +1504,14 @@
             }
             
             if (!authorized) {
-                showAccessDenied('Maximum password attempts exceeded');
-                return false;
-            }
-            
-            return true;
+    // Show the page to display access denied message
+    document.documentElement.style.display = 'block';
+    showAccessDenied('Maximum password attempts exceeded');
+    // Throw error to stop all execution
+    throw new Error('Authentication failed - maximum attempts exceeded');
+}
+
+return true;
         }
 
         async function hashPassword(password) {
@@ -1492,8 +1523,12 @@
         }
 
         function showAccessDenied(message) {
-            document.body.innerHTML = `
-                <div style="display: flex; justify-content: center; align-items: center; min-height: 100vh; background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);">
+    // Make sure the page is visible to show the error
+    document.documentElement.style.display = 'block';
+    document.documentElement.classList.remove('authenticated');
+    
+    document.body.innerHTML = `
+        <div style="display: flex; justify-content: center; align-items: center; min-height: 100vh; background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);">
                     <div style="text-align: center; background: white; padding: 60px 40px; border-radius: 20px; box-shadow: 0 20px 60px rgba(0,0,0,0.3); max-width: 450px; margin: 20px;">
                         <h1 style="color: #1a1a1a; margin-bottom: 25px; font-size: 36px; font-weight: 700; font-style: italic;">No HAM for you...</h1>
                         
@@ -1515,13 +1550,30 @@
         }
 
         function checkSessionExpiry() {
-            const authExpiry = sessionStorage.getItem('authExpiry');
-            if (authExpiry && Date.now() > parseInt(authExpiry)) {
-                sessionStorage.removeItem('intuneComplianceManagerAuth');
-                sessionStorage.removeItem('authExpiry');
-                location.reload();
-            }
+    const authExpiry = sessionStorage.getItem('authExpiry');
+    if (authExpiry && Date.now() > parseInt(authExpiry)) {
+        sessionStorage.removeItem('intuneComplianceManagerAuth');
+        sessionStorage.removeItem('authExpiry');
+        location.reload();
+    }
+}
+
+// Add protection against bypassing via console
+(function() {
+    // Check authentication status periodically
+    setInterval(() => {
+        if (!sessionStorage.getItem('intuneComplianceManagerAuth')) {
+            document.documentElement.style.display = 'none';
+            document.documentElement.classList.remove('authenticated');
+            location.reload();
         }
+    }, 1000);
+    
+    // Disable console access in production
+    if (!window.location.hostname.includes('localhost')) {
+        console.log = console.warn = console.error = function() {};
+    }
+})();
 
         let inactivityTimer;
         const INACTIVITY_TIMEOUT = 30 * 60 * 1000;
