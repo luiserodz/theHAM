@@ -2825,7 +2825,7 @@
                     
                     // Try both endpoint formats
                     let response = await fetch(
-                        `https://graph.microsoft.com/beta/deviceManagement/configurationPolicies/${policyId}/deviceStatuses`,
+                        `https://graph.microsoft.com/beta/beta/deviceManagement/configurationPolicies/${policyId}/deviceStatusSummary`,
                         {
                             headers: {
                                 'Authorization': `Bearer ${accessToken}`,
@@ -2837,7 +2837,7 @@
                     if (!response.ok) {
                         console.log(`First format failed, trying with parentheses...`);
                         response = await fetch(
-                            `https://graph.microsoft.com/beta/deviceManagement/configurationPolicies('${policyId}')/deviceStatuses`,
+                            `https://graph.microsoft.com/beta/deviceManagement/configurationPolicies('${policyId}')?$expand=deviceStatusOverview`,
                             {
                                 headers: {
                                     'Authorization': `Bearer ${accessToken}`,
