@@ -2526,101 +2526,55 @@
 
         // Policy functions - Enhanced to fetch all configuration types
         async function refreshPolicyData() {
-            if (!account) {
-                alert('Please sign in first');
-                return;
-            }
+    if (!account) {
+        alert('Please sign in first');
+        return;
+    }
 
-            showLoading('policies', true);
-            
-            try {
-                const accessToken = await getAccessToken();
-                
-                // Fetch compliance policies
-                const compliancePoliciesResponse = await fetch('https://graph.microsoft.com/beta/deviceManagement/deviceCompliancePolicies', {
-                    headers: {
-                        'Authorization': `Bearer ${accessToken}`
-                    }
-                });
-                
-                if (compliancePoliciesResponse.ok) {
-                    const compliancePoliciesData = await compliancePoliciesResponse.json();
-                    policyData = compliancePoliciesData.value || [];
-                }
-                
-                // Fetch device configurations
-                try {
-                    const configResponse = await fetch('https://graph.microsoft.com/beta/deviceManagement/deviceConfigurations', {
-                        headers: {
-                            'Authorization': `Bearer ${accessToken}`
-                        }
-                    });
-                    
-                    if (configResponse.ok) {
-                        const configData = await configResponse.json();
-                        configurationProfiles = configData.value || [];
-                    }
-                } catch (error) {
-                    console.error('Error fetching device configurations:', error);
-                }
-                
-                // Fetch configuration policies (Settings Catalog)
-                try {
-                    const settingsResponse = await fetch('https://graph.microsoft.com/beta/deviceManagement/configurationPolicies', {
-                        headers: {
-                            'Authorization': `Bearer ${accessToken}`
-                        }
-                    });
-                    
-                    if (settingsResponse.ok) {
-                        const settingsData = await settingsResponse.json();
-                        settingsCatalog = settingsData.value || [];
-                        console.log('Settings Catalog policies loaded:', settingsCatalog.length);
-                        settingsCatalog.forEach(policy => {
-                            console.log(`Policy: ${policy.name}, Device Statuses:`, policy.deviceStatuses?.length || 0);
-                        });
-                    }
-                } catch (error) {
-                    console.error('Error fetching settings catalog:', error);
-                }
-                
-                // Fetch administrative templates
-                try {
-                    const adminResponse = await fetch('https://graph.microsoft.com/beta/deviceManagement/groupPolicyConfigurations', {
-                        headers: {
-                            'Authorization': `Bearer ${accessToken}`
-                        }
-                    });
-                    
-                    if (adminResponse.ok) {
-                        const adminData = await adminResponse.json();
-                        adminTemplates = adminData.value || [];
-                    }
-                } catch (error) {
-                    console.error('Error fetching administrative templates:', error);
-                }
-                
-                displayPolicyData();
-                updateDashboard();
-                dataRefreshTimestamps.policies = Date.now();
-                
-                const totalPolicies = policyData.length + configurationProfiles.length + settingsCatalog.length + adminTemplates.length;
-                showNotification(`Successfully loaded ${totalPolicies} policies`, 'success');
-                
-            } catch (error) {
-                console.error('Error fetching policy data:', error);
-                showNotification('Failed to fetch policy data. Please try again.', 'error');
-            } finally {
-                showLoading('policies', false);
-            }
-        }
+    showLoading('policies', true);
 
+    try {
+        const accessToken = await getAccessToken();
+
+        // Fetch policies and EXPAND their status overviews in a single call where possible
+        const endpoints = {
+            compliance: 'deviceManagement/deviceCompliancePolicies?$expand=deviceStatusOverview',
+            configurations: 'deviceManagement/deviceConfigurations?$expand=deviceStatusOverview',
+            settingsCatalog: 'deviceManagement/configurationPolicies', // Settings Catalog doesn't support $expand for this
+            adminTemplates: 'deviceManagement/groupPolicyConfigurations?$expand=deviceStatusOverview'
+        };
+
+        const [complianceRes, configRes, settingsRes, adminRes] = await Promise.all([
+            fetch(`https://graph.microsoft.com/beta/${endpoints.compliance}`, { headers: { 'Authorization': `Bearer ${accessToken}` } }),
+            fetch(`https://graph.microsoft.com/beta/${endpoints.configurations}`, { headers: { 'Authorization': `Bearer ${accessToken}` } }),
+            fetch(`https://graph.microsoft.com/beta/${endpoints.settingsCatalog}`, { headers: { 'Authorization': `Bearer ${accessToken}` } }),
+            fetch(`https://graph.microsoft.com/beta/${endpoints.adminTemplates}`, { headers: { 'Authorization': `Bearer ${accessToken}` } })
+        ]);
+
+        if (complianceRes.ok) policyData = (await complianceRes.json()).value || [];
+        if (configRes.ok) configurationProfiles = (await configRes.json()).value || [];
+        if (settingsRes.ok) settingsCatalog = (await settingsRes.json()).value || [];
+        if (adminRes.ok) adminTemplates = (await adminRes.json()).value || [];
+
+        displayPolicyData();
+        updateDashboard();
+        dataRefreshTimestamps.policies = Date.now();
+
+        const totalPolicies = policyData.length + configurationProfiles.length + settingsCatalog.length + adminTemplates.length;
+        showNotification(`Successfully loaded ${totalPolicies} policies`, 'success');
+
+    } catch (error) {
+        console.error('Error fetching policy data:', error);
+        showNotification('Failed to fetch policy data. Please try again.', 'error');
+    } finally {
+        showLoading('policies', false);
+    }
+}
         function displayPolicyData() {
     const tableBody = document.getElementById('policiesTableBody');
     const tableContainer = document.getElementById('policiesTableContainer');
     const emptyState = document.getElementById('policiesEmpty');
 
-    // Combine all policy types
     const allPolicies = [
         ...policyData.map(p => ({ ...p, policyType: 'Compliance Policy' })),
         ...configurationProfiles.map(p => ({ ...p, policyType: 'Device Configuration' })),
@@ -2631,30 +2585,34 @@
     if (allPolicies.length === 0) {
         tableContainer.style.display = 'none';
         emptyState.style.display = 'block';
-        document.getElementById('exportPoliciesBtn').disabled = true;
-        document.getElementById('loadDeviceStatusBtn').style.display = 'none';
         return;
     }
 
     tableContainer.style.display = 'block';
     emptyState.style.display = 'none';
     document.getElementById('exportPoliciesBtn').disabled = false;
-    document.getElementById('loadDeviceStatusBtn').style.display = 'inline-block';
+    document.getElementById('loadDeviceStatusBtn').disabled = false; // Keep this enabled for a future step
 
     tableBody.innerHTML = allPolicies.map(policy => {
-        let successRate = 'Not loaded';
-        let assignedCount = 'Not loaded';
+        let successRate = 'N/A';
+        let assignedCount = 'N/A';
 
-        // Check if a summary object exists in the cache
-        let summaryState = policyDeviceStates[policy.id];
-        if (summaryState && summaryState.length > 0 && summaryState[0].state === 'summary') {
-            const summary = summaryState[0];
-            assignedCount = summary.total;
-            if (summary.total > 0) {
-                successRate = `${Math.round((summary.compliant / summary.total) * 100)}%`;
+        // Check for the expanded deviceStatusOverview property
+        if (policy.deviceStatusOverview) {
+            const overview = policy.deviceStatusOverview;
+            const total = overview.successCount + overview.errorCount + overview.pendingCount + overview.notApplicableCount;
+            assignedCount = total;
+            if (total > 0) {
+                // Treat N/A as compliant for success rate
+                const successfulCount = overview.successCount + overview.notApplicableCount;
+                successRate = `${Math.round((successfulCount / total) * 100)}%`;
             } else {
-                successRate = '100%'; // No devices assigned
+                successRate = '100%';
             }
+        } else if (policy.policyType === 'Settings Catalog') {
+            // For settings catalog, we still don't have the data from this call
+            successRate = 'Not loaded';
+            assignedCount = 'Not loaded';
         }
 
         return `
@@ -2666,7 +2624,7 @@
                 <td>${assignedCount}</td>
                 <td>${successRate}</td>
                 <td>
-                    <button class="btn btn-primary" onclick="viewPolicyDetails('${policy.id}', '${policy.policyType}')" title="View policy definition details. Device status is shown in the table.">
+                    <button class="btn btn-primary" onclick="viewPolicyDetails('${policy.id}', '${policy.policyType}')" title="View policy definition details.">
                         View Details
                     </button>
                 </td>
