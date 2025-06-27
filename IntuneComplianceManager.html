@@ -2068,51 +2068,52 @@
         }
 
         async function getAccessToken() {
-    const request = {
-        scopes: ['User.Read', 'DeviceManagementManagedDevices.Read.All', 'DeviceManagementApps.Read.All', 'DeviceManagementConfiguration.Read.All'],
-        account: account
-    };
-
-    try {
-        console.log('Attempting to acquire token silently...');
-        const response = await msalInstance.acquireTokenSilent(request);
-        console.log('Token acquired successfully');
-        return response.accessToken;
-    } catch (error) {
-        console.log('Silent token acquisition failed, trying popup...', error);
+        const request = {
+            scopes: ['User.Read', 'DeviceManagementManagedDevices.Read.All', 'DeviceManagementApps.Read.All', 'DeviceManagementConfiguration.Read.All'],
+            account: account
+        };
+    
         try {
-            const response = await msalInstance.acquireTokenPopup(request);
-            console.log('Token acquired via popup');
+            console.log('Attempting to acquire token silently...');
+            const response = await msalInstance.acquireTokenSilent(request);
+            console.log('Token acquired successfully');
             return response.accessToken;
+        } catch (error) {
+            console.log('Silent token acquisition failed, trying popup...', error);
+            try {
+                const response = await msalInstance.acquireTokenPopup(request);
+                console.log('Token acquired via popup');
+                return response.accessToken;
             } catch (popupError) {
                 console.error('Token acquisition failed:', popupError);
                 // Return null instead of throwing to prevent unhandled errors
                 return null;
             }
         }
-            // Tab switching
-            function switchTab(tabName) {
-                const tabs = document.querySelectorAll('.tab');
-                const contents = document.querySelectorAll('.tab-content');
-                
-                tabs.forEach(tab => {
-                    tab.classList.remove('active');
-                    if (tab.textContent.toLowerCase().includes(tabName)) {
-                        tab.classList.add('active');
+    }
+                // Tab switching
+                function switchTab(tabName) {
+                    const tabs = document.querySelectorAll('.tab');
+                    const contents = document.querySelectorAll('.tab-content');
+                    
+                    tabs.forEach(tab => {
+                        tab.classList.remove('active');
+                        if (tab.textContent.toLowerCase().includes(tabName)) {
+                            tab.classList.add('active');
+                        }
+                    });
+                    
+                    contents.forEach(content => {
+                        content.classList.remove('active');
+                    });
+                    
+                    document.getElementById(tabName + 'Tab').classList.add('active');
+                    
+                    // Update dashboard when switching to it
+                    if (tabName === 'dashboard') {
+                        updateDashboard();
                     }
-                });
-                
-                contents.forEach(content => {
-                    content.classList.remove('active');
-                });
-                
-                document.getElementById(tabName + 'Tab').classList.add('active');
-                
-                // Update dashboard when switching to it
-                if (tabName === 'dashboard') {
-                    updateDashboard();
                 }
-            }
 
         // Compliance functions
         async function refreshComplianceData() {
@@ -2577,11 +2578,11 @@
 
         // Fetch policies and EXPAND their status overviews in a single call where possible
         const endpoints = {
-            compliance: 'deviceManagement/deviceCompliancePolicies?$expand=deviceStatusOverview',
-            configurations: 'deviceManagement/deviceConfigurations?$expand=deviceStatusOverview',
-            settingsCatalog: 'deviceManagement/configurationPolicies', // Settings Catalog doesn't support $expand for this
-            adminTemplates: 'deviceManagement/groupPolicyConfigurations?$expand=deviceStatusOverview'
-        };
+    compliance: 'deviceManagement/deviceCompliancePolicies',
+    configurations: 'deviceManagement/deviceConfigurations',
+    settingsCatalog: 'deviceManagement/configurationPolicies',
+    adminTemplates: 'deviceManagement/groupPolicyConfigurations'
+};
 
         const [complianceRes, configRes, settingsRes, adminRes] = await Promise.all([
             fetch(`https://graph.microsoft.com/beta/${endpoints.compliance}`, { headers: { 'Authorization': `Bearer ${accessToken}` } }),
@@ -4328,7 +4329,7 @@ function getComplianceClass(state) {
                     menu.classList.remove('show');
                 });
             }
-        };
+        }
     </script>
 </body>
 </html>
