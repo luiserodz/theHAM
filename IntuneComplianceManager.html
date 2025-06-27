@@ -2347,20 +2347,42 @@ return true;
                 }
                 
                 // Fetch configuration policies (Settings Catalog)
-                try {
-                    const settingsResponse = await fetch('https://graph.microsoft.com/beta/deviceManagement/configurationPolicies', {
+try {
+    const settingsResponse = await fetch('https://graph.microsoft.com/beta/deviceManagement/configurationPolicies', {
+        headers: {
+            'Authorization': `Bearer ${accessToken}`
+        }
+    });
+    
+    if (settingsResponse.ok) {
+        const settingsData = await settingsResponse.json();
+        settingsCatalog = settingsData.value || [];
+        
+        // Immediately fetch device statuses for each Settings Catalog policy
+        for (const policy of settingsCatalog) {
+            try {
+                const statusResponse = await fetch(
+                    `https://graph.microsoft.com/beta/deviceManagement/configurationPolicies('${policy.id}')/deviceStatuses`,
+                    {
                         headers: {
                             'Authorization': `Bearer ${accessToken}`
                         }
-                    });
-                    
-                    if (settingsResponse.ok) {
-                        const settingsData = await settingsResponse.json();
-                        settingsCatalog = settingsData.value || [];
                     }
-                } catch (error) {
-                    console.error('Error fetching settings catalog:', error);
+                );
+                
+                if (statusResponse.ok) {
+                    const statusData = await statusResponse.json();
+                    policy.deviceStatuses = statusData.value || [];
                 }
+            } catch (error) {
+                console.error(`Error fetching device statuses for policy ${policy.id}:`, error);
+                policy.deviceStatuses = [];
+            }
+        }
+    }
+} catch (error) {
+    console.error('Error fetching settings catalog:', error);
+}
                 
                 // Fetch administrative templates
                 try {
@@ -2417,33 +2439,53 @@ return true;
             
             tableBody.innerHTML = allPolicies.map(policy => {
                 // Calculate success rate if device states are available
-                const deviceStates = policyDeviceStates[policy.id];
-                let successRate = 'Not loaded';
-                let assignedCount = 'Unknown';
-                
-                if (deviceStates && deviceStates.length > 0) {
-                    const successCount = deviceStates.filter(s => 
-                        s.state === 'compliant' || s.state === 'succeeded' || s.state === 'notApplicable'
-                    ).length;
-                    successRate = `${Math.round((successCount / deviceStates.length) * 100)}%`;
-                    assignedCount = deviceStates.length;
-                }
+let deviceStates = policyDeviceStates[policy.id];
+let successRate = 'Not loaded';
+let assignedCount = 'Unknown';
+
+// For Settings Catalog policies, check if we have deviceStatuses directly on the policy
+if (policy.policyType === 'Settings Catalog' && policy.deviceStatuses && policy.deviceStatuses.length > 0) {
+    // Process the device statuses
+    deviceStates = policy.deviceStatuses.map(status => ({
+        deviceId: status.id,
+        deviceName: status.deviceDisplayName || 'Unknown Device',
+        userPrincipalName: status.userPrincipalName || 'N/A',
+        state: mapSettingsCatalogState(status.state),
+        lastReported: status.lastReportedDateTime,
+        errorDescription: status.errorDescription
+    }));
+    
+    // Cache them
+    policyDeviceStates[policy.id] = deviceStates;
+}
+
+if (deviceStates && deviceStates.length > 0) {
+    const successCount = deviceStates.filter(s => 
+        s.state === 'compliant' || s.state === 'succeeded' || s.state === 'notApplicable'
+    ).length;
+    successRate = `${Math.round((successCount / deviceStates.length) * 100)}%`;
+    assignedCount = deviceStates.length;
+}
                 
                 return `
-                    <tr>
-                        <td>${policy.displayName || policy.name || 'Unnamed'}</td>
-                        <td><span class="policy-tag">${policy.policyType}</span></td>
-                        <td>${policy.description || 'N/A'}</td>
-                        <td>${policy.platform || policy.platforms || 'All'}</td>
-                        <td>${assignedCount}</td>
-                        <td>${successRate}</td>
-                        <td>
-                            <button class="btn btn-primary" onclick="viewPolicyDeviceStatus('${policy.id}', '${policy.policyType}', '${policy.displayName || policy.name}')">
-                                View Devices
-                            </button>
-                        </td>
-                    </tr>
-                `;
+    <tr>
+        <td>${policy.displayName || policy.name || 'Unnamed'}
+            ${policy.policyType === 'Settings Catalog' && policy.deviceStatuses ? 
+                ` <small style="color: #059669;">(${policy.deviceStatuses.length} devices)</small>` : 
+                ''}
+        </td>
+        <td><span class="policy-tag">${policy.policyType}</span></td>
+        <td>${policy.description || 'N/A'}</td>
+        <td>${policy.platform || policy.platforms || 'All'}</td>
+        <td>${assignedCount}</td>
+        <td>${successRate}</td>
+        <td>
+            <button class="btn btn-primary" onclick="viewPolicyDeviceStatus('${policy.id}', '${policy.policyType}', '${policy.displayName || policy.name}')">
+                View Devices
+            </button>
+        </td>
+    </tr>
+`;
             }).join('');
         }
 
@@ -2568,17 +2610,30 @@ return true;
 }
         // Helper function to map Settings Catalog states to standard states
 function mapSettingsCatalogState(state) {
+    // Handle both the state string and potential numeric values
+    if (typeof state === 'string') {
+        state = state.toLowerCase();
+    }
+    
     switch(state) {
         case 'compliant':
         case 'succeeded':
+        case 'success':
+        case 0: // Success
             return 'compliant';
         case 'conflict':
         case 'failed':
         case 'error':
+        case 'noncompliant':
+        case 2: // Error
             return 'nonCompliant';
+        case 'notapplicable':
         case 'notApplicable':
+        case 3: // Not applicable
             return 'notApplicable';
         case 'pending':
+        case 'inprogress':
+        case 1: // In progress
             return 'pending';
         default:
             return 'unknown';
@@ -2609,24 +2664,24 @@ function mapSettingsCatalogState(state) {
             );
             
             if (response.ok) {
-                const data = await response.json();
-                const deviceStatuses = data.value || [];
-                
-                deviceStates = deviceStatuses.map(status => ({
-                    deviceId: status.deviceId || status.id,
-                    deviceName: status.deviceDisplayName || status.deviceName || 'Unknown Device',
-                    userPrincipalName: status.userPrincipalName || status.userName || status.userDisplayName || 'N/A',
-                    state: mapSettingsCatalogState(status.state || status.complianceState),
-                    lastReported: status.lastReportedDateTime || status.checkinDateTime,
-                    errorDescription: status.errorDescription || (status.state === 'error' ? 'Configuration failed to apply' : null),
-                    settingStates: status.settingStates || []
-                }));
-                
-                // Cache the results
-                if (deviceStates.length > 0) {
-                    policyDeviceStates[policyId] = deviceStates;
-                }
-            }
+    const data = await response.json();
+    const deviceStatuses = data.value || [];
+    
+    deviceStates = deviceStatuses.map(status => ({
+        deviceId: status.id,
+        deviceName: status.deviceDisplayName || 'Unknown Device',
+        userPrincipalName: status.userPrincipalName || 'N/A',
+        state: mapSettingsCatalogState(status.state),
+        lastReported: status.lastReportedDateTime,
+        errorDescription: status.errorDescription || null,
+        settingStates: [] // Settings Catalog doesn't provide detailed setting states in this endpoint
+    }));
+    
+    // Cache the results
+    if (deviceStates.length > 0) {
+        policyDeviceStates[policyId] = deviceStates;
+    }
+}
         } catch (error) {
             console.error('Error fetching Settings Catalog device status:', error);
         }
