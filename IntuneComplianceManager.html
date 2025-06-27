@@ -1528,27 +1528,6 @@
             
             try {
                 const isAuthenticated = sessionStorage.getItem(_0x1a2b[0]);
-                
-                if (!isAuthenticated) {
-                    const authenticated = await authenticateUser();
-                    if (!authenticated) {
-                        throw new Error('Authentication failed');
-                    }
-                    startIntegrityCheck();
-                } else {
-                    startIntegrityCheck();
-                }
-                
-                // Only show the page after successful authentication
-                document.documentElement.style.display = 'block';
-                document.documentElement.classList.add('authenticated');
-                
-                initializeApp();
-                
-            } catch (error) {
-                console.error('Auth error:', error);
-            }
-        })();
         
         if (!isAuthenticated) {
             const authenticated = await authenticateUser();
@@ -1565,10 +1544,10 @@
         initializeApp();
         
     } catch (error) {
-        // Authentication failed - page remains hidden except for error message
-        console.error('Authentication failed:', error);
-        // Error message is already shown by showAccessDenied
-    }
+    // Authentication failed - page remains hidden except for error message
+    console.error('Authentication failed:', error);
+    // Error message is already shown by showAccessDenied
+}
 })();
 
         async function authenticateUser() {
