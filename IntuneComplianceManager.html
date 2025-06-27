@@ -2734,14 +2734,57 @@ const fetchRequests = policiesToUpdate.map(policy => async () => {
                                  policy.platforms === 'windows10';
 
         if (isSettingsCatalog) {
-            // Try the device status endpoint first for Settings Catalog
-            try {
-                const statusResponse = await fetch(
-                    `https://graph.microsoft.com/beta/deviceManagement/configurationPolicies/${policy.id}/deviceStatuses`,
-                    {
-                        headers: { 'Authorization': `Bearer ${accessToken}` }
-                    }
-                );
+            // First, let's check what type of policy this is
+console.log(`Policy ${policy.name}:`, {
+    id: policy.id,
+    type: policy['@odata.type'],
+    isSettingsCatalog: policy.templateReference ? true : false
+});
+
+// Check if this policy exists as a deviceConfiguration
+try {
+    const testResponse = await fetch(
+        `https://graph.microsoft.com/beta/deviceManagement/deviceConfigurations/${policy.id}`,
+        { headers: { 'Authorization': `Bearer ${accessToken}` } }
+    );
+    
+    if (testResponse.ok) {
+        console.log(`✓ Policy ${policy.name} found in deviceConfigurations - fetching status...`);
+        
+        // Use the correct endpoint for device configurations
+        const statusResponse = await fetch(
+            `https://graph.microsoft.com/beta/deviceManagement/deviceConfigurations/${policy.id}/deviceStatusOverview`,
+            { headers: { 'Authorization': `Bearer ${accessToken}` } }
+        );
+        
+        if (statusResponse.ok) {
+            const overview = await statusResponse.json();
+            policyDeviceStates[policy.id] = [{
+                state: 'summary',
+                total: overview.numberOfDevices || 0,
+                compliant: overview.numberOfCompliantDevices || 0,
+                noncompliant: overview.numberOfNonCompliantDevices || 0,
+                pending: overview.numberOfPendingDevices || 0
+            }];
+            return;
+        }
+    } else {
+        console.log(`✗ Policy ${policy.name} NOT in deviceConfigurations - it's a Settings Catalog policy`);
+        
+        // This is a Settings Catalog policy - set N/A status
+        policyDeviceStates[policy.id] = [{
+            state: 'summary',
+            total: 'N/A',
+            compliant: 0,
+            noncompliant: 0,
+            pending: 0,
+            note: 'Settings Catalog - Status not available'
+        }];
+        return;
+    }
+} catch (error) {
+    console.error(`Error checking policy ${policy.name}:`, error);
+}
 
                 if (statusResponse.ok) {
                     const statusData = await statusResponse.json();
@@ -2819,11 +2862,29 @@ const fetchRequests = policiesToUpdate.map(policy => async () => {
             }];
 
         } else {
-            // Original code for standard device configuration policies
-            const endpoint = `deviceManagement/deviceConfigurations/${policy.id}/deviceStatuses`;
-            const response = await fetch(`https://graph.microsoft.com/beta/${endpoint}`, {
-                headers: { 'Authorization': `Bearer ${accessToken}` }
-            });
+    // For regular device configuration policies, use deviceStatusOverview for summary
+    const endpoint = `deviceManagement/deviceConfigurations/${policy.id}/deviceStatusOverview`;
+    const response = await fetch(`https://graph.microsoft.com/beta/${endpoint}`, {
+        headers: { 'Authorization': `Bearer ${accessToken}` }
+    });
+
+    if (!response.ok) {
+        console.error(`Failed to fetch status overview for policy '${policy.name}': ${response.status}`);
+        policyDeviceStates[policy.id] = [{ state: 'summary', total: 'Error', compliant: 0, noncompliant: 0, pending: 0 }];
+        return;
+    }
+
+    const overview = await response.json();
+    
+    // Use the overview data structure
+    policyDeviceStates[policy.id] = [{
+        state: 'summary',
+        total: overview.numberOfDevices || 0,
+        compliant: overview.numberOfCompliantDevices || 0,
+        noncompliant: overview.numberOfNonCompliantDevices || 0,
+        pending: overview.numberOfPendingDevices || 0
+    }];
+}
 
             if (!response.ok) {
                 // Try the summary endpoint as fallback
