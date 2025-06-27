@@ -1547,10 +1547,8 @@
 })();
 
         async function authenticateUser() {
-            // Multi-layer hash validation
-            const _0x7g8h = '9e5c3ce7906db8e6f333df0e10deed2263b0a8738a9abe3f3612b8f52846689e';
-            const _0x9i0j = 'ZTJmNzI4YzNhNDk2ZDc4YjE5ZjM0NzJhOGU1YzZkOWI='; // Secondary validation
-            
+            // Hash validation
+            const PASSWORD_HASH = '9e5c3ce7906db8e6f333df0e10deed2263b0a8738a9abe3f3612b8f52846689e';
             const maxAttempts = 3;
             let attempts = 0;
             let authorized = false;
