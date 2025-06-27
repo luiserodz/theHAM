@@ -2357,28 +2357,10 @@ try {
     if (settingsResponse.ok) {
         const settingsData = await settingsResponse.json();
         settingsCatalog = settingsData.value || [];
-        
-        // Immediately fetch device statuses for each Settings Catalog policy
-        for (const policy of settingsCatalog) {
-            try {
-                const statusResponse = await fetch(
-                    `https://graph.microsoft.com/beta/deviceManagement/configurationPolicies('${policy.id}')/deviceStatuses`,
-                    {
-                        headers: {
-                            'Authorization': `Bearer ${accessToken}`
-                        }
-                    }
-                );
-                
-                if (statusResponse.ok) {
-                    const statusData = await statusResponse.json();
-                    policy.deviceStatuses = statusData.value || [];
-                }
-            } catch (error) {
-                console.error(`Error fetching device statuses for policy ${policy.id}:`, error);
-                policy.deviceStatuses = [];
-            }
-        }
+        console.log('Settings Catalog policies loaded:', settingsCatalog.length);
+        settingsCatalog.forEach(policy => {
+            console.log(`Policy: ${policy.name}, Device Statuses:`, policy.deviceStatuses?.length || 0);
+        });
     }
 } catch (error) {
     console.error('Error fetching settings catalog:', error);
@@ -2443,20 +2425,9 @@ let deviceStates = policyDeviceStates[policy.id];
 let successRate = 'Not loaded';
 let assignedCount = 'Unknown';
 
-// For Settings Catalog policies, check if we have deviceStatuses directly on the policy
-if (policy.policyType === 'Settings Catalog' && policy.deviceStatuses && policy.deviceStatuses.length > 0) {
-    // Process the device statuses
-    deviceStates = policy.deviceStatuses.map(status => ({
-        deviceId: status.id,
-        deviceName: status.deviceDisplayName || 'Unknown Device',
-        userPrincipalName: status.userPrincipalName || 'N/A',
-        state: mapSettingsCatalogState(status.state),
-        lastReported: status.lastReportedDateTime,
-        errorDescription: status.errorDescription
-    }));
-    
-    // Cache them
-    policyDeviceStates[policy.id] = deviceStates;
+// Debug logging
+if (policy.policyType === 'Settings Catalog') {
+    console.log(`Displaying ${policy.name}: cached states = ${deviceStates?.length || 0}`);
 }
 
 if (deviceStates && deviceStates.length > 0) {
@@ -2515,16 +2486,48 @@ if (deviceStates && deviceStates.length > 0) {
         for (const policy of allPolicies) {
             try {
                 // For Settings Catalog policies, use a different approach
-                if (policy.policyType === 'Settings Catalog') {
-                    // Settings Catalog policies need a different endpoint
-                    const response = await fetch(
-                        `https://graph.microsoft.com/beta/deviceManagement/configurationPolicies('${policy.id}')/deviceStatuses`,
-                        {
-                            headers: {
-                                'Authorization': `Bearer ${accessToken}`
-                            }
-                        }
-                    );
+if (policy.policyType === 'Settings Catalog') {
+    try {
+        console.log(`Fetching device statuses for Settings Catalog policy: ${policy.name || policy.id}`);
+        
+        const response = await fetch(
+            `https://graph.microsoft.com/beta/deviceManagement/configurationPolicies/${policy.id}/deviceStatuses`,
+            {
+                headers: {
+                    'Authorization': `Bearer ${accessToken}`
+                }
+            }
+        );
+        
+        if (response.ok) {
+            const data = await response.json();
+            const deviceStatuses = data.value || [];
+            
+            console.log(`Found ${deviceStatuses.length} device statuses for ${policy.name}`);
+            
+            const deviceStates = deviceStatuses.map(status => ({
+                deviceId: status.id || 'unknown',
+                deviceName: status.deviceDisplayName || 'Unknown Device',
+                userPrincipalName: status.userPrincipalName || status.userName || 'N/A',
+                state: mapSettingsCatalogState(status.state || status.complianceState || 'unknown'),
+                lastReported: status.lastReportedDateTime || status.checkinDateTime,
+                errorDescription: status.errorDescription || null,
+                settingStates: []
+            }));
+            
+            if (deviceStates.length > 0) {
+                policyDeviceStates[policy.id] = deviceStates;
+                console.log(`Cached ${deviceStates.length} device states for policy ${policy.id}`);
+            }
+        } else {
+            console.error(`Failed to fetch device statuses: ${response.status} ${response.statusText}`);
+            const errorText = await response.text();
+            console.error('Error response:', errorText);
+        }
+    } catch (error) {
+        console.error(`Error fetching device statuses for Settings Catalog policy ${policy.id}:`, error);
+    }
+}
                     
                     if (response.ok) {
                         const data = await response.json();
