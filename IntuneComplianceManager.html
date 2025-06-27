@@ -1711,7 +1711,7 @@
                 const progress = Math.min(i + limit, requests.length);
                 showNotification(`Processing ${progress} of ${requests.length} requests...`, 'info', 2000);
                 
-                const batchResults = await Promise.allSettled(batch.map(req => req())); // Execute each function in the batch
+                const batchResults = batch ? await Promise.allSettled(batch.map(req => req())) : [];
                 
                 // Process results
                 batchResults.forEach(result => {
@@ -2725,45 +2725,29 @@ if (adminRes.ok) {
         console.log('Using refreshed token for device status calls');
 
         // Create an array of fetch functions to be rate-limited
-        const fetchRequests = policiesToUpdate.map(policy => async () => {
-            try {
-                // Use the deviceSettingStateSummaries endpoint, which is the most appropriate for Settings Catalog
-                const endpoint = `deviceManagement/configurationPolicies/${policy.id}/deviceSettingStateSummaries`;
-                const response = await fetch(`https://graph.microsoft.com/beta/${endpoint}`, {
-                    headers: { 'Authorization': `Bearer ${accessToken}` }
-                });
-
-                if (!response.ok) {
-                    console.error(`Failed to fetch summary for policy '${policy.name}' (${policy.id}): ${response.status}`);
-                    // Mark as failed so we don't try again
-                    policyDeviceStates[policy.id] = [{ state: 'summary', total: 'Error', compliant: 0, noncompliant: 0, pending: 0 }];
-                    return;
-                }
-
-                const summaryData = await response.json();
-                const settingStates = summaryData.value || [];
-
-                // Calculate the overview from the setting states returned by the API
-                const successCount = settingStates.filter(s => s.state === 'compliant' || s.state === 'succeeded').length;
-                const errorCount = settingStates.filter(s => s.state === 'error' || s.state === 'nonCompliant' || s.state === 'conflict').length;
-                const pendingCount = settingStates ? settingStates.filter(s => s && s.state === 'pending').length : 0;
-                const notApplicableCount = settingStates.filter(s => s.state === 'notApplicable').length;
-                const totalDevices = successCount + errorCount + pendingCount + notApplicableCount;
-
-                // Cache the calculated summary
-                policyDeviceStates[policy.id] = [{
-                    state: 'summary',
-                    total: totalDevices,
-                    compliant: successCount + notApplicableCount, // Treat N/A as compliant
-                    noncompliant: errorCount,
-                    pending: pendingCount
-                }];
-
-            } catch (error) {
-                console.error(`Error processing Settings Catalog policy ${policy.name}:`, error);
-                policyDeviceStates[policy.id] = [{ state: 'summary', total: 'Error', compliant: 0, noncompliant: 0, pending: 0 }];
-            }
-        });
+const fetchRequests = policiesToUpdate.map(policy => async () => {
+    try {
+        // Configuration policies don't support deviceSettingStateSummaries endpoint
+        // Instead, return a default summary
+        console.log(`Configuration policy '${policy.name}' doesn't support device state summaries`);
+        
+        // Set a default state indicating this endpoint isn't supported
+        policyDeviceStates[policy.id] = [{
+            state: 'summary',
+            total: 'N/A',
+            compliant: 0,
+            noncompliant: 0,
+            pending: 0,
+            error: 'Configuration policies do not support device state summaries'
+        }];
+        
+        return;
+        
+    } catch (error) {
+        console.error(`Error processing Settings Catalog policy ${policy.name}:`, error);
+        policyDeviceStates[policy.id] = [{ state: 'summary', total: 'Error', compliant: 0, noncompliant: 0, pending: 0 }];
+    }
+});
 
         // Use the rate-limiting function to execute all requests
         await fetchWithRateLimit(fetchRequests, 3, 1500);
@@ -2778,7 +2762,7 @@ if (adminRes.ok) {
         console.error('A critical error occurred while loading device status:', error);
         showNotification('Failed to load device status. Please check the console.', 'error');
     } finally {
-        btn.disabled = false;
+        if (btn) btn.disabled = false;
         btn.textContent = 'Load Device Status';
     }
 }
