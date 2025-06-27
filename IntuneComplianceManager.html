@@ -2821,7 +2821,7 @@
                 <td>${policy.displayName || policy.name || 'Unnamed'}</td>
                 <td><span class="policy-tag">${policy.policyType}</span></td>
                 <td>${policy.description || 'N/A'}</td>
-                <td>${policy.platforms ? policy.platforms.join(', ') : (policy.platform || 'All')}</td>
+                <td>${Array.isArray(policy.platforms) ? policy.platforms.join(', ') : (policy.platforms || policy.platform || 'All')}</td>
                 <td>${assignedCount}</td>
                 <td>${successRate}</td>
                 <td>
