@@ -1622,31 +1622,27 @@
             initializeMSAL(clientId);
         }
     });
-});
-            console.log('Intune Compliance Manager initializing...');
+    console.log('Intune Compliance Manager initializing...');
             
-            // Start inactivity timer if authenticated and main app is shown
-            if (sessionStorage.getItem('intunePolicyManagerAuth')) {
-                document.addEventListener('click', resetInactivityTimer);
-                document.addEventListener('keypress', resetInactivityTimer);
-                document.addEventListener('scroll', resetInactivityTimer);
-                document.addEventListener('mousemove', resetInactivityTimer);
-                resetInactivityTimer();
-            }
+    // Start inactivity timer if authenticated and main app is shown
+    if (sessionStorage.getItem('intunePolicyManagerAuth')) {
+        document.addEventListener('click', resetInactivityTimer);
+        document.addEventListener('keypress', resetInactivityTimer);
+        document.addEventListener('scroll', resetInactivityTimer);
+        document.addEventListener('mousemove', resetInactivityTimer);
+        resetInactivityTimer();
+    }
 
-            const redirectUri = window.location.origin + window.location.pathname;
-            document.getElementById('redirectUri').textContent = redirectUri;
-            
-            // Don't check for saved config initially - let user enter it
-            // const savedClientId = localStorage.getItem('intuneComplianceClientId');
-            // if (savedClientId) {
-            //     document.getElementById('clientId').value = savedClientId;
-            //     initializeMSAL(savedClientId);
-            // } else {
-            //     // Ensure the clientId input is enabled if no saved ID
-            //     document.getElementById('clientId').disabled = false;
-            // }
-        });
+    // Don't check for saved config initially - let user enter it
+    // const savedClientId = localStorage.getItem('intuneComplianceClientId');
+    // if (savedClientId) {
+    //     document.getElementById('clientId').value = savedClientId;
+    //     initializeMSAL(savedClientId);
+    // } else {
+    //     // Ensure the clientId input is enabled if no saved ID
+    //     document.getElementById('clientId').disabled = false;
+    // }
+});
 
 // Notification system
         function showNotification(message, type = 'info', duration = 5000) {
