@@ -3432,6 +3432,42 @@ function mapSettingsCatalogState(state) {
                             </tbody>
                         </table>
                     </div>
+
+                                        ${(() => {
+                        // Get top non-compliant devices
+                        const nonCompliantDevices = complianceData
+                            .filter(d => d.complianceState === ‘noncompliant’)
+                            .slice(0, 15);
+                        
+                        if (nonCompliantDevices.length > 0) {
+                            return `
+                                <div class=“section”>
+                                    <h2>Non-Compliant Devices (Top 15)</h2>
+                                    <table class=“platform-table”>
+                                        <thead>
+                                            <tr>
+                                                <th>Device Name</th>
+                                                <th>User</th>
+                                                <th>Platform</th>
+                                                <th>Last Sync</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            ${nonCompliantDevices.map(device => `
+                                                <tr>
+                                                    <td>${device.deviceName}</td>
+                                                    <td>${device.userPrincipalName || ‘N/A’}</td>
+                                                    <td>${device.operatingSystem}</td>
+                                                    <td>${formatDate(device.lastSyncDateTime)}</td>
+                                                </tr>
+                                            `).join(‘’)}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            `;
+                        }
+                        return ‘’;
+                    })()}
                     
                     <div class="section">
                         <h2>Policy Summary</h2>
@@ -3466,100 +3502,80 @@ function mapSettingsCatalogState(state) {
                             </tbody>
                         </table>
                     </div>
-                    
+                                       
                     ${(() => {
-                        // Get top non-compliant devices
-                        const nonCompliantDevices = complianceData
-                            .filter(d => d.complianceState === 'noncompliant')
-                            .slice(0, 15);
-                        
-                        if (nonCompliantDevices.length > 0) {
-                            return `
-                                <div class="section">
-                                    <h2>Non-Compliant Devices (Top 15)</h2>
-                                    <table class="platform-table">
-                                        <thead>
-                                            <tr>
-                                                <th>Device Name</th>
-                                                <th>User</th>
-                                                <th>Platform</th>
-                                                <th>Last Sync</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody>
-                                            ${nonCompliantDevices.map(device => `
-                                                <tr>
-                                                    <td>${device.deviceName}</td>
-                                                    <td>${device.userPrincipalName || 'N/A'}</td>
-                                                    <td>${device.operatingSystem}</td>
-                                                    <td>${formatDate(device.lastSyncDateTime)}</td>
-                                                </tr>
-                                            `).join('')}
-                                        </tbody>
-                                    </table>
-                                </div>
-                            `;
-                        }
-                        return '';
-                    })()}
-                    
-                    ${(() => {
-                        // Add policy success rates if available
-                        const policiesWithStates = Object.entries(policyDeviceStates).map(([policyId, states]) => {
-                            const allPolicies = [
-                                ...policyData,
-                                ...configurationProfiles,
-                                ...settingsCatalog,
-                                ...adminTemplates
-                            ];
-                            
-                            const policy = allPolicies.find(p => p.id === policyId);
-                            if (!policy || states.length === 0) return null;
-                            
-                            const successCount = states.filter(s => 
-                                s.state === 'compliant' || s.state === 'succeeded' || s.state === 'notApplicable'
-                            ).length;
-                            
-                            return {
-                                name: policy.displayName || policy.name,
-                                type: policy.policyType || 'Unknown',
-                                total: states.length,
-                                success: successCount,
-                                rate: Math.round((successCount / states.length) * 100)
-                            };
-                        }).filter(Boolean);
-                        
-                        if (policiesWithStates.length > 0) {
-                            policiesWithStates.sort((a, b) => a.rate - b.rate);
-                            
-                            return `
-                                <div class="section">
-                                    <h2>Policy Success Rates</h2>
-                                    <table class="platform-table">
-                                        <thead>
-                                            <tr>
-                                                <th>Policy Name</th>
-                                                <th>Type</th>
-                                                <th>Success Rate</th>
-                                                <th>Devices</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody>
-                                            ${policiesWithStates.slice(0, 20).map(policy => `
-                                                <tr>
-                                                    <td>${policy.name}</td>
-                                                    <td>${policy.type}</td>
-                                                    <td>${policy.rate}%</td>
-                                                    <td>${policy.success} of ${policy.total}</td>
-                                                </tr>
-                                            `).join('')}
-                                        </tbody>
-                                    </table>
-                                </div>
-                            `;
-                        }
-                        return '';
-                    })()} 
+    // Add policy success rates for ALL policies
+    // Get all policies from all sources
+    const allPolicies = [
+        ...policyData.map(p => ({...p, policyType: 'Compliance Policy'})),
+        ...configurationProfiles.map(p => ({...p, policyType: 'Device Configuration'})),
+        ...settingsCatalog.map(p => ({...p, policyType: 'Settings Catalog'})),
+        ...adminTemplates.map(p => ({...p, policyType: 'Administrative Template'}))
+    ];
+
+    const policiesWithStates = allPolicies.map(policy => {
+        const states = policyDeviceStates[policy.id] || [];
+        
+        if (states.length === 0) {
+            return {
+                name: policy.displayName || policy.name || 'Unnamed',
+                type: policy.policyType,
+                total: 0,
+                success: 0,
+                rate: 'N/A'
+            };
+        }
+        
+        const successCount = states.filter(s => 
+            s.state === 'compliant' || s.state === 'succeeded' || s.state === 'notApplicable'
+        ).length;
+        
+        return {
+            name: policy.displayName || policy.name,
+            type: policy.policyType,
+            total: states.length,
+            success: successCount,
+            rate: Math.round((successCount / states.length) * 100)
+        };
+    });
+    
+    if (allPolicies.length > 0) {
+        // Sort by rate (N/A goes to bottom)
+        policiesWithStates.sort((a, b) => {
+            if (a.rate === 'N/A' && b.rate === 'N/A') return 0;
+            if (a.rate === 'N/A') return 1;
+            if (b.rate === 'N/A') return -1;
+            return a.rate - b.rate;
+        });
+        
+        return `
+            <div class="section">
+                <h2>Policy Success Rates</h2>
+                <table class="platform-table">
+                    <thead>
+                        <tr>
+                            <th>Policy Name</th>
+                            <th>Type</th>
+                            <th>Success Rate</th>
+                            <th>Devices</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${policiesWithStates.map(policy => `
+                            <tr>
+                                <td>${policy.name}</td>
+                                <td>${policy.type}</td>
+                                <td>${policy.rate === 'N/A' ? 'Not loaded' : policy.rate + '%'}</td>
+                                <td>${policy.total === 0 ? 'No data' : `${policy.success} of ${policy.total}`}</td>
+                            </tr>
+                        `).join('')}
+                    </tbody>
+                </table>
+            </div>
+        `;
+    }
+    return '';
+})()} 
                     
                     <div class="footer">
                         <p>Generated by Intune Compliance Manager</p>
