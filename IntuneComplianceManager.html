@@ -1582,22 +1582,47 @@
 
         // Execute when the DOM is fully loaded
         document.addEventListener('DOMContentLoaded', async function() {
-            // Check for authentication first
-            if (!checkSessionExpiry() && sessionStorage.getItem('intunePolicyManagerAuth')) {
-                // If already authenticated in this session, show the app immediately
-                showMainApplication();
-            } else {
-                // If not authenticated, run the password prompt
-                try {
-                    await authenticateUser();
-                    showMainApplication(); // Only show if authentication passes
-                } catch (error) {
-                    console.error("Authentication failed:", error.message);
-                    // showAccessDenied() handles displaying the appropriate screen
-                    return; // Stop further script execution if authentication failed
-                }
-            }
+    // Check for authentication first
+    if (!checkSessionExpiry() && sessionStorage.getItem('intunePolicyManagerAuth')) {
+        // If already authenticated in this session, show the app immediately
+        showMainApplication();
+    } else {
+        // If not authenticated, run the password prompt
+        try {
+            await authenticateUser();
+            showMainApplication();
+        } catch (error) {
+            console.error("Authentication failed:", error.message);
+            // showAccessDenied() handles displaying the appropriate screen
+            return; // Stop further script execution if authentication failed
+        }
+    }
 
+    console.log('Intune Compliance Manager initializing...');
+
+    // Start inactivity timer if authenticated and main app is shown
+    if (sessionStorage.getItem('intunePolicyManagerAuth')) {
+        document.addEventListener('click', resetInactivityTimer);
+        document.addEventListener('keypress', resetInactivityTimer);
+        document.addEventListener('scroll', resetInactivityTimer);
+        document.addEventListener('mousemove', resetInactivityTimer);
+        resetInactivityTimer();
+    }
+
+    const redirectUri = window.location.origin + window.location.pathname;
+    document.getElementById('redirectUri').textContent = redirectUri;
+
+    const clientIdInput = document.getElementById('clientId');
+    clientIdInput.value = '';
+
+    clientIdInput.addEventListener('input', function() {
+        const clientId = this.value.trim();
+        if (clientId && clientId.match(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i)) {
+            localStorage.setItem('intuneComplianceClientId', clientId);
+            initializeMSAL(clientId);
+        }
+    });
+});
             console.log('Intune Compliance Manager initializing...');
             
             // Start inactivity timer if authenticated and main app is shown
@@ -2595,72 +2620,65 @@
         }
 
         function displayPolicyData() {
-            const tableBody = document.getElementById('policiesTableBody');
-            const tableContainer = document.getElementById('policiesTableContainer');
-            const emptyState = document.getElementById('policiesEmpty');
-            
-            // Combine all policy types
-            const allPolicies = [
-                ...policyData.map(p => ({...p, policyType: 'Compliance Policy'})),
-                ...configurationProfiles.map(p => ({...p, policyType: 'Device Configuration'})),
-                ...settingsCatalog.map(p => ({...p, policyType: 'Settings Catalog'})),
-                ...adminTemplates.map(p => ({...p, policyType: 'Administrative Template'}))
-            ];
-            
-            if (allPolicies.length === 0) {
-                tableContainer.style.display = 'none';
-                emptyState.style.display = 'block';
-                document.getElementById('exportPoliciesBtn').disabled = true;
-                document.getElementById('loadDeviceStatusBtn').style.display = 'none';
-                return;
+    const tableBody = document.getElementById('policiesTableBody');
+    const tableContainer = document.getElementById('policiesTableContainer');
+    const emptyState = document.getElementById('policiesEmpty');
+
+    // Combine all policy types
+    const allPolicies = [
+        ...policyData.map(p => ({ ...p, policyType: 'Compliance Policy' })),
+        ...configurationProfiles.map(p => ({ ...p, policyType: 'Device Configuration' })),
+        ...settingsCatalog.map(p => ({ ...p, policyType: 'Settings Catalog' })),
+        ...adminTemplates.map(p => ({ ...p, policyType: 'Administrative Template' }))
+    ];
+
+    if (allPolicies.length === 0) {
+        tableContainer.style.display = 'none';
+        emptyState.style.display = 'block';
+        document.getElementById('exportPoliciesBtn').disabled = true;
+        document.getElementById('loadDeviceStatusBtn').style.display = 'none';
+        return;
+    }
+
+    tableContainer.style.display = 'block';
+    emptyState.style.display = 'none';
+    document.getElementById('exportPoliciesBtn').disabled = false;
+    document.getElementById('loadDeviceStatusBtn').style.display = 'inline-block';
+
+    tableBody.innerHTML = allPolicies.map(policy => {
+        let successRate = 'Not loaded';
+        let assignedCount = 'Not loaded';
+
+        // Check if a summary object exists in the cache
+        let summaryState = policyDeviceStates[policy.id];
+        if (summaryState && summaryState.length > 0 && summaryState[0].state === 'summary') {
+            const summary = summaryState[0];
+            assignedCount = summary.total;
+            if (summary.total > 0) {
+                successRate = `${Math.round((summary.compliant / summary.total) * 100)}%`;
+            } else {
+                successRate = '100%'; // No devices assigned
             }
-            
-            tableContainer.style.display = 'block';
-            emptyState.style.display = 'none';
-            document.getElementById('exportPoliciesBtn').disabled = false;
-            document.getElementById('loadDeviceStatusBtn').style.display = 'inline-block';
-            
-            tableBody.innerHTML = allPolicies.map(policy => {
-                // Calculate success rate if device states are available
-                let deviceStates = policyDeviceStates[policy.id];
-                let successRate = 'Not loaded';
-                let assignedCount = 'Unknown';
-
-                // Debug logging
-                if (policy.policyType === 'Settings Catalog') {
-                    console.log(`Displaying ${policy.name}: cached states = ${deviceStates?.length || 0}`);
-                }
-
-                if (deviceStates && deviceStates.length > 0) {
-                    const successCount = deviceStates.filter(s => 
-                        s.state === 'compliant' || s.state === 'succeeded' || s.state === 'notApplicable'
-                    ).length;
-                    successRate = `${Math.round((successCount / deviceStates.length) * 100)}%`;
-                    assignedCount = deviceStates.length;
-                }
-                
-                return `
-                    <tr>
-                        <td>${policy.displayName || policy.name || 'Unnamed'}
-                            ${policy.policyType === 'Settings Catalog' && policy.deviceStatuses ? 
-                                ` <small style="color: #059669;">(${policy.deviceStatuses.length} devices)</small>` : 
-                                ''}
-                        </td>
-                        <td><span class="policy-tag">${policy.policyType}</span></td>
-                        <td>${policy.description || 'N/A'}</td>
-                        <td>${policy.platform || policy.platforms || 'All'}</td>
-                        <td>${assignedCount}</td>
-                        <td>${successRate}</td>
-                        <td>
-                            <button class="btn btn-primary" onclick="viewPolicyDeviceStatus('${policy.id}', '${policy.policyType}', '${policy.displayName || policy.name}')">
-                                View Devices
-                            </button>
-                        </td>
-                    </tr>
-                `;
-            }).join('');
         }
 
+        return `
+            <tr>
+                <td>${policy.displayName || policy.name || 'Unnamed'}</td>
+                <td><span class="policy-tag">${policy.policyType}</span></td>
+                <td>${policy.description || 'N/A'}</td>
+                <td>${policy.platforms ? policy.platforms.join(', ') : (policy.platform || 'All')}</td>
+                <td>${assignedCount}</td>
+                <td>${successRate}</td>
+                <td>
+                    <button class="btn btn-primary" onclick="viewPolicyDetails('${policy.id}', '${policy.policyType}')" title="View policy definition details. Device status is shown in the table.">
+                        View Details
+                    </button>
+                </td>
+            </tr>
+        `;
+    }).join('');
+}
+        
         // Load device status for all policies
         async function loadPolicyDeviceStatus() {
     if (!account) {
@@ -2739,6 +2757,25 @@
                 console.error(`Error processing policy ${policy.displayName}:`, error);
             }
         });
+
+        // Use the rate-limiting function to execute all requests
+        await fetchWithRateLimit(fetchRequests, 5, 1000);
+
+        // Refresh the display with the new summary data
+        displayPolicyData();
+        updateDashboard();
+
+        btn.textContent = 'Refresh Device Status';
+        showNotification('Device status loading complete.', 'success');
+
+    } catch (error) {
+        console.error('Error loading policy device status:', error);
+        showNotification('Failed to load device status. Please try again.', 'error');
+        btn.textContent = 'Load Device Status';
+    } finally {
+        btn.disabled = false;
+    }
+}
 
         // Use the rate-limiting function to execute all requests
         await fetchWithRateLimit(fetchRequests, 5, 1000);
