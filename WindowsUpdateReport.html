@@ -1165,28 +1165,34 @@
             addPageHeader(pdf, title, pageNum);
             
             const canvas = document.getElementById(chartId);
-            const imgData = canvas.toDataURL('image/png', 1.0); // Use high quality PNG
+            const imgData = canvas.toDataURL('image/png', 1.0); 
             
             const pageWidth = pdf.internal.pageSize.getWidth();
             const pageHeight = pdf.internal.pageSize.getHeight();
             const margin = 20;
             const contentWidth = pageWidth - margin * 2;
+            const maxHeight = 120; // Max height for a chart to avoid being too large
             
-            // Scale the chart to be large and readable, using 90% of content width
-            const imgWidth = contentWidth * 0.9;
-            const aspectRatio = canvas.height / canvas.width;
-            const imgHeight = imgWidth * aspectRatio;
-            
+            // Calculate image dimensions to fit within a bounding box, preserving aspect ratio
+            const aspectRatio = canvas.width / canvas.height;
+            let imgWidth = contentWidth * 0.8; // Use 80% of content width as a base
+            let imgHeight = imgWidth / aspectRatio;
+
+            if (imgHeight > maxHeight) {
+                imgHeight = maxHeight;
+                imgWidth = imgHeight * aspectRatio;
+            }
+
             // Center the image horizontally and place it vertically after the header
             const x = (pageWidth - imgWidth) / 2;
-            const y = 45;
+            const y = 50;
             
             pdf.addImage(imgData, 'PNG', x, y, imgWidth, imgHeight);
             
             // Add chart insights below the chart
             const insights = getChartInsights(chartId);
             if (insights) {
-                let textY = y + imgHeight + 15;
+                let textY = y + imgHeight + 20;
                 pdf.setFontSize(11);
                 pdf.setFont(undefined, 'normal');
                 
@@ -1202,6 +1208,7 @@
                         pdf.text(line, margin, textY);
                         textY += 6;
                     });
+                    textY += 4; // Add a little space between bullet points
                 });
             }
             
@@ -1270,8 +1277,10 @@
                     cellPadding: 2,
                 },
                 columnStyles: {
-                    0: { cellWidth: 75 }, // Generous width for the name
-                    1: { cellWidth: 30 },
+                    // A4 page width is 210mm. Margins are 20mm each side. Content width = 170mm.
+                    // New widths add up to 170mm.
+                    0: { cellWidth: 65 }, 
+                    1: { cellWidth: 25 },
                     2: { cellWidth: 20 },
                     3: { cellWidth: 25 },
                     4: { cellWidth: 15, halign: 'center' },
