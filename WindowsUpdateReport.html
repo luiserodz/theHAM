@@ -412,7 +412,7 @@
                     
                     <div class="form-group">
                         <label for="reportPeriod">Report Period</label>
-                        <input type="text" id="reportPeriod" placeholder="e.g., January 2025" />
+                        <input type="text" id="reportPeriod" placeholder="e.g., July 2025" />
                     </div>
                     
                     <div class="form-group">
@@ -623,7 +623,7 @@
                 if (values.length === headers.length) {
                     const row = {};
                     headers.forEach((header, index) => {
-                        row[header] = values[index] || '';
+                        row[header.trim()] = values[index] || '';
                     });
                     if (row['Update Name']) { // Only add rows with update names
                         csvData.push(row);
@@ -839,7 +839,7 @@
             charts.deployment = new Chart(ctx, {
                 type: 'bar',
                 data: {
-                    labels: deploymentData.map(d => d.name.substring(0, 30) + '...'),
+                    labels: deploymentData.map(d => d.name.substring(0, 30) + (d.name.length > 30 ? '...' : '')),
                     datasets: [
                         {
                             label: 'Deployed',
@@ -858,10 +858,20 @@
                     maintainAspectRatio: false,
                     scales: {
                         x: {
-                            display: false
+                            display: false // Hiding labels to keep it clean
                         },
                         y: {
-                            beginAtZero: true
+                            beginAtZero: true,
+                            stacked: true,
+                        }
+                    },
+                    plugins: {
+                        tooltip: {
+                           callbacks: {
+                               title: (context) => {
+                                   return deploymentData[context[0].dataIndex].name;
+                               }
+                           }
                         }
                     }
                 }
@@ -905,6 +915,7 @@
                         data: sortedMonths.map(month => monthCounts[month]),
                         borderColor: '#0078d4',
                         backgroundColor: 'rgba(0, 120, 212, 0.1)',
+                        fill: true,
                         tension: 0.4
                     }]
                 },
@@ -970,7 +981,7 @@
             const pageHeight = pdf.internal.pageSize.getHeight();
             let currentPage = 1;
             
-            // Title page
+            // --- Title page ---
             updateProgress(20, 'Creating title page...');
             
             // Add logo/header background
@@ -1025,11 +1036,9 @@
             metrics.forEach((metric, i) => {
                 const x = startX + (i * (boxWidth + 10));
                 
-                // Box background
                 pdf.setFillColor(...metric.color);
                 pdf.rect(x, y, boxWidth, boxHeight, 'F');
                 
-                // Text
                 pdf.setTextColor(255, 255, 255);
                 pdf.setFontSize(16);
                 pdf.setFont(undefined, 'bold');
@@ -1042,7 +1051,7 @@
             
             pdf.setTextColor(0, 0, 0);
             
-            // Executive Summary (if enabled)
+            // --- Executive Summary (if enabled) ---
             if (document.getElementById('includeSummary').checked) {
                 updateProgress(30, 'Adding executive summary...');
                 
@@ -1087,7 +1096,7 @@
                 });
             }
             
-            // Charts
+            // --- Charts ---
             updateProgress(50, 'Adding charts...');
             
             if (document.getElementById('includeSeverityChart').checked) {
@@ -1102,14 +1111,14 @@
                 currentPage = await addChartToPDF(pdf, 'trendChart', 'Update Release Timeline', currentPage);
             }
             
-            // Detailed table
+            // --- Detailed table ---
             updateProgress(70, 'Adding detailed tables...');
             
             if (document.getElementById('includeDetailTable').checked) {
                 currentPage = addDetailedTable(pdf, currentPage);
             }
             
-            // Recommendations
+            // --- Recommendations ---
             updateProgress(85, 'Adding recommendations...');
             
             if (document.getElementById('includeRecommendations').checked) {
@@ -1129,103 +1138,116 @@
             // Title
             pdf.setFontSize(14);
             pdf.setFont(undefined, 'bold');
+            pdf.setTextColor(51, 51, 51);
             pdf.text(title, 20, 15);
             
             // Page number
             pdf.setFontSize(10);
             pdf.setFont(undefined, 'normal');
+            pdf.setTextColor(108, 117, 125);
             pdf.text(`Page ${pageNum}`, pageWidth - 20, 15, { align: 'right' });
             
             // Line
             pdf.setDrawColor(0, 120, 212);
             pdf.setLineWidth(0.5);
             pdf.line(0, 25, pageWidth, 25);
+
+            // Reset text color for content
+            pdf.setTextColor(0, 0, 0);
         }
         
+        // =================================================================
+        // === SCALING FIX: This function has been updated for better scaling ===
+        // =================================================================
         async function addChartToPDF(pdf, chartId, title, pageNum) {
             pdf.addPage();
             pageNum++;
             addPageHeader(pdf, title, pageNum);
             
             const canvas = document.getElementById(chartId);
-            const imgData = canvas.toDataURL('image/png', 0.95);
+            const imgData = canvas.toDataURL('image/png', 1.0); // Use high quality PNG
             
             const pageWidth = pdf.internal.pageSize.getWidth();
+            const pageHeight = pdf.internal.pageSize.getHeight();
             const margin = 20;
-            const maxWidth = pageWidth - (margin * 2);
-            const maxHeight = 120;
+            const contentWidth = pageWidth - margin * 2;
             
-            // Calculate dimensions
+            // Scale the chart to be large and readable, using 90% of content width
+            const imgWidth = contentWidth * 0.9;
             const aspectRatio = canvas.height / canvas.width;
-            let width = maxWidth;
-            let height = width * aspectRatio;
+            const imgHeight = imgWidth * aspectRatio;
             
-            if (height > maxHeight) {
-                height = maxHeight;
-                width = height / aspectRatio;
-            }
-            
-            // Center the image
-            const x = (pageWidth - width) / 2;
+            // Center the image horizontally and place it vertically after the header
+            const x = (pageWidth - imgWidth) / 2;
             const y = 45;
             
-            pdf.addImage(imgData, 'PNG', x, y, width, height);
+            pdf.addImage(imgData, 'PNG', x, y, imgWidth, imgHeight);
             
-            // Add chart insights below
+            // Add chart insights below the chart
             const insights = getChartInsights(chartId);
             if (insights) {
-                let textY = y + height + 15;
+                let textY = y + imgHeight + 15;
                 pdf.setFontSize(11);
                 pdf.setFont(undefined, 'normal');
                 
                 insights.forEach(insight => {
-                    const lines = pdf.splitTextToSize(`• ${insight}`, pageWidth - 40);
+                    const lines = pdf.splitTextToSize(`• ${insight}`, contentWidth);
                     lines.forEach(line => {
-                        pdf.text(line, 20, textY);
+                         if (textY > pageHeight - 30) { // Check for page overflow
+                            pdf.addPage();
+                            pageNum++;
+                            addPageHeader(pdf, `${title} (continued)`, pageNum);
+                            textY = 40;
+                        }
+                        pdf.text(line, margin, textY);
                         textY += 6;
                     });
                 });
             }
             
-            return pageNum;
+            return pdf.internal.getNumberOfPages();
         }
-        
+
         function getChartInsights(chartId) {
             const stats = generateStatistics();
             
             switch(chartId) {
                 case 'severityChart':
                     return [
-                        `${Math.round((stats.criticalUpdates / stats.totalUpdates) * 100)}% of updates are classified as Critical severity`,
-                        `${Object.keys(stats.severityCounts).length} different severity levels identified across all updates`,
-                        stats.criticalUpdates > 5 ? 'High number of critical updates indicates elevated security risk' : 'Critical update count is within acceptable range'
+                        `${Math.round((stats.criticalUpdates / stats.totalUpdates) * 100)}% of updates are classified as Critical severity.`,
+                        `${Object.keys(stats.severityCounts).length} different severity levels identified across all updates.`,
+                        stats.criticalUpdates > 5 ? 'High number of critical updates indicates elevated security risk.' : 'Critical update count is within acceptable range.'
                     ];
                 case 'deploymentChart':
                     return [
-                        `Top 10 updates shown represent the highest deployment volumes`,
-                        `${stats.totalMissing} total missing deployments across all updates`,
-                        `Average deployment success rate: ${stats.complianceRate}%`
+                        `The chart shows the top 10 updates with the highest deployment volumes (deployed + missing).`,
+                        `A total of ${stats.totalMissing} deployments are pending across all updates.`,
+                        `The overall deployment compliance rate is ${stats.complianceRate}%.`
                     ];
                 case 'trendChart':
                     return [
-                        'Update release frequency shows Microsoft\'s regular patch cycle',
-                        'Peaks typically align with Patch Tuesday releases',
-                        'Consistent update flow indicates active security maintenance'
+                        'This chart illustrates the volume of updates released over time, reflecting Microsoft\'s regular patch cycle.',
+                        'Peaks in the timeline typically align with "Patch Tuesday" releases.',
+                        'A consistent flow of updates indicates active security maintenance from the vendor.'
                     ];
                 default:
                     return null;
             }
         }
         
+        // =================================================================
+        // === SCALING FIX: This function has been updated for better scaling ===
+        // =================================================================
         function addDetailedTable(pdf, currentPage) {
             pdf.addPage();
             currentPage++;
             addPageHeader(pdf, 'Detailed Update List', currentPage);
+            const firstTablePage = currentPage;
             
-            // Prepare table data
-            const tableData = csvData.slice(0, 50).map(row => [
-                row['Update Name']?.substring(0, 40) + (row['Update Name']?.length > 40 ? '...' : ''),
-                row['Version']?.substring(0, 15) || '',
+            // Prepare table data - Use ALL data, not just a slice
+            const tableData = csvData.map(row => [
+                row['Update Name'] || '',
+                row['Version']?.substring(0, 20) || '',
                 row['Security Severity'] || '',
                 row['Release Date'] || '',
                 row['Updates Missing'] || '0',
@@ -1240,30 +1262,31 @@
                 theme: 'striped',
                 headStyles: {
                     fillColor: [0, 120, 212],
-                    fontSize: 10,
+                    fontSize: 9,
                     fontStyle: 'bold'
                 },
                 bodyStyles: {
-                    fontSize: 8
+                    fontSize: 8,
+                    cellPadding: 2,
                 },
                 columnStyles: {
-                    0: { cellWidth: 70 },
-                    1: { cellWidth: 25 },
-                    2: { cellWidth: 25 },
-                    3: { cellWidth: 30 },
-                    4: { cellWidth: 20, halign: 'center' },
+                    0: { cellWidth: 75 }, // Generous width for the name
+                    1: { cellWidth: 30 },
+                    2: { cellWidth: 20 },
+                    3: { cellWidth: 25 },
+                    4: { cellWidth: 15, halign: 'center' },
                     5: { cellWidth: 20, halign: 'center' }
                 },
                 didDrawPage: function(data) {
-                    // Add page header to new pages
-                    if (data.pageNumber > 1) {
-                        currentPage++;
-                        addPageHeader(pdf, 'Detailed Update List (continued)', currentPage);
+                    // Add our custom header to all pages created by autoTable after the first one.
+                    if (data.pageNumber > firstTablePage) {
+                        addPageHeader(pdf, 'Detailed Update List (continued)', data.pageNumber);
                     }
                 }
             });
             
-            return currentPage;
+            // Return the new total page count
+            return pdf.internal.getNumberOfPages();
         }
         
         function addRecommendations(pdf, stats, currentPage) {
@@ -1341,7 +1364,7 @@
                 y += 10;
             });
             
-            return currentPage;
+            return pdf.internal.getNumberOfPages();
         }
         
         function updateProgress(percentage, text) {
