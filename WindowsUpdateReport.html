@@ -379,8 +379,8 @@
                 <p>Drag and drop your CSV file here, or click to browse</p>
                 
                 <div class="file-input-wrapper">
-                    <button class="btn">Choose CSV File</button>
-                    <input type="file" id="csvFile" accept=".csv" />
+                    <button class="btn" id="chooseFileBtn">Choose CSV File</button>
+                    <input type="file" id="csvFile" accept=".csv" style="display: none;" />
                 </div>
 
                 <div class="sample-format">
@@ -525,6 +525,7 @@
         
         // DOM elements
         const csvFile = document.getElementById('csvFile');
+        const chooseFileBtn = document.getElementById('chooseFileBtn');
         const uploadSection = document.getElementById('uploadSection');
         const dataPreview = document.getElementById('dataPreview');
         const reportOptions = document.getElementById('reportOptions');
@@ -535,6 +536,11 @@
         
         // File upload handling
         csvFile.addEventListener('change', handleFileUpload);
+        
+        // Connect button to file input
+        chooseFileBtn.addEventListener('click', () => {
+            csvFile.click();
+        });
         
         // Drag and drop
         uploadSection.addEventListener('dragover', (e) => {
