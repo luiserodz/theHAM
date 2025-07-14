@@ -874,7 +874,7 @@
             charts.deployment = new Chart(ctx, {
                 type: 'bar',
                 data: {
-                    labels: deploymentData.map(d => d.name),
+                    labels: deploymentData.map(d => d.name.substring(0, 40) + (d.name.length > 40 ? '...' : '')),
                     datasets: [
                         {
                             label: 'Deployed',
@@ -889,26 +889,26 @@
                     ]
                 },
                 options: {
-                    indexAxis: 'y', // This makes it a horizontal bar chart
                     responsive: true,
                     maintainAspectRatio: false,
                     scales: {
                         x: {
+                            ticks: {
+                                font: {
+                                    size: 12
+                                },
+                                autoSkip: false,
+                                maxRotation: 90,
+                                minRotation: 90
+                            }
+                        },
+                        y: {
                             beginAtZero: true,
                             stacked: false, 
                              ticks: {
                                 font: {
                                     size: 14,
                                 }
-                            }
-                        },
-                        y: {
-                            stacked: false,
-                            ticks: {
-                                font: {
-                                    size: 12,
-                                },
-                                autoSkip: false
                             }
                         }
                     },
@@ -920,6 +920,13 @@
                                     size: 14,
                                 }
                             }
+                        },
+                        tooltip: {
+                           callbacks: {
+                               title: (context) => {
+                                   return deploymentData[context[0].dataIndex].name;
+                               }
+                           }
                         }
                     }
                 }
