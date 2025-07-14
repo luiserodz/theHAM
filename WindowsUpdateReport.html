@@ -1463,16 +1463,19 @@
         function downloadSampleCSV() {
             const sampleData = [
                 ['Update Name', 'Version', 'Security Severity', 'Release Date', 'Updates Missing', 'Recently Deployed', 'Details'],
+                // January Data
                 ['Windows Security Update KB5034441', '2025-01', 'Critical', '2025-01-10', '15', '85', '1'],
                 ['Microsoft Defender Definition Update', '1.403.2956.0', 'Important', '2025-01-12', '3', '97', '1'],
                 ['Microsoft Edge Security Update', '120.0.2210.144', 'Important', '2025-01-08', '8', '92', '1'],
                 ['Windows Cumulative Update KB5034439', '2025-01', 'Moderate', '2025-01-10', '22', '78', '1'],
-                ['.NET Framework Security Update', '4.8.1', 'Important', '2025-01-09', '12', '88', '1'],
-                ['Office Security Update KB5034442', '16.0.17328', 'Critical', '2025-01-10', '5', '95', '1'],
-                ['Windows Defender Update', '1.403.2958.0', 'Important', '2025-01-14', '10', '90', '1'],
-                ['Visual C++ Redistributable Update', '14.38.33130', 'Moderate', '2025-01-05', '30', '70', '1'],
-                ['Windows Malicious Software Removal Tool', '5.120', 'Low', '2025-01-10', '0', '100', '1'],
-                ['SQL Server Security Update', '15.0.4365.2', 'Critical', '2025-01-08', '18', '82', '1']
+                // February Data
+                ['.NET Framework Security Update', '4.8.1', 'Important', '2025-02-09', '12', '88', '1'],
+                ['Office Security Update KB5035552', '16.0.17425', 'Critical', '2025-02-11', '5', '95', '1'],
+                ['Windows Defender Update', '1.404.123.0', 'Important', '2025-02-14', '10', '90', '1'],
+                // December Data
+                ['Visual C++ Redistributable Update', '14.38.33130', 'Moderate', '2024-12-05', '30', '70', '1'],
+                ['Windows Malicious Software Removal Tool', '5.119', 'Low', '2024-12-12', '0', '100', '1'],
+                ['SQL Server Security Update', '15.0.4360.1', 'Critical', '2024-12-12', '18', '82', '1']
             ];
             
             const csvContent = sampleData.map(row => row.join(',')).join('\n');
