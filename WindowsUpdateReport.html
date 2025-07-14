@@ -306,6 +306,8 @@
             border-radius: 8px;
             padding: 20px;
             margin: 15px 0;
+            position: relative;
+            height: 400px; /* Fix for stretching bug */
         }
 
         .chart-title {
@@ -471,17 +473,17 @@
                 
                 <div class="chart-container">
                     <div class="chart-title">Security Severity Distribution</div>
-                    <canvas id="severityChart" width="400" height="250"></canvas>
+                    <canvas id="severityChart"></canvas>
                 </div>
                 
                 <div class="chart-container">
                     <div class="chart-title">Deployment Status Overview</div>
-                    <canvas id="deploymentChart" width="400" height="300"></canvas>
+                    <canvas id="deploymentChart"></canvas>
                 </div>
                 
                 <div class="chart-container">
                     <div class="chart-title">Updates by Release Month</div>
-                    <canvas id="trendChart" width="400" height="300"></canvas>
+                    <canvas id="trendChart"></canvas>
                 </div>
             </div>
 
@@ -819,7 +821,8 @@
                             position: 'right',
                             labels: {
                                 font: {
-                                    size: 14 // Increased legend font size
+                                    size: 14,
+                                    weight: 'bold'
                                 },
                                 boxWidth: 25,
                                 padding: 20
@@ -852,7 +855,7 @@
             charts.deployment = new Chart(ctx, {
                 type: 'bar',
                 data: {
-                    labels: deploymentData.map(d => d.name.substring(0, 25) + (d.name.length > 25 ? '...' : '')),
+                    labels: deploymentData.map(d => d.name),
                     datasets: [
                         {
                             label: 'Deployed',
@@ -867,27 +870,27 @@
                     ]
                 },
                 options: {
+                    indexAxis: 'y', // This makes it a horizontal bar chart
                     responsive: true,
                     maintainAspectRatio: false,
                     scales: {
                         x: {
-                            display: true,
-                            ticks: {
+                            beginAtZero: true,
+                            stacked: false, 
+                             ticks: {
                                 font: {
-                                    size: 12 // Increased font size
-                                },
-                                autoSkip: false,
-                                maxRotation: 45,
-                                minRotation: 45
+                                    size: 14, // Increased font size
+                                    weight: 'bold'
+                                }
                             }
                         },
                         y: {
-                            beginAtZero: true,
-                            stacked: false, // Changed to grouped bar chart
-                             ticks: {
+                            stacked: false,
+                            ticks: {
                                 font: {
-                                    size: 12 // Increased font size
-                                }
+                                    size: 12, // Increased font size
+                                },
+                                autoSkip: false
                             }
                         }
                     },
@@ -896,16 +899,10 @@
                             position: 'top',
                             labels: {
                                 font: {
-                                    size: 14 // Increased font size
+                                    size: 14, // Increased font size
+                                    weight: 'bold'
                                 }
                             }
-                        },
-                        tooltip: {
-                           callbacks: {
-                               title: (context) => {
-                                   return deploymentData[context[0].dataIndex].name;
-                               }
-                           }
                         }
                     }
                 }
@@ -925,14 +922,21 @@
                 const dateStr = row['Release Date'];
                 if (dateStr) {
                     try {
-                        // Try to parse the date
-                        const date = new Date(dateStr);
-                        if (!isNaN(date.getTime())) {
-                            const monthKey = date.toLocaleDateString('en-US', { month: 'short', year: 'numeric' });
-                            monthCounts[monthKey] = (monthCounts[monthKey] || 0) + 1;
+                        // More robust date parsing
+                        const dateParts = dateStr.split(/[-/]/); // handles YYYY-MM-DD and YYYY/MM/DD
+                        if (dateParts.length === 3) {
+                            const year = parseInt(dateParts[0]);
+                            const month = parseInt(dateParts[1]) - 1; // JS months are 0-indexed
+                            const day = parseInt(dateParts[2]);
+                            const date = new Date(year, month, day);
+
+                            if (!isNaN(date.getTime())) {
+                                const monthKey = date.toLocaleDateString('en-US', { month: 'short', year: 'numeric' });
+                                monthCounts[monthKey] = (monthCounts[monthKey] || 0) + 1;
+                            }
                         }
                     } catch (e) {
-                        // Skip invalid dates
+                        console.warn(`Could not parse date: ${dateStr}`);
                     }
                 }
             });
@@ -963,7 +967,8 @@
                          x: {
                             ticks: {
                                 font: {
-                                    size: 12 // Increased font size
+                                    size: 14, // Increased font size
+                                    weight: 'bold'
                                 }
                             }
                         },
@@ -971,7 +976,8 @@
                             beginAtZero: true,
                             ticks: {
                                 font: {
-                                    size: 12 // Increased font size
+                                    size: 14, // Increased font size
+                                    weight: 'bold'
                                 }
                             }
                         }
@@ -981,7 +987,8 @@
                             position: 'top',
                             labels: {
                                 font: {
-                                    size: 14 // Increased font size
+                                    size: 14, // Increased font size
+                                    weight: 'bold'
                                 }
                             }
                         }
@@ -1229,7 +1236,7 @@
             const pageHeight = pdf.internal.pageSize.getHeight();
             const margin = 20;
             const contentWidth = pageWidth - margin * 2;
-            const maxHeight = 120; // A reasonable max height for the chart in mm
+            const maxHeight = 160; // Increased max height for better readability
             
             // Calculate image dimensions to fit within a bounding box, preserving aspect ratio
             const aspectRatio = canvas.width / canvas.height;
@@ -1250,14 +1257,14 @@
 
             // Center the final image horizontally and place it vertically after the header
             const x = (pageWidth - finalWidth) / 2;
-            const y = 45;
+            const y = 40;
             
             pdf.addImage(imgData, 'PNG', x, y, finalWidth, finalHeight);
             
             // Add chart insights below the chart
             const insights = getChartInsights(chartId);
             if (insights) {
-                let textY = y + finalHeight + 20;
+                let textY = y + finalHeight + 15;
                 pdf.setFontSize(11);
                 pdf.setFont(undefined, 'normal');
                 
@@ -1291,8 +1298,9 @@
                         stats.criticalUpdates > 5 ? 'High number of critical updates indicates elevated security risk.' : 'Critical update count is within acceptable range.'
                     ];
                 case 'deploymentChart':
+                    const deploymentData = csvData.filter(d => parseInt(d['Recently Deployed'] || '0') > 0 || parseInt(d['Updates Missing'] || '0') > 0);
                     return [
-                        `The chart shows the top 10 updates with the highest deployment volumes (deployed + missing).`,
+                        `The chart shows the top ${Math.min(10, deploymentData.length)} updates with the highest deployment volumes.`,
                         `A total of ${stats.totalMissing} deployments are pending across all updates.`,
                         `The overall deployment compliance rate is ${stats.complianceRate}%.`
                     ];
