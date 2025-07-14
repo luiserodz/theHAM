@@ -517,6 +517,8 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js"></script>
     <!-- Include jsPDF for PDF generation -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <!-- Include jsPDF AutoTable plugin -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.31/jspdf.plugin.autotable.min.js"></script>
     
     <script>
         // Global variables
@@ -630,8 +632,17 @@
         
         function generateStatistics() {
             const totalUpdates = csvData.length;
-            const totalMissing = csvData.reduce((sum, row) => sum + parseInt(row['Updates Missing'] || 0), 0);
-            const totalDeployed = csvData.reduce((sum, row) => sum + parseInt(row['Recently Deployed'] || 0), 0);
+            
+            // Parse numbers correctly, removing any non-numeric characters
+            const totalMissing = csvData.reduce((sum, row) => {
+                const missing = parseInt(row['Updates Missing']?.replace(/\D/g, '') || '0');
+                return sum + (isNaN(missing) ? 0 : missing);
+            }, 0);
+            
+            const totalDeployed = csvData.reduce((sum, row) => {
+                const deployed = parseInt(row['Recently Deployed']?.replace(/\D/g, '') || '0');
+                return sum + (isNaN(deployed) ? 0 : deployed);
+            }, 0);
             
             const severityCounts = csvData.reduce((acc, row) => {
                 const severity = row['Security Severity'] || 'None';
@@ -642,7 +653,7 @@
             const criticalUpdates = severityCounts['Critical'] || 0;
             const importantUpdates = severityCounts['Important'] || 0;
             
-            // Calculate compliance rate based on deployed vs total deployments needed
+            // Calculate compliance rate
             const totalDeploymentTargets = totalDeployed + totalMissing;
             const complianceRate = totalDeploymentTargets > 0 ? Math.round((totalDeployed / totalDeploymentTargets) * 100) : 100;
             
@@ -674,7 +685,7 @@
                 </div>
                 <div class="stat-card">
                     <div class="stat-number">${stats.totalMissing}</div>
-                    <div class="stat-label">Missing Updates</div>
+                    <div class="stat-label">Missing Deployments</div>
                 </div>
                 <div class="stat-card">
                     <div class="stat-number">${stats.complianceRate}%</div>
@@ -750,9 +761,12 @@
             
             const deploymentData = csvData.map(row => ({
                 name: row['Update Name'],
-                deployed: parseInt(row['Recently Deployed'] || 0),
-                missing: parseInt(row['Updates Missing'] || 0)
-            })).slice(0, 10); // Top 10 updates
+                deployed: parseInt(row['Recently Deployed']?.replace(/\D/g, '') || '0'),
+                missing: parseInt(row['Updates Missing']?.replace(/\D/g, '') || '0')
+            }))
+            .filter(d => d.deployed > 0 || d.missing > 0)
+            .sort((a, b) => (b.deployed + b.missing) - (a.deployed + a.missing))
+            .slice(0, 10);
             
             if (charts.deployment) {
                 charts.deployment.destroy();
@@ -761,7 +775,7 @@
             charts.deployment = new Chart(ctx, {
                 type: 'bar',
                 data: {
-                    labels: deploymentData.map(d => d.name.substring(0, 20) + '...'),
+                    labels: deploymentData.map(d => d.name.substring(0, 30) + '...'),
                     datasets: [
                         {
                             label: 'Deployed',
@@ -781,6 +795,9 @@
                     scales: {
                         x: {
                             display: false
+                        },
+                        y: {
+                            beginAtZero: true
                         }
                     }
                 }
@@ -792,10 +809,17 @@
             
             // Group by month from Release Date
             const monthCounts = csvData.reduce((acc, row) => {
-                const date = new Date(row['Release Date']);
-                if (!isNaN(date)) {
-                    const monthKey = date.toLocaleDateString('en-US', { month: 'short', year: 'numeric' });
-                    acc[monthKey] = (acc[monthKey] || 0) + 1;
+                const dateStr = row['Release Date'];
+                if (dateStr) {
+                    try {
+                        const date = new Date(dateStr);
+                        if (!isNaN(date)) {
+                            const monthKey = date.toLocaleDateString('en-US', { month: 'short', year: 'numeric' });
+                            acc[monthKey] = (acc[monthKey] || 0) + 1;
+                        }
+                    } catch (e) {
+                        // Skip invalid dates
+                    }
                 }
                 return acc;
             }, {});
@@ -804,13 +828,15 @@
                 charts.trend.destroy();
             }
             
+            const sortedMonths = Object.keys(monthCounts).sort((a, b) => new Date(a) - new Date(b));
+            
             charts.trend = new Chart(ctx, {
                 type: 'line',
                 data: {
-                    labels: Object.keys(monthCounts),
+                    labels: sortedMonths,
                     datasets: [{
                         label: 'Updates Released',
-                        data: Object.values(monthCounts),
+                        data: sortedMonths.map(month => monthCounts[month]),
                         borderColor: '#0078d4',
                         backgroundColor: 'rgba(0, 120, 212, 0.1)',
                         tension: 0.4
@@ -876,409 +902,377 @@
         async function createPDFContent(pdf, config) {
             const pageWidth = pdf.internal.pageSize.getWidth();
             const pageHeight = pdf.internal.pageSize.getHeight();
-            let yPosition = 20;
+            let currentPage = 1;
             
             // Title page
             updateProgress(20, 'Creating title page...');
-            pdf.setFontSize(24);
-            pdf.text(config.title, pageWidth / 2, yPosition, { align: 'center' });
             
-            yPosition += 15;
-            pdf.setFontSize(16);
+            // Add logo/header background
+            pdf.setFillColor(0, 120, 212);
+            pdf.rect(0, 0, pageWidth, 60, 'F');
+            
+            // Title
+            pdf.setTextColor(255, 255, 255);
+            pdf.setFontSize(28);
+            pdf.text(config.title, pageWidth / 2, 30, { align: 'center' });
+            
+            // Organization
             if (config.organization) {
-                pdf.text(config.organization, pageWidth / 2, yPosition, { align: 'center' });
-                yPosition += 10;
+                pdf.setFontSize(18);
+                pdf.text(config.organization, pageWidth / 2, 45, { align: 'center' });
             }
-            
-            if (config.period) {
-                pdf.text(`Report Period: ${config.period}`, pageWidth / 2, yPosition, { align: 'center' });
-                yPosition += 10;
-            }
-            
-            pdf.text(`Generated: ${new Date().toLocaleDateString()}`, pageWidth / 2, yPosition, { align: 'center' });
-            
-            // Executive Summary
-            updateProgress(40, 'Adding executive summary...');
-            pdf.addPage();
-            yPosition = 20;
-            
-            pdf.setFontSize(18);
-            pdf.text('Executive Summary', 20, yPosition);
-            yPosition += 15;
-            
-            const stats = generateStatistics();
-            pdf.setFontSize(12);
-                            const summaryText = [
-                `Total Updates Analyzed: ${stats.totalUpdates}`,
-                `Critical Security Updates: ${stats.criticalUpdates}`,
-                `Important Security Updates: ${stats.importantUpdates}`,
-                `Updates Missing Deployment: ${stats.totalMissing}`,
-                `Updates Recently Deployed: ${stats.totalDeployed}`,
-                `Overall Compliance Rate: ${stats.complianceRate}%`,
-                '',
-                'Key Findings:',
-                `• ${stats.criticalUpdates > 0 ? `${stats.criticalUpdates} critical updates require immediate attention` : 'No critical updates pending'}`,
-                `• ${stats.complianceRate < 80 ? 'Compliance rate below recommended 80% threshold' : 'Compliance rate meets recommended standards'}`,
-                `• ${stats.totalMissing > 0 ? `${stats.totalMissing} updates missing across the environment` : 'All updates are properly deployed'}`
-            ];
-            
-            summaryText.forEach(line => {
-                if (line.startsWith('•') || line.startsWith('Key Findings:')) {
-                    pdf.setFont(undefined, 'bold');
-                } else {
-                    pdf.setFont(undefined, 'normal');
-                }
-                pdf.text(line, 20, yPosition);
-                yPosition += 6;
-            });
-            
-            if (config.notes) {
-                yPosition += 10;
-                pdf.setFont(undefined, 'bold');
-                pdf.text('Additional Notes:', 20, yPosition);
-                yPosition += 8;
-                pdf.setFont(undefined, 'normal');
-                
-                const noteLines = pdf.splitTextToSize(config.notes, pageWidth - 40);
-                noteLines.forEach(line => {
-                    pdf.text(line, 20, yPosition);
-                    yPosition += 6;
-                });
-            }
-            
-            // Add charts if enabled
-            updateProgress(60, 'Adding charts and visualizations...');
-            
-            if (document.getElementById('includeSeverityChart').checked) {
-                await addChartToPDF(pdf, 'severityChart', 'Security Severity Distribution');
-            }
-            
-            if (document.getElementById('includeDeploymentChart').checked) {
-                await addChartToPDF(pdf, 'deploymentChart', 'Deployment Status Overview');
-            }
-            
-            if (document.getElementById('includeTrendChart').checked) {
-                await addChartToPDF(pdf, 'trendChart', 'Updates by Release Month');
-            }
-            
-            // Add detailed table if enabled
-            updateProgress(80, 'Adding detailed data tables...');
-            
-            if (document.getElementById('includeDetailTable').checked) {
-                addDetailedTable(pdf);
-            }
-            
-            // Add recommendations if enabled
-            if (document.getElementById('includeRecommendations').checked) {
-                addRecommendations(pdf, stats);
-            }
-            
-            updateProgress(90, 'Finalizing report...');
-        }
-        
-        async function addChartToPDF(pdf, chartId, title) {
-            const canvas = document.getElementById(chartId);
-            const imgData = canvas.toDataURL('image/png', 1.0);
-            
-            pdf.addPage();
-            const pageWidth = pdf.internal.pageSize.getWidth();
-            const pageHeight = pdf.internal.pageSize.getHeight();
-            const margin = 15;
-            
-            // Add title
-            pdf.setFontSize(16);
-            pdf.setFont(undefined, 'bold');
-            pdf.text(title, pageWidth / 2, margin + 15, { align: 'center' });
-            
-            // Calculate proper chart dimensions to fit page
-            const maxWidth = pageWidth - (margin * 2);
-            const maxHeight = pageHeight - 80; // Leave room for title and margins
-            
-            // Get canvas dimensions
-            const canvasWidth = canvas.width;
-            const canvasHeight = canvas.height;
-            const aspectRatio = canvasHeight / canvasWidth;
-            
-            // Calculate final dimensions maintaining aspect ratio
-            let finalWidth = maxWidth;
-            let finalHeight = finalWidth * aspectRatio;
-            
-            // If height is too large, scale based on height instead
-            if (finalHeight > maxHeight) {
-                finalHeight = maxHeight;
-                finalWidth = finalHeight / aspectRatio;
-            }
-            
-            // Center the image
-            const xPosition = (pageWidth - finalWidth) / 2;
-            const yPosition = margin + 30;
-            
-            // Add chart image with proper scaling
-            pdf.addImage(imgData, 'PNG', xPosition, yPosition, finalWidth, finalHeight, undefined, 'MEDIUM');
-        }
-        
-        function addDetailedTable(pdf) {
-            pdf.addPage();
-            const pageWidth = pdf.internal.pageSize.getWidth();
-            const pageHeight = pdf.internal.pageSize.getHeight();
-            const margin = 15;
-            let yPosition = margin + 15;
-            
-            pdf.setFontSize(16);
-            pdf.setFont(undefined, 'bold');
-            pdf.text('Detailed Update Information', pageWidth / 2, yPosition, { align: 'center' });
-            yPosition += 20;
-            
-            // Table setup with proper margins
-            pdf.setFontSize(9);
-            pdf.setFont(undefined, 'bold');
-            const headers = ['Update Name', 'Version', 'Severity', 'Release Date', 'Missing', 'Deployed'];
-            const colWidths = [65, 25, 25, 30, 18, 18]; // Adjusted for better fit
-            let xPosition = margin;
-            
-            // Draw header background
-            pdf.setFillColor(240, 248, 255);
-            pdf.rect(margin, yPosition - 5, pageWidth - (margin * 2), 8, 'F');
-            
-            // Header text
-            headers.forEach((header, index) => {
-                pdf.text(header, xPosition + 2, yPosition);
-                xPosition += colWidths[index];
-            });
-            
-            yPosition += 5;
-            
-            // Header underline
-            pdf.setDrawColor(0, 120, 212);
-            pdf.setLineWidth(0.5);
-            pdf.line(margin, yPosition, pageWidth - margin, yPosition);
-            yPosition += 8;
-            
-            // Table data
-            pdf.setFont(undefined, 'normal');
-            pdf.setFontSize(8);
-            
-            csvData.slice(0, 35).forEach((row, index) => { // Limit rows to fit better
-                if (yPosition > pageHeight - 30) { // Check for page overflow
-                    pdf.addPage();
-                    yPosition = margin + 15;
-                }
-                
-                xPosition = margin;
-                const rowData = [
-                    (row['Update Name'] || '').substring(0, 30) + (row['Update Name']?.length > 30 ? '...' : ''),
-                    (row['Version'] || '').substring(0, 12),
-                    row['Security Severity'] || '',
-                    row['Release Date'] || '',
-                    row['Updates Missing'] || '0',
-                    row['Recently Deployed'] || '0'
-                ];
-                
-                // Alternate row background
-                if (index % 2 === 0) {
-                    pdf.setFillColor(248, 249, 250);
-                    pdf.rect(margin, yPosition - 3, pageWidth - (margin * 2), 6, 'F');
-                }
-                
-                rowData.forEach((data, colIndex) => {
-                    // Color code severity column
-                    if (colIndex === 2) {
-                        const severity = data.toLowerCase();
-                        if (severity.includes('critical')) pdf.setTextColor(220, 53, 69);
-                        else if (severity.includes('important')) pdf.setTextColor(253, 126, 20);
-                        else if (severity.includes('moderate')) pdf.setTextColor(255, 193, 7);
-                        else pdf.setTextColor(0, 0, 0);
-                    } else {
-                        pdf.setTextColor(0, 0, 0);
-                    }
-                    
-                    pdf.text(data.toString(), xPosition + 2, yPosition);
-                    xPosition += colWidths[colIndex];
-                });
-                
-                yPosition += 6;
-            });
             
             // Reset text color
             pdf.setTextColor(0, 0, 0);
-        }
-        
-        function addRecommendations(pdf, stats) {
-            pdf.addPage();
-            const pageWidth = pdf.internal.pageSize.getWidth();
-            let yPosition = 20;
             
-            pdf.setFontSize(16);
-            pdf.text('Recommendations', pageWidth / 2, yPosition, { align: 'center' });
-            yPosition += 20;
+            // Report info box
+            pdf.setFillColor(248, 249, 250);
+            pdf.rect(20, 80, pageWidth - 40, 40, 'F');
             
             pdf.setFontSize(12);
-            const recommendations = generateRecommendations(stats);
+            pdf.text(`Report Period: ${config.period || 'Current'}`, pageWidth / 2, 95, { align: 'center' });
+            pdf.text(`Generated: ${new Date().toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}`, pageWidth / 2, 105, { align: 'center' });
             
-            recommendations.forEach(rec => {
-                if (yPosition > 250) {
-                    pdf.addPage();
-                    yPosition = 20;
-                }
-                
-                pdf.setFont(undefined, 'bold');
-                pdf.text(`${rec.priority}: ${rec.title}`, 20, yPosition);
-                yPosition += 8;
-                
-                pdf.setFont(undefined, 'normal');
-                const descLines = pdf.splitTextToSize(rec.description, pageWidth - 40);
-                descLines.forEach(line => {
-                    pdf.text(line, 25, yPosition);
-                    yPosition += 6;
-                });
-                
-                yPosition += 5;
-            });
-        }
-        
-        function generateRecommendations(stats) {
-            const recommendations = [];
+            // Statistics summary on first page
+            const stats = generateStatistics();
+            let y = 140;
             
-            if (stats.criticalUpdates > 0) {
-                recommendations.push({
-                    priority: 'HIGH',
-                    title: 'Address Critical Security Updates',
-                    description: `${stats.criticalUpdates} critical security updates require immediate deployment. These updates address severe vulnerabilities that could be exploited to compromise system security.`
-                });
-            }
+            pdf.setFontSize(16);
+            pdf.setFont(undefined, 'bold');
+            pdf.text('Key Metrics', pageWidth / 2, y, { align: 'center' });
             
-            if (stats.complianceRate < 80) {
-                recommendations.push({
-                    priority: 'HIGH',
-                    title: 'Improve Update Compliance Rate',
-                    description: `Current compliance rate of ${stats.complianceRate}% is below the recommended 80% threshold. Review deployment policies and consider automated update mechanisms.`
-                });
-            }
+            y += 15;
+            pdf.setFont(undefined, 'normal');
+            pdf.setFontSize(11);
             
-            if (stats.totalMissing > stats.totalDeployed) {
-                recommendations.push({
-                    priority: 'MEDIUM',
-                    title: 'Accelerate Update Deployment',
-                    description: `More updates are missing (${stats.totalMissing}) than recently deployed (${stats.totalDeployed}). Consider increasing deployment frequency or expanding maintenance windows.`
-                });
-            }
-            
-            recommendations.push({
-                priority: 'LOW',
-                title: 'Establish Regular Review Cycle',
-                description: 'Implement monthly update compliance reviews to identify trends and proactively address potential security gaps before they become critical issues.'
-            });
-            
-            return recommendations;
-        }
-        
-        function updateProgress(percentage, text) {
-            const progressFill = document.getElementById('progressFill');
-            const statusText = document.getElementById('statusText');
-            
-            progressFill.style.width = percentage + '%';
-            progressFill.textContent = percentage + '%';
-            statusText.textContent = text;
-        }
-        
-        function downloadSampleCSV() {
-            const sampleData = [
-                ['Update Name', 'Version', 'Security Severity', 'Release Date', 'Updates Missing', 'Recently Deployed', 'Details'],
-                ['Windows Security Update KB5034441', '2025-01', 'Critical', '2025-01-10', '15', '85', '1'],
-                ['Microsoft Defender Definition Update', '1.403.2956.0', 'Important', '2025-01-12', '3', '97', '1'],
-                ['Microsoft Edge Security Update', '120.0.2210.144', 'Important', '2025-01-08', '8', '92', '1'],
-                ['Windows Cumulative Update KB5034439', '2025-01', 'Moderate', '2025-01-10', '22', '78', '1'],
-                ['.NET Framework Security Update', '4.8.1', 'Important', '2025-01-09', '12', '88', '1']
+            // Create metric boxes
+            const metrics = [
+                { label: 'Total Updates', value: stats.totalUpdates, color: [0, 120, 212] },
+                { label: 'Critical Updates', value: stats.criticalUpdates, color: [220, 53, 69] },
+                { label: 'Compliance Rate', value: stats.complianceRate + '%', color: [40, 167, 69] }
             ];
             
-            const csvContent = sampleData.map(row => row.join(',')).join('\n');
-            const blob = new Blob([csvContent], { type: 'text/csv' });
-            const url = URL.createObjectURL(blob);
+            const boxWidth = 50;
+            const boxHeight = 25;
+            const startX = (pageWidth - (metrics.length * boxWidth + (metrics.length - 1) * 10)) / 2;
             
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = 'sample_update_data.csv';
-            a.click();
+            metrics.forEach((metric, i) => {
+                const x = startX + (i * (boxWidth + 10));
+                
+                // Box background
+                pdf.setFillColor(...metric.color);
+                pdf.rect(x, y, boxWidth, boxHeight, 'F');
+                
+                // Text
+                pdf.setTextColor(255, 255, 255);
+                pdf.setFontSize(16);
+                pdf.setFont(undefined, 'bold');
+                pdf.text(metric.value.toString(), x + boxWidth / 2, y + 10, { align: 'center' });
+                
+                pdf.setFontSize(9);
+                pdf.setFont(undefined, 'normal');
+                pdf.text(metric.label, x + boxWidth / 2, y + 18, { align: 'center' });
+            });
             
-            URL.revokeObjectURL(url);
-        }
-        
-        function showAlert(message, type) {
-            const alertDiv = document.createElement('div');
-            alertDiv.className = `alert alert-${type}`;
-            alertDiv.textContent = message;
+            pdf.setTextColor(0, 0, 0);
             
-            const mainContent = document.querySelector('.main-content');
-            mainContent.insertBefore(alertDiv, mainContent.firstChild);
-            
-            setTimeout(() => {
-                alertDiv.remove();
-            }, 5000);
-        }
-        
-        // Auto-populate organization name if previously entered
-        document.addEventListener('DOMContentLoaded', () => {
-            const orgName = localStorage.getItem('updateReportOrgName');
-            if (orgName) {
-                document.getElementById('organizationName').value = orgName;
+            // Executive Summary (if enabled)
+            if (document.getElementById('includeSummary').checked) {
+                updateProgress(30, 'Adding executive summary...');
+                
+                pdf.addPage();
+                currentPage++;
+                
+                addPageHeader(pdf, 'Executive Summary', currentPage);
+                
+                let y = 40;
+                pdf.setFontSize(11);
+                pdf.setFont(undefined, 'normal');
+                
+                const summary = [
+                    `This report analyzes ${stats.totalUpdates} Windows updates across the organization. ` +
+                    `Currently, ${stats.complianceRate}% of required updates have been deployed successfully.`,
+                    '',
+                    `Security Overview: ${stats.criticalUpdates} critical and ${stats.importantUpdates} important security updates ` +
+                    `have been identified. ${stats.totalMissing} total deployments are pending across all systems.`,
+                    '',
+                    stats.criticalUpdates > 0 ? 
+                        `ATTENTION: ${stats.criticalUpdates} critical security updates require immediate deployment to maintain security posture.` :
+                        'All critical security updates have been successfully deployed.',
+                    '',
+                    config.notes || ''
+                ];
+                
+                summary.forEach(paragraph => {
+                    if (paragraph) {
+                        const lines = pdf.splitTextToSize(paragraph, pageWidth - 40);
+                        lines.forEach(line => {
+                            if (y > pageHeight - 30) {
+                                pdf.addPage();
+                                currentPage++;
+                                addPageHeader(pdf, 'Executive Summary (continued)', currentPage);
+                                y = 40;
+                            }
+                            pdf.text(line, 20, y);
+                            y += 6;
+                        });
+                        y += 4;
+                    }
+                });
             }
             
-            // Save organization name when changed
-            document.getElementById('organizationName').addEventListener('change', (e) => {
-                localStorage.setItem('updateReportOrgName', e.target.value);
-            });
+            // Charts
+            updateProgress(50, 'Adding charts...');
             
-            // Auto-populate current month for report period
-            const currentMonth = new Date().toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
-            document.getElementById('reportPeriod').value = currentMonth;
-        });
+            if (document.getElementById('includeSeverityChart').checked) {
+                await addChartToPDF(pdf, 'severityChart', 'Security Severity Distribution', currentPage++);
+            }
+            
+            if (document.getElementById('includeDeploymentChart').checked) {
+                await addChartToPDF(pdf, 'deploymentChart', 'Top 10 Updates - Deployment Status', currentPage++);
+            }
+            
+            if (document.getElementById('includeTrendChart').checked) {
+                await addChartToPDF(pdf, 'trendChart', 'Update Release Timeline', currentPage++);
+            }
+            
+            // Detailed table
+            updateProgress(70, 'Adding detailed tables...');
+            
+            if (document.getElementById('includeDetailTable').checked) {
+                currentPage = addDetailedTable(pdf, currentPage);
+            }
+            
+            // Recommendations
+            updateProgress(85, 'Adding recommendations...');
+            
+            if (document.getElementById('includeRecommendations').checked) {
+                currentPage = addRecommendations(pdf, stats, currentPage);
+            }
+            
+            updateProgress(95, 'Finalizing report...');
+        }
         
-        // Real-time preview updates
-        ['reportTitle', 'organizationName', 'reportPeriod'].forEach(id => {
-            document.getElementById(id).addEventListener('input', () => {
-                // Could add real-time preview updates here
-                console.log('Report configuration updated');
-            });
-        });
+        function addPageHeader(pdf, title, pageNum) {
+            const pageWidth = pdf.internal.pageSize.getWidth();
+            
+            // Header bar
+            pdf.setFillColor(240, 248, 255);
+            pdf.rect(0, 0, pageWidth, 25, 'F');
+            
+            // Title
+            pdf.setFontSize(14);
+            pdf.setFont(undefined, 'bold');
+            pdf.text(title, 20, 15);
+            
+            // Page number
+            pdf.setFontSize(10);
+            pdf.setFont(undefined, 'normal');
+            pdf.text(`Page ${pageNum}`, pageWidth - 20, 15, { align: 'right' });
+            
+            // Line
+            pdf.setDrawColor(0, 120, 212);
+            pdf.setLineWidth(0.5);
+            pdf.line(0, 25, pageWidth, 25);
+        }
         
-        // Chart theme updates
-        document.getElementById('reportTheme').addEventListener('change', (e) => {
-            const theme = e.target.value;
-            updateChartThemes(theme);
-        });
+        async function addChartToPDF(pdf, chartId, title, pageNum) {
+            pdf.addPage();
+            addPageHeader(pdf, title, pageNum);
+            
+            const canvas = document.getElementById(chartId);
+            const imgData = canvas.toDataURL('image/png', 0.95);
+            
+            const pageWidth = pdf.internal.pageSize.getWidth();
+            const margin = 20;
+            const maxWidth = pageWidth - (margin * 2);
+            const maxHeight = 120;
+            
+            // Calculate dimensions
+            const aspectRatio = canvas.height / canvas.width;
+            let width = maxWidth;
+            let height = width * aspectRatio;
+            
+            if (height > maxHeight) {
+                height = maxHeight;
+                width = height / aspectRatio;
+            }
+            
+            // Center the image
+            const x = (pageWidth - width) / 2;
+            const y = 45;
+            
+            pdf.addImage(imgData, 'PNG', x, y, width, height);
+            
+            // Add chart insights below
+            const insights = getChartInsights(chartId);
+            if (insights) {
+                let textY = y + height + 15;
+                pdf.setFontSize(11);
+                pdf.setFont(undefined, 'normal');
+                
+                insights.forEach(insight => {
+                    const lines = pdf.splitTextToSize(`• ${insight}`, pageWidth - 40);
+                    lines.forEach(line => {
+                        pdf.text(line, 20, textY);
+                        textY += 6;
+                    });
+                });
+            }
+            
+            return pageNum + 1;
+        }
         
-        function updateChartThemes(theme) {
-            const themes = {
-                professional: {
-                    primary: '#0078d4',
-                    secondary: '#106ebe',
-                    success: '#28a745',
-                    warning: '#ffc107',
-                    danger: '#dc3545'
+        function getChartInsights(chartId) {
+            const stats = generateStatistics();
+            
+            switch(chartId) {
+                case 'severityChart':
+                    return [
+                        `${Math.round((stats.criticalUpdates / stats.totalUpdates) * 100)}% of updates are classified as Critical severity`,
+                        `${Object.keys(stats.severityCounts).length} different severity levels identified across all updates`,
+                        stats.criticalUpdates > 5 ? 'High number of critical updates indicates elevated security risk' : 'Critical update count is within acceptable range'
+                    ];
+                case 'deploymentChart':
+                    return [
+                        `Top 10 updates shown represent the highest deployment volumes`,
+                        `${stats.totalMissing} total missing deployments across all updates`,
+                        `Average deployment success rate: ${stats.complianceRate}%`
+                    ];
+                case 'trendChart':
+                    return [
+                        'Update release frequency shows Microsoft\'s regular patch cycle',
+                        'Peaks typically align with Patch Tuesday releases',
+                        'Consistent update flow indicates active security maintenance'
+                    ];
+                default:
+                    return null;
+            }
+        }
+        
+        function addDetailedTable(pdf, currentPage) {
+            pdf.addPage();
+            currentPage++;
+            addPageHeader(pdf, 'Detailed Update List', currentPage);
+            
+            // Prepare table data
+            const tableData = csvData.slice(0, 50).map(row => [
+                row['Update Name']?.substring(0, 40) + (row['Update Name']?.length > 40 ? '...' : ''),
+                row['Version']?.substring(0, 15) || '',
+                row['Security Severity'] || '',
+                row['Release Date'] || '',
+                row['Updates Missing'] || '0',
+                row['Recently Deployed'] || '0'
+            ]);
+            
+            // Add table using autoTable
+            pdf.autoTable({
+                head: [['Update Name', 'Version', 'Severity', 'Release Date', 'Missing', 'Deployed']],
+                body: tableData,
+                startY: 35,
+                theme: 'striped',
+                headStyles: {
+                    fillColor: [0, 120, 212],
+                    fontSize: 10,
+                    fontStyle: 'bold'
                 },
-                corporate: {
-                    primary: '#495057',
-                    secondary: '#6c757d',
-                    success: '#28a745',
-                    warning: '#fd7e14',
-                    danger: '#dc3545'
+                bodyStyles: {
+                    fontSize: 8
                 },
-                modern: {
-                    primary: '#6f42c1',
-                    secondary: '#e83e8c',
-                    success: '#20c997',
-                    warning: '#fd7e14',
-                    danger: '#dc3545'
+                columnStyles: {
+                    0: { cellWidth: 70 },
+                    1: { cellWidth: 25 },
+                    2: { cellWidth: 25 },
+                    3: { cellWidth: 30 },
+                    4: { cellWidth: 20, halign: 'center' },
+                    5: { cellWidth: 20, halign: 'center' }
+                },
+                didDrawPage: function(data) {
+                    // Add page header to new pages
+                    if (data.pageNumber > 1) {
+                        currentPage++;
+                        addPageHeader(pdf, 'Detailed Update List (continued)', currentPage);
+                    }
                 }
-            };
+            });
             
-            // Update chart colors based on theme
-            if (charts.trend) {
-                charts.trend.data.datasets[0].borderColor = themes[theme].primary;
-                charts.trend.data.datasets[0].backgroundColor = themes[theme].primary + '20';
-                charts.trend.update();
-            }
+            return currentPage;
         }
-    </script>
-</body>
-</html>
+        
+        function addRecommendations(pdf, stats, currentPage) {
+            pdf.addPage();
+            currentPage++;
+            addPageHeader(pdf, 'Recommendations & Action Items', currentPage);
+            
+            let y = 40;
+            pdf.setFontSize(11);
+            
+            const recommendations = [
+                {
+                    priority: 'CRITICAL',
+                    condition: stats.criticalUpdates > 0,
+                    title: 'Deploy Critical Security Updates',
+                    text: `Immediately deploy ${stats.criticalUpdates} critical security updates to prevent potential security breaches. These updates address vulnerabilities that could be actively exploited.`,
+                    color: [220, 53, 69]
+                },
+                {
+                    priority: 'HIGH',
+                    condition: stats.complianceRate < 90,
+                    title: 'Improve Compliance Rate',
+                    text: `Current ${stats.complianceRate}% compliance is below the 90% target. Implement automated deployment policies and expand maintenance windows to improve update adoption.`,
+                    color: [253, 126, 20]
+                },
+                {
+                    priority: 'MEDIUM',
+                    condition: stats.totalMissing > 100,
+                    title: 'Address Deployment Backlog',
+                    text: `${stats.totalMissing} missing deployments indicate a significant backlog. Consider phased deployment approach prioritizing critical systems first.`,
+                    color: [255, 193, 7]
+                },
+                {
+                    priority: 'STANDARD',
+                    condition: true,
+                    title: 'Regular Review Process',
+                    text: 'Maintain monthly update compliance reviews and quarterly security posture assessments to ensure continued system health.',
+                    color: [40, 167, 69]
+                }
+            ];
+            
+            recommendations.filter(r => r.condition).forEach(rec => {
+                if (y > 240) {
+                    pdf.addPage();
+                    currentPage++;
+                    addPageHeader(pdf, 'Recommendations & Action Items (continued)', currentPage);
+                    y = 40;
+                }
+                
+                // Priority badge
+                pdf.setFillColor(...rec.color);
+                pdf.rect(20, y - 5, 35, 8, 'F');
+                pdf.setTextColor(255, 255, 255);
+                pdf.setFontSize(8);
+                pdf.setFont(undefined, 'bold');
+                pdf.text(rec.priority, 37.5, y, { align: 'center' });
+                
+                // Title
+                pdf.setTextColor(0, 0, 0);
+                pdf.setFontSize(12);
+                pdf.setFont(undefined, 'bold');
+                pdf.text(rec.title, 60, y);
+                
+                y += 8;
+                
+                // Description
+                pdf.setFontSize(10);
+                pdf.setFont(undefined, 'normal');
+                const lines = pdf.splitTextToSize(rec.text, 150);
+                lines.forEach(line => {
+                    pdf.text(line, 25, y);
+                    y += 5;
+                });
+                
+                y += 10;
+            });
+            
+            return currentPage;
+        }
