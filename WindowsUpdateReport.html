@@ -1,0 +1,1226 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Windows Update Report Generator</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            overflow: hidden;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #0078d4 0%, #106ebe 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+
+        .header h1 {
+            font-size: 2.2em;
+            margin-bottom: 10px;
+        }
+
+        .header p {
+            opacity: 0.9;
+            font-size: 1.1em;
+        }
+
+        .main-content {
+            padding: 40px;
+        }
+
+        .upload-section {
+            background: #f8f9fa;
+            border: 2px dashed #dee2e6;
+            border-radius: 8px;
+            padding: 40px;
+            margin-bottom: 30px;
+            text-align: center;
+            transition: all 0.3s ease;
+        }
+
+        .upload-section.dragover {
+            border-color: #0078d4;
+            background: #e7f3ff;
+        }
+
+        .upload-icon {
+            font-size: 3em;
+            color: #6c757d;
+            margin-bottom: 20px;
+        }
+
+        .upload-section h3 {
+            margin-bottom: 15px;
+            color: #495057;
+        }
+
+        .file-input-wrapper {
+            position: relative;
+            display: inline-block;
+            margin: 20px 0;
+        }
+
+        .file-input-wrapper input[type="file"] {
+            position: absolute;
+            opacity: 0;
+            width: 100%;
+            height: 100%;
+            cursor: pointer;
+        }
+
+        .btn {
+            background: linear-gradient(135deg, #0078d4 0%, #106ebe 100%);
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            border-radius: 6px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+            margin: 5px;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0,120,212,0.3);
+        }
+
+        .btn-success {
+            background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
+        }
+
+        .btn-secondary {
+            background: linear-gradient(135deg, #6c757d 0%, #5a6268 100%);
+        }
+
+        .btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .data-preview {
+            background: white;
+            border: 1px solid #dee2e6;
+            border-radius: 8px;
+            margin: 20px 0;
+            display: none;
+        }
+
+        .data-preview.show {
+            display: block;
+        }
+
+        .preview-header {
+            background: #f8f9fa;
+            padding: 15px 20px;
+            border-bottom: 1px solid #dee2e6;
+            font-weight: 600;
+        }
+
+        .preview-content {
+            padding: 20px;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+
+        .preview-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 14px;
+        }
+
+        .preview-table th,
+        .preview-table td {
+            padding: 8px 12px;
+            text-align: left;
+            border-bottom: 1px solid #dee2e6;
+        }
+
+        .preview-table th {
+            background: #f8f9fa;
+            font-weight: 600;
+        }
+
+        .report-options {
+            background: #f8f9fa;
+            border-radius: 8px;
+            padding: 25px;
+            margin: 20px 0;
+            display: none;
+        }
+
+        .report-options.show {
+            display: block;
+        }
+
+        .options-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+            margin-bottom: 20px;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: #333;
+        }
+
+        .form-group input,
+        .form-group select,
+        .form-group textarea {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #e9ecef;
+            border-radius: 6px;
+            font-size: 16px;
+            transition: border-color 0.3s;
+        }
+
+        .form-group input:focus,
+        .form-group select:focus,
+        .form-group textarea:focus {
+            outline: none;
+            border-color: #0078d4;
+            box-shadow: 0 0 0 3px rgba(0,120,212,0.1);
+        }
+
+        .checkbox-group {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-top: 10px;
+        }
+
+        .checkbox-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .checkbox-item input[type="checkbox"] {
+            width: auto;
+        }
+
+        .status-section {
+            background: #e7f3ff;
+            border: 1px solid #0078d4;
+            border-radius: 8px;
+            padding: 20px;
+            margin: 20px 0;
+            display: none;
+        }
+
+        .status-section.show {
+            display: block;
+        }
+
+        .progress-bar {
+            width: 100%;
+            height: 25px;
+            background: #e9ecef;
+            border-radius: 15px;
+            overflow: hidden;
+            margin: 15px 0;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #28a745 0%, #20c997 100%);
+            width: 0%;
+            transition: width 0.5s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 12px;
+            font-weight: bold;
+        }
+
+        .alert {
+            padding: 15px;
+            margin-bottom: 20px;
+            border-radius: 5px;
+        }
+
+        .alert-success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+
+        .alert-error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+
+        .alert-info {
+            background: #d1ecf1;
+            color: #0c5460;
+            border: 1px solid #bee5eb;
+        }
+
+        .sample-format {
+            background: #f8f9fa;
+            border: 1px solid #dee2e6;
+            border-radius: 5px;
+            padding: 15px;
+            margin: 15px 0;
+            font-family: monospace;
+            font-size: 14px;
+        }
+
+        .charts-preview {
+            display: none;
+            margin: 20px 0;
+        }
+
+        .charts-preview.show {
+            display: block;
+        }
+
+        .chart-container {
+            background: white;
+            border: 1px solid #dee2e6;
+            border-radius: 8px;
+            padding: 20px;
+            margin: 15px 0;
+        }
+
+        .chart-title {
+            font-size: 18px;
+            font-weight: 600;
+            margin-bottom: 15px;
+            text-align: center;
+            color: #333;
+        }
+
+        #downloadLink {
+            display: none;
+        }
+
+        #downloadLink.show {
+            display: inline-block;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin: 20px 0;
+        }
+
+        .stat-card {
+            background: white;
+            border: 1px solid #dee2e6;
+            border-radius: 8px;
+            padding: 20px;
+            text-align: center;
+        }
+
+        .stat-number {
+            font-size: 2em;
+            font-weight: bold;
+            color: #0078d4;
+        }
+
+        .stat-label {
+            color: #6c757d;
+            margin-top: 5px;
+        }
+
+        .severity-critical { color: #dc3545; }
+        .severity-important { color: #fd7e14; }
+        .severity-moderate { color: #ffc107; }
+        .severity-low { color: #28a745; }
+        .severity-none { color: #6c757d; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>📊 Windows Update Report Generator</h1>
+            <p>Upload your CSV data and generate comprehensive PDF reports with charts and analytics</p>
+        </div>
+
+        <div class="main-content">
+            <!-- File Upload Section -->
+            <div class="upload-section" id="uploadSection">
+                <div class="upload-icon">📁</div>
+                <h3>Upload Your Windows Update CSV File</h3>
+                <p>Drag and drop your CSV file here, or click to browse</p>
+                
+                <div class="file-input-wrapper">
+                    <button class="btn">Choose CSV File</button>
+                    <input type="file" id="csvFile" accept=".csv" />
+                </div>
+
+                <div class="sample-format">
+                    <strong>Expected CSV Format:</strong><br>
+                    Update Name, Version, Security Severity, Release Date, Updates Missing, Recently Deployed, Details
+                </div>
+
+                <button class="btn btn-secondary" id="downloadSample">Download Sample CSV</button>
+            </div>
+
+            <!-- Data Preview Section -->
+            <div class="data-preview" id="dataPreview">
+                <div class="preview-header">
+                    📋 Data Preview
+                </div>
+                <div class="preview-content">
+                    <div id="dataStats" class="stats-grid"></div>
+                    <table class="preview-table" id="previewTable"></table>
+                </div>
+            </div>
+
+            <!-- Report Options Section -->
+            <div class="report-options" id="reportOptions">
+                <h3>📋 Report Configuration</h3>
+                
+                <div class="options-grid">
+                    <div class="form-group">
+                        <label for="reportTitle">Report Title</label>
+                        <input type="text" id="reportTitle" value="Windows Update Compliance Report" />
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="organizationName">Organization Name</label>
+                        <input type="text" id="organizationName" placeholder="Your Organization" />
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="reportPeriod">Report Period</label>
+                        <input type="text" id="reportPeriod" placeholder="e.g., January 2025" />
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="reportTheme">Report Theme</label>
+                        <select id="reportTheme">
+                            <option value="professional">Professional Blue</option>
+                            <option value="corporate">Corporate Gray</option>
+                            <option value="modern">Modern Purple</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label>Include in Report</label>
+                    <div class="checkbox-group">
+                        <div class="checkbox-item">
+                            <input type="checkbox" id="includeSummary" checked />
+                            <label for="includeSummary">Executive Summary</label>
+                        </div>
+                        <div class="checkbox-item">
+                            <input type="checkbox" id="includeSeverityChart" checked />
+                            <label for="includeSeverityChart">Security Severity Chart</label>
+                        </div>
+                        <div class="checkbox-item">
+                            <input type="checkbox" id="includeDeploymentChart" checked />
+                            <label for="includeDeploymentChart">Deployment Status Chart</label>
+                        </div>
+                        <div class="checkbox-item">
+                            <input type="checkbox" id="includeTrendChart" checked />
+                            <label for="includeTrendChart">Monthly Trend Chart</label>
+                        </div>
+                        <div class="checkbox-item">
+                            <input type="checkbox" id="includeDetailTable" checked />
+                            <label for="includeDetailTable">Detailed Update Table</label>
+                        </div>
+                        <div class="checkbox-item">
+                            <input type="checkbox" id="includeRecommendations" checked />
+                            <label for="includeRecommendations">Recommendations</label>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label for="additionalNotes">Additional Notes</label>
+                    <textarea id="additionalNotes" rows="3" placeholder="Add any custom notes or observations for this report period..."></textarea>
+                </div>
+
+                <button class="btn btn-success" id="generateReport" disabled>
+                    🎯 Generate PDF Report
+                </button>
+            </div>
+
+            <!-- Charts Preview Section -->
+            <div class="charts-preview" id="chartsPreview">
+                <h3>📈 Report Preview</h3>
+                
+                <div class="chart-container">
+                    <div class="chart-title">Security Severity Distribution</div>
+                    <canvas id="severityChart" width="400" height="200"></canvas>
+                </div>
+                
+                <div class="chart-container">
+                    <div class="chart-title">Deployment Status Overview</div>
+                    <canvas id="deploymentChart" width="400" height="200"></canvas>
+                </div>
+                
+                <div class="chart-container">
+                    <div class="chart-title">Updates by Release Month</div>
+                    <canvas id="trendChart" width="400" height="200"></canvas>
+                </div>
+            </div>
+
+            <!-- Status Section -->
+            <div class="status-section" id="statusSection">
+                <h4>🔄 Generating Report...</h4>
+                <div class="progress-bar">
+                    <div class="progress-fill" id="progressFill">0%</div>
+                </div>
+                <p id="statusText">Preparing report generation...</p>
+            </div>
+
+            <!-- Download Section -->
+            <div id="downloadSection" style="text-align: center; margin: 30px 0; display: none;">
+                <div class="alert alert-success">
+                    ✅ Report generated successfully!
+                </div>
+                <a href="#" id="downloadLink" class="btn btn-success">
+                    📥 Download PDF Report
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Include Chart.js for data visualization -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js"></script>
+    <!-- Include jsPDF for PDF generation -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    
+    <script>
+        // Global variables
+        let csvData = [];
+        let charts = {};
+        
+        // DOM elements
+        const csvFile = document.getElementById('csvFile');
+        const uploadSection = document.getElementById('uploadSection');
+        const dataPreview = document.getElementById('dataPreview');
+        const reportOptions = document.getElementById('reportOptions');
+        const chartsPreview = document.getElementById('chartsPreview');
+        const statusSection = document.getElementById('statusSection');
+        const downloadSection = document.getElementById('downloadSection');
+        const generateReportBtn = document.getElementById('generateReport');
+        
+        // File upload handling
+        csvFile.addEventListener('change', handleFileUpload);
+        
+        // Drag and drop
+        uploadSection.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            uploadSection.classList.add('dragover');
+        });
+        
+        uploadSection.addEventListener('dragleave', () => {
+            uploadSection.classList.remove('dragover');
+        });
+        
+        uploadSection.addEventListener('drop', (e) => {
+            e.preventDefault();
+            uploadSection.classList.remove('dragover');
+            const files = e.dataTransfer.files;
+            if (files.length > 0 && files[0].name.endsWith('.csv')) {
+                csvFile.files = files;
+                handleFileUpload();
+            }
+        });
+        
+        // Sample CSV download
+        document.getElementById('downloadSample').addEventListener('click', downloadSampleCSV);
+        
+        // Generate report button
+        generateReportBtn.addEventListener('click', generatePDFReport);
+        
+        function handleFileUpload() {
+            const file = csvFile.files[0];
+            if (!file) return;
+            
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                try {
+                    parseCSVData(e.target.result);
+                    showDataPreview();
+                    showReportOptions();
+                    generateCharts();
+                    generateReportBtn.disabled = false;
+                } catch (error) {
+                    showAlert('Error parsing CSV file: ' + error.message, 'error');
+                }
+            };
+            reader.readAsText(file);
+        }
+        
+        function parseCSVData(csvText) {
+            const lines = csvText.trim().split('\n');
+            const headers = lines[0].split(',').map(h => h.trim().replace(/"/g, ''));
+            
+            csvData = lines.slice(1).map(line => {
+                const values = line.split(',').map(v => v.trim().replace(/"/g, ''));
+                const row = {};
+                headers.forEach((header, index) => {
+                    row[header] = values[index] || '';
+                });
+                return row;
+            }).filter(row => row['Update Name']); // Filter out empty rows
+            
+            console.log('Parsed CSV data:', csvData);
+        }
+        
+        function showDataPreview() {
+            if (csvData.length === 0) return;
+            
+            // Generate statistics
+            const stats = generateStatistics();
+            displayStatistics(stats);
+            
+            // Show first 10 rows in table
+            const table = document.getElementById('previewTable');
+            const headers = Object.keys(csvData[0]);
+            
+            table.innerHTML = `
+                <thead>
+                    <tr>${headers.map(h => `<th>${h}</th>`).join('')}</tr>
+                </thead>
+                <tbody>
+                    ${csvData.slice(0, 10).map(row => 
+                        `<tr>${headers.map(h => `<td class="${getSeverityClass(row[h])}">${row[h]}</td>`).join('')}</tr>`
+                    ).join('')}
+                </tbody>
+            `;
+            
+            dataPreview.classList.add('show');
+        }
+        
+        function generateStatistics() {
+            const totalUpdates = csvData.length;
+            const totalMissing = csvData.reduce((sum, row) => sum + parseInt(row['Updates Missing'] || 0), 0);
+            const totalDeployed = csvData.reduce((sum, row) => sum + parseInt(row['Recently Deployed'] || 0), 0);
+            
+            const severityCounts = csvData.reduce((acc, row) => {
+                const severity = row['Security Severity'] || 'None';
+                acc[severity] = (acc[severity] || 0) + 1;
+                return acc;
+            }, {});
+            
+            const criticalUpdates = severityCounts['Critical'] || 0;
+            const importantUpdates = severityCounts['Important'] || 0;
+            
+            return {
+                totalUpdates,
+                totalMissing,
+                totalDeployed,
+                criticalUpdates,
+                importantUpdates,
+                severityCounts,
+                complianceRate: Math.round(((totalUpdates - totalMissing) / totalUpdates) * 100)
+            };
+        }
+        
+        function displayStatistics(stats) {
+            const statsContainer = document.getElementById('dataStats');
+            statsContainer.innerHTML = `
+                <div class="stat-card">
+                    <div class="stat-number">${stats.totalUpdates}</div>
+                    <div class="stat-label">Total Updates</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-number severity-critical">${stats.criticalUpdates}</div>
+                    <div class="stat-label">Critical Updates</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-number severity-important">${stats.importantUpdates}</div>
+                    <div class="stat-label">Important Updates</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-number">${stats.totalMissing}</div>
+                    <div class="stat-label">Missing Updates</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-number">${stats.complianceRate}%</div>
+                    <div class="stat-label">Compliance Rate</div>
+                </div>
+            `;
+        }
+        
+        function getSeverityClass(value) {
+            const severity = value.toLowerCase();
+            if (severity.includes('critical')) return 'severity-critical';
+            if (severity.includes('important')) return 'severity-important';
+            if (severity.includes('moderate')) return 'severity-moderate';
+            if (severity.includes('low')) return 'severity-low';
+            return '';
+        }
+        
+        function showReportOptions() {
+            reportOptions.classList.add('show');
+        }
+        
+        function generateCharts() {
+            generateSeverityChart();
+            generateDeploymentChart();
+            generateTrendChart();
+            chartsPreview.classList.add('show');
+        }
+        
+        function generateSeverityChart() {
+            const ctx = document.getElementById('severityChart').getContext('2d');
+            
+            const severityCounts = csvData.reduce((acc, row) => {
+                const severity = row['Security Severity'] || 'None';
+                acc[severity] = (acc[severity] || 0) + 1;
+                return acc;
+            }, {});
+            
+            const colors = {
+                'Critical': '#dc3545',
+                'Important': '#fd7e14',
+                'Moderate': '#ffc107',
+                'Low': '#28a745',
+                'None': '#6c757d'
+            };
+            
+            if (charts.severity) {
+                charts.severity.destroy();
+            }
+            
+            charts.severity = new Chart(ctx, {
+                type: 'doughnut',
+                data: {
+                    labels: Object.keys(severityCounts),
+                    datasets: [{
+                        data: Object.values(severityCounts),
+                        backgroundColor: Object.keys(severityCounts).map(s => colors[s] || '#6c757d')
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'bottom'
+                        }
+                    }
+                }
+            });
+        }
+        
+        function generateDeploymentChart() {
+            const ctx = document.getElementById('deploymentChart').getContext('2d');
+            
+            const deploymentData = csvData.map(row => ({
+                name: row['Update Name'],
+                deployed: parseInt(row['Recently Deployed'] || 0),
+                missing: parseInt(row['Updates Missing'] || 0)
+            })).slice(0, 10); // Top 10 updates
+            
+            if (charts.deployment) {
+                charts.deployment.destroy();
+            }
+            
+            charts.deployment = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: deploymentData.map(d => d.name.substring(0, 20) + '...'),
+                    datasets: [
+                        {
+                            label: 'Deployed',
+                            data: deploymentData.map(d => d.deployed),
+                            backgroundColor: '#28a745'
+                        },
+                        {
+                            label: 'Missing',
+                            data: deploymentData.map(d => d.missing),
+                            backgroundColor: '#dc3545'
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        x: {
+                            display: false
+                        }
+                    }
+                }
+            });
+        }
+        
+        function generateTrendChart() {
+            const ctx = document.getElementById('trendChart').getContext('2d');
+            
+            // Group by month from Release Date
+            const monthCounts = csvData.reduce((acc, row) => {
+                const date = new Date(row['Release Date']);
+                if (!isNaN(date)) {
+                    const monthKey = date.toLocaleDateString('en-US', { month: 'short', year: 'numeric' });
+                    acc[monthKey] = (acc[monthKey] || 0) + 1;
+                }
+                return acc;
+            }, {});
+            
+            if (charts.trend) {
+                charts.trend.destroy();
+            }
+            
+            charts.trend = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: Object.keys(monthCounts),
+                    datasets: [{
+                        label: 'Updates Released',
+                        data: Object.values(monthCounts),
+                        borderColor: '#0078d4',
+                        backgroundColor: 'rgba(0, 120, 212, 0.1)',
+                        tension: 0.4
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        y: {
+                            beginAtZero: true
+                        }
+                    }
+                }
+            });
+        }
+        
+        async function generatePDFReport() {
+            statusSection.classList.add('show');
+            updateProgress(0, 'Initializing report generation...');
+            
+            try {
+                // Initialize jsPDF
+                const { jsPDF } = window.jspdf;
+                const pdf = new jsPDF('p', 'mm', 'a4');
+                
+                updateProgress(10, 'Creating report structure...');
+                
+                // Get form values
+                const reportTitle = document.getElementById('reportTitle').value;
+                const orgName = document.getElementById('organizationName').value;
+                const reportPeriod = document.getElementById('reportPeriod').value;
+                const additionalNotes = document.getElementById('additionalNotes').value;
+                
+                // Generate report content
+                await createPDFContent(pdf, {
+                    title: reportTitle,
+                    organization: orgName,
+                    period: reportPeriod,
+                    notes: additionalNotes
+                });
+                
+                updateProgress(100, 'Report generation complete!');
+                
+                // Create download link
+                const pdfBlob = pdf.output('blob');
+                const url = URL.createObjectURL(pdfBlob);
+                const downloadLink = document.getElementById('downloadLink');
+                downloadLink.href = url;
+                downloadLink.download = `${reportTitle.replace(/[^a-z0-9]/gi, '_')}_${new Date().toISOString().slice(0, 10)}.pdf`;
+                downloadLink.classList.add('show');
+                
+                downloadSection.style.display = 'block';
+                statusSection.classList.remove('show');
+                
+            } catch (error) {
+                console.error('Error generating PDF:', error);
+                showAlert('Error generating PDF: ' + error.message, 'error');
+                statusSection.classList.remove('show');
+            }
+        }
+        
+        async function createPDFContent(pdf, config) {
+            const pageWidth = pdf.internal.pageSize.getWidth();
+            const pageHeight = pdf.internal.pageSize.getHeight();
+            let yPosition = 20;
+            
+            // Title page
+            updateProgress(20, 'Creating title page...');
+            pdf.setFontSize(24);
+            pdf.text(config.title, pageWidth / 2, yPosition, { align: 'center' });
+            
+            yPosition += 15;
+            pdf.setFontSize(16);
+            if (config.organization) {
+                pdf.text(config.organization, pageWidth / 2, yPosition, { align: 'center' });
+                yPosition += 10;
+            }
+            
+            if (config.period) {
+                pdf.text(`Report Period: ${config.period}`, pageWidth / 2, yPosition, { align: 'center' });
+                yPosition += 10;
+            }
+            
+            pdf.text(`Generated: ${new Date().toLocaleDateString()}`, pageWidth / 2, yPosition, { align: 'center' });
+            
+            // Executive Summary
+            updateProgress(40, 'Adding executive summary...');
+            pdf.addPage();
+            yPosition = 20;
+            
+            pdf.setFontSize(18);
+            pdf.text('Executive Summary', 20, yPosition);
+            yPosition += 15;
+            
+            const stats = generateStatistics();
+            pdf.setFontSize(12);
+                            const summaryText = [
+                `Total Updates Analyzed: ${stats.totalUpdates}`,
+                `Critical Security Updates: ${stats.criticalUpdates}`,
+                `Important Security Updates: ${stats.importantUpdates}`,
+                `Updates Missing Deployment: ${stats.totalMissing}`,
+                `Updates Recently Deployed: ${stats.totalDeployed}`,
+                `Overall Compliance Rate: ${stats.complianceRate}%`,
+                '',
+                'Key Findings:',
+                `• ${stats.criticalUpdates > 0 ? `${stats.criticalUpdates} critical updates require immediate attention` : 'No critical updates pending'}`,
+                `• ${stats.complianceRate < 80 ? 'Compliance rate below recommended 80% threshold' : 'Compliance rate meets recommended standards'}`,
+                `• ${stats.totalMissing > 0 ? `${stats.totalMissing} updates missing across the environment` : 'All updates are properly deployed'}`
+            ];
+            
+            summaryText.forEach(line => {
+                if (line.startsWith('•') || line.startsWith('Key Findings:')) {
+                    pdf.setFont(undefined, 'bold');
+                } else {
+                    pdf.setFont(undefined, 'normal');
+                }
+                pdf.text(line, 20, yPosition);
+                yPosition += 6;
+            });
+            
+            if (config.notes) {
+                yPosition += 10;
+                pdf.setFont(undefined, 'bold');
+                pdf.text('Additional Notes:', 20, yPosition);
+                yPosition += 8;
+                pdf.setFont(undefined, 'normal');
+                
+                const noteLines = pdf.splitTextToSize(config.notes, pageWidth - 40);
+                noteLines.forEach(line => {
+                    pdf.text(line, 20, yPosition);
+                    yPosition += 6;
+                });
+            }
+            
+            // Add charts if enabled
+            updateProgress(60, 'Adding charts and visualizations...');
+            
+            if (document.getElementById('includeSeverityChart').checked) {
+                await addChartToPDF(pdf, 'severityChart', 'Security Severity Distribution');
+            }
+            
+            if (document.getElementById('includeDeploymentChart').checked) {
+                await addChartToPDF(pdf, 'deploymentChart', 'Deployment Status Overview');
+            }
+            
+            if (document.getElementById('includeTrendChart').checked) {
+                await addChartToPDF(pdf, 'trendChart', 'Updates by Release Month');
+            }
+            
+            // Add detailed table if enabled
+            updateProgress(80, 'Adding detailed data tables...');
+            
+            if (document.getElementById('includeDetailTable').checked) {
+                addDetailedTable(pdf);
+            }
+            
+            // Add recommendations if enabled
+            if (document.getElementById('includeRecommendations').checked) {
+                addRecommendations(pdf, stats);
+            }
+            
+            updateProgress(90, 'Finalizing report...');
+        }
+        
+        async function addChartToPDF(pdf, chartId, title) {
+            const canvas = document.getElementById(chartId);
+            const imgData = canvas.toDataURL('image/png');
+            
+            pdf.addPage();
+            const pageWidth = pdf.internal.pageSize.getWidth();
+            
+            pdf.setFontSize(16);
+            pdf.text(title, pageWidth / 2, 20, { align: 'center' });
+            
+            // Add chart image
+            const imgWidth = pageWidth - 40;
+            const imgHeight = (canvas.height * imgWidth) / canvas.width;
+            
+            pdf.addImage(imgData, 'PNG', 20, 35, imgWidth, imgHeight);
+        }
+        
+        function addDetailedTable(pdf) {
+            pdf.addPage();
+            const pageWidth = pdf.internal.pageSize.getWidth();
+            let yPosition = 20;
+            
+            pdf.setFontSize(16);
+            pdf.text('Detailed Update Information', pageWidth / 2, yPosition, { align: 'center' });
+            yPosition += 20;
+            
+            // Table headers
+            pdf.setFontSize(10);
+            pdf.setFont(undefined, 'bold');
+            const headers = ['Update Name', 'Version', 'Severity', 'Release Date', 'Missing', 'Deployed'];
+            const colWidths = [60, 25, 25, 30, 20, 20];
+            let xPosition = 20;
+            
+            headers.forEach((header, index) => {
+                pdf.text(header, xPosition, yPosition);
+                xPosition += colWidths[index];
+            });
+            
+            yPosition += 8;
+            pdf.line(20, yPosition - 2, pageWidth - 20, yPosition - 2);
+            
+            // Table data
+            pdf.setFont(undefined, 'normal');
+            csvData.slice(0, 30).forEach((row, index) => { // Limit to 30 rows
+                if (yPosition > 250) { // New page if needed
+                    pdf.addPage();
+                    yPosition = 20;
+                }
+                
+                xPosition = 20;
+                const rowData = [
+                    row['Update Name']?.substring(0, 25) + '...' || '',
+                    row['Version'] || '',
+                    row['Security Severity'] || '',
+                    row['Release Date'] || '',
+                    row['Updates Missing'] || '0',
+                    row['Recently Deployed'] || '0'
+                ];
+                
+                rowData.forEach((data, colIndex) => {
+                    // Color code severity
+                    if (colIndex === 2) {
+                        const severity = data.toLowerCase();
+                        if (severity.includes('critical')) pdf.setTextColor(220, 53, 69);
+                        else if (severity.includes('important')) pdf.setTextColor(253, 126, 20);
+                        else if (severity.includes('moderate')) pdf.setTextColor(255, 193, 7);
+                        else pdf.setTextColor(0, 0, 0);
+                    } else {
+                        pdf.setTextColor(0, 0, 0);
+                    }
+                    
+                    pdf.text(data.toString(), xPosition, yPosition);
+                    xPosition += colWidths[colIndex];
+                });
+                
+                yPosition += 6;
+            });
+        }
+        
+        function addRecommendations(pdf, stats) {
+            pdf.addPage();
+            const pageWidth = pdf.internal.pageSize.getWidth();
+            let yPosition = 20;
+            
+            pdf.setFontSize(16);
+            pdf.text('Recommendations', pageWidth / 2, yPosition, { align: 'center' });
+            yPosition += 20;
+            
+            pdf.setFontSize(12);
+            const recommendations = generateRecommendations(stats);
+            
+            recommendations.forEach(rec => {
+                if (yPosition > 250) {
+                    pdf.addPage();
+                    yPosition = 20;
+                }
+                
+                pdf.setFont(undefined, 'bold');
+                pdf.text(`${rec.priority}: ${rec.title}`, 20, yPosition);
+                yPosition += 8;
+                
+                pdf.setFont(undefined, 'normal');
+                const descLines = pdf.splitTextToSize(rec.description, pageWidth - 40);
+                descLines.forEach(line => {
+                    pdf.text(line, 25, yPosition);
+                    yPosition += 6;
+                });
+                
+                yPosition += 5;
+            });
+        }
+        
+        function generateRecommendations(stats) {
+            const recommendations = [];
+            
+            if (stats.criticalUpdates > 0) {
+                recommendations.push({
+                    priority: 'HIGH',
+                    title: 'Address Critical Security Updates',
+                    description: `${stats.criticalUpdates} critical security updates require immediate deployment. These updates address severe vulnerabilities that could be exploited to compromise system security.`
+                });
+            }
+            
+            if (stats.complianceRate < 80) {
+                recommendations.push({
+                    priority: 'HIGH',
+                    title: 'Improve Update Compliance Rate',
+                    description: `Current compliance rate of ${stats.complianceRate}% is below the recommended 80% threshold. Review deployment policies and consider automated update mechanisms.`
+                });
+            }
+            
+            if (stats.totalMissing > stats.totalDeployed) {
+                recommendations.push({
+                    priority: 'MEDIUM',
+                    title: 'Accelerate Update Deployment',
+                    description: `More updates are missing (${stats.totalMissing}) than recently deployed (${stats.totalDeployed}). Consider increasing deployment frequency or expanding maintenance windows.`
+                });
+            }
+            
+            recommendations.push({
+                priority: 'LOW',
+                title: 'Establish Regular Review Cycle',
+                description: 'Implement monthly update compliance reviews to identify trends and proactively address potential security gaps before they become critical issues.'
+            });
+            
+            return recommendations;
+        }
+        
+        function updateProgress(percentage, text) {
+            const progressFill = document.getElementById('progressFill');
+            const statusText = document.getElementById('statusText');
+            
+            progressFill.style.width = percentage + '%';
+            progressFill.textContent = percentage + '%';
+            statusText.textContent = text;
+        }
+        
+        function downloadSampleCSV() {
+            const sampleData = [
+                ['Update Name', 'Version', 'Security Severity', 'Release Date', 'Updates Missing', 'Recently Deployed', 'Details'],
+                ['Windows Security Update KB5034441', '2025-01', 'Critical', '2025-01-10', '15', '85', '1'],
+                ['Microsoft Defender Definition Update', '1.403.2956.0', 'Important', '2025-01-12', '3', '97', '1'],
+                ['Microsoft Edge Security Update', '120.0.2210.144', 'Important', '2025-01-08', '8', '92', '1'],
+                ['Windows Cumulative Update KB5034439', '2025-01', 'Moderate', '2025-01-10', '22', '78', '1'],
+                ['.NET Framework Security Update', '4.8.1', 'Important', '2025-01-09', '12', '88', '1']
+            ];
+            
+            const csvContent = sampleData.map(row => row.join(',')).join('\n');
+            const blob = new Blob([csvContent], { type: 'text/csv' });
+            const url = URL.createObjectURL(blob);
+            
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'sample_update_data.csv';
+            a.click();
+            
+            URL.revokeObjectURL(url);
+        }
+        
+        function showAlert(message, type) {
+            const alertDiv = document.createElement('div');
+            alertDiv.className = `alert alert-${type}`;
+            alertDiv.textContent = message;
+            
+            const mainContent = document.querySelector('.main-content');
+            mainContent.insertBefore(alertDiv, mainContent.firstChild);
+            
+            setTimeout(() => {
+                alertDiv.remove();
+            }, 5000);
+        }
+        
+        // Auto-populate organization name if previously entered
+        document.addEventListener('DOMContentLoaded', () => {
+            const orgName = localStorage.getItem('updateReportOrgName');
+            if (orgName) {
+                document.getElementById('organizationName').value = orgName;
+            }
+            
+            // Save organization name when changed
+            document.getElementById('organizationName').addEventListener('change', (e) => {
+                localStorage.setItem('updateReportOrgName', e.target.value);
+            });
+            
+            // Auto-populate current month for report period
+            const currentMonth = new Date().toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
+            document.getElementById('reportPeriod').value = currentMonth;
+        });
+        
+        // Real-time preview updates
+        ['reportTitle', 'organizationName', 'reportPeriod'].forEach(id => {
+            document.getElementById(id).addEventListener('input', () => {
+                // Could add real-time preview updates here
+                console.log('Report configuration updated');
+            });
+        });
+        
+        // Chart theme updates
+        document.getElementById('reportTheme').addEventListener('change', (e) => {
+            const theme = e.target.value;
+            updateChartThemes(theme);
+        });
+        
+        function updateChartThemes(theme) {
+            const themes = {
+                professional: {
+                    primary: '#0078d4',
+                    secondary: '#106ebe',
+                    success: '#28a745',
+                    warning: '#ffc107',
+                    danger: '#dc3545'
+                },
+                corporate: {
+                    primary: '#495057',
+                    secondary: '#6c757d',
+                    success: '#28a745',
+                    warning: '#fd7e14',
+                    danger: '#dc3545'
+                },
+                modern: {
+                    primary: '#6f42c1',
+                    secondary: '#e83e8c',
+                    success: '#20c997',
+                    warning: '#fd7e14',
+                    danger: '#dc3545'
+                }
+            };
+            
+            // Update chart colors based on theme
+            if (charts.trend) {
+                charts.trend.data.datasets[0].borderColor = themes[theme].primary;
+                charts.trend.data.datasets[0].backgroundColor = themes[theme].primary + '20';
+                charts.trend.update();
+            }
+        }
+    </script>
+</body>
+</html>
