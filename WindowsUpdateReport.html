@@ -80,14 +80,6 @@
             margin: 20px 0;
         }
 
-        .file-input-wrapper input[type="file"] {
-            position: absolute;
-            opacity: 0;
-            width: 100%;
-            height: 100%;
-            cursor: pointer;
-        }
-
         .btn {
             background: linear-gradient(135deg, #0078d4 0%, #106ebe 100%);
             color: white;
@@ -99,6 +91,7 @@
             cursor: pointer;
             transition: all 0.3s;
             margin: 5px;
+            display: inline-block;
         }
 
         .btn:hover {
@@ -536,39 +529,59 @@
         const downloadSection = document.getElementById('downloadSection');
         const generateReportBtn = document.getElementById('generateReport');
         
-        // File upload handling
-        csvFile.addEventListener('change', handleFileUpload);
-        
-        // Connect button to file input
-        chooseFileBtn.addEventListener('click', () => {
-            csvFile.click();
+        // Initialize on page load
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('Windows Update Report Generator initializing...');
+            
+            // Setup event listeners
+            setupEventListeners();
+            
+            // Load saved preferences
+            loadSavedPreferences();
+            
+            console.log('Initialization complete');
         });
         
-        // Drag and drop
-        uploadSection.addEventListener('dragover', (e) => {
-            e.preventDefault();
-            uploadSection.classList.add('dragover');
-        });
-        
-        uploadSection.addEventListener('dragleave', () => {
-            uploadSection.classList.remove('dragover');
-        });
-        
-        uploadSection.addEventListener('drop', (e) => {
-            e.preventDefault();
-            uploadSection.classList.remove('dragover');
-            const files = e.dataTransfer.files;
-            if (files.length > 0 && files[0].name.endsWith('.csv')) {
-                csvFile.files = files;
-                handleFileUpload();
-            }
-        });
-        
-        // Sample CSV download
-        document.getElementById('downloadSample').addEventListener('click', downloadSampleCSV);
-        
-        // Generate report button
-        generateReportBtn.addEventListener('click', generatePDFReport);
+        function setupEventListeners() {
+            // File upload button
+            chooseFileBtn.addEventListener('click', () => {
+                csvFile.click();
+            });
+            
+            // File input change
+            csvFile.addEventListener('change', handleFileUpload);
+            
+            // Drag and drop
+            uploadSection.addEventListener('dragover', (e) => {
+                e.preventDefault();
+                uploadSection.classList.add('dragover');
+            });
+            
+            uploadSection.addEventListener('dragleave', () => {
+                uploadSection.classList.remove('dragover');
+            });
+            
+            uploadSection.addEventListener('drop', (e) => {
+                e.preventDefault();
+                uploadSection.classList.remove('dragover');
+                const files = e.dataTransfer.files;
+                if (files.length > 0 && files[0].name.endsWith('.csv')) {
+                    csvFile.files = files;
+                    handleFileUpload();
+                }
+            });
+            
+            // Sample CSV download
+            document.getElementById('downloadSample').addEventListener('click', downloadSampleCSV);
+            
+            // Generate report button
+            generateReportBtn.addEventListener('click', generatePDFReport);
+            
+            // Save form data on change
+            document.querySelectorAll('#reportOptions input, #reportOptions select, #reportOptions textarea').forEach(element => {
+                element.addEventListener('change', saveFormData);
+            });
+        }
         
         function handleFileUpload() {
             const file = csvFile.files[0];
@@ -582,27 +595,69 @@
                     showReportOptions();
                     generateCharts();
                     generateReportBtn.disabled = false;
+                    showAlert('File uploaded successfully!', 'success');
                 } catch (error) {
                     showAlert('Error parsing CSV file: ' + error.message, 'error');
+                    console.error('Parse error:', error);
                 }
+            };
+            reader.onerror = function() {
+                showAlert('Error reading file', 'error');
             };
             reader.readAsText(file);
         }
         
         function parseCSVData(csvText) {
             const lines = csvText.trim().split('\n');
-            const headers = lines[0].split(',').map(h => h.trim().replace(/"/g, ''));
+            if (lines.length < 2) {
+                throw new Error('CSV file must contain headers and at least one data row');
+            }
             
-            csvData = lines.slice(1).map(line => {
-                const values = line.split(',').map(v => v.trim().replace(/"/g, ''));
-                const row = {};
-                headers.forEach((header, index) => {
-                    row[header] = values[index] || '';
-                });
-                return row;
-            }).filter(row => row['Update Name']); // Filter out empty rows
+            // Parse headers
+            const headers = parseCSVLine(lines[0]);
             
-            console.log('Parsed CSV data:', csvData);
+            // Parse data rows
+            csvData = [];
+            for (let i = 1; i < lines.length; i++) {
+                const values = parseCSVLine(lines[i]);
+                if (values.length === headers.length) {
+                    const row = {};
+                    headers.forEach((header, index) => {
+                        row[header] = values[index] || '';
+                    });
+                    if (row['Update Name']) { // Only add rows with update names
+                        csvData.push(row);
+                    }
+                }
+            }
+            
+            if (csvData.length === 0) {
+                throw new Error('No valid data found in CSV');
+            }
+            
+            console.log('Parsed CSV data:', csvData.length, 'rows');
+        }
+        
+        function parseCSVLine(line) {
+            const result = [];
+            let current = '';
+            let inQuotes = false;
+            
+            for (let i = 0; i < line.length; i++) {
+                const char = line[i];
+                
+                if (char === '"') {
+                    inQuotes = !inQuotes;
+                } else if (char === ',' && !inQuotes) {
+                    result.push(current.trim());
+                    current = '';
+                } else {
+                    current += char;
+                }
+            }
+            
+            result.push(current.trim());
+            return result;
         }
         
         function showDataPreview() {
@@ -616,16 +671,24 @@
             const table = document.getElementById('previewTable');
             const headers = Object.keys(csvData[0]);
             
-            table.innerHTML = `
-                <thead>
-                    <tr>${headers.map(h => `<th>${h}</th>`).join('')}</tr>
-                </thead>
-                <tbody>
-                    ${csvData.slice(0, 10).map(row => 
-                        `<tr>${headers.map(h => `<td class="${getSeverityClass(row[h])}">${row[h]}</td>`).join('')}</tr>`
-                    ).join('')}
-                </tbody>
-            `;
+            let tableHTML = '<thead><tr>';
+            headers.forEach(h => {
+                tableHTML += `<th>${h}</th>`;
+            });
+            tableHTML += '</tr></thead><tbody>';
+            
+            csvData.slice(0, 10).forEach(row => {
+                tableHTML += '<tr>';
+                headers.forEach(h => {
+                    const value = row[h];
+                    const className = getSeverityClass(value);
+                    tableHTML += `<td class="${className}">${value}</td>`;
+                });
+                tableHTML += '</tr>';
+            });
+            
+            tableHTML += '</tbody>';
+            table.innerHTML = tableHTML;
             
             dataPreview.classList.add('show');
         }
@@ -635,12 +698,12 @@
             
             // Parse numbers correctly, removing any non-numeric characters
             const totalMissing = csvData.reduce((sum, row) => {
-                const missing = parseInt(row['Updates Missing']?.replace(/\D/g, '') || '0');
+                const missing = parseInt(row['Updates Missing']?.toString().replace(/\D/g, '') || '0');
                 return sum + (isNaN(missing) ? 0 : missing);
             }, 0);
             
             const totalDeployed = csvData.reduce((sum, row) => {
-                const deployed = parseInt(row['Recently Deployed']?.replace(/\D/g, '') || '0');
+                const deployed = parseInt(row['Recently Deployed']?.toString().replace(/\D/g, '') || '0');
                 return sum + (isNaN(deployed) ? 0 : deployed);
             }, 0);
             
@@ -695,7 +758,8 @@
         }
         
         function getSeverityClass(value) {
-            const severity = value.toLowerCase();
+            if (!value) return '';
+            const severity = value.toString().toLowerCase();
             if (severity.includes('critical')) return 'severity-critical';
             if (severity.includes('important')) return 'severity-important';
             if (severity.includes('moderate')) return 'severity-moderate';
@@ -761,8 +825,8 @@
             
             const deploymentData = csvData.map(row => ({
                 name: row['Update Name'],
-                deployed: parseInt(row['Recently Deployed']?.replace(/\D/g, '') || '0'),
-                missing: parseInt(row['Updates Missing']?.replace(/\D/g, '') || '0')
+                deployed: parseInt(row['Recently Deployed']?.toString().replace(/\D/g, '') || '0'),
+                missing: parseInt(row['Updates Missing']?.toString().replace(/\D/g, '') || '0')
             }))
             .filter(d => d.deployed > 0 || d.missing > 0)
             .sort((a, b) => (b.deployed + b.missing) - (a.deployed + a.missing))
@@ -808,21 +872,23 @@
             const ctx = document.getElementById('trendChart').getContext('2d');
             
             // Group by month from Release Date
-            const monthCounts = csvData.reduce((acc, row) => {
+            const monthCounts = {};
+            
+            csvData.forEach(row => {
                 const dateStr = row['Release Date'];
                 if (dateStr) {
                     try {
+                        // Try to parse the date
                         const date = new Date(dateStr);
-                        if (!isNaN(date)) {
+                        if (!isNaN(date.getTime())) {
                             const monthKey = date.toLocaleDateString('en-US', { month: 'short', year: 'numeric' });
-                            acc[monthKey] = (acc[monthKey] || 0) + 1;
+                            monthCounts[monthKey] = (monthCounts[monthKey] || 0) + 1;
                         }
                     } catch (e) {
                         // Skip invalid dates
                     }
                 }
-                return acc;
-            }, {});
+            });
             
             if (charts.trend) {
                 charts.trend.destroy();
@@ -1025,15 +1091,15 @@
             updateProgress(50, 'Adding charts...');
             
             if (document.getElementById('includeSeverityChart').checked) {
-                await addChartToPDF(pdf, 'severityChart', 'Security Severity Distribution', currentPage++);
+                currentPage = await addChartToPDF(pdf, 'severityChart', 'Security Severity Distribution', currentPage);
             }
             
             if (document.getElementById('includeDeploymentChart').checked) {
-                await addChartToPDF(pdf, 'deploymentChart', 'Top 10 Updates - Deployment Status', currentPage++);
+                currentPage = await addChartToPDF(pdf, 'deploymentChart', 'Top 10 Updates - Deployment Status', currentPage);
             }
             
             if (document.getElementById('includeTrendChart').checked) {
-                await addChartToPDF(pdf, 'trendChart', 'Update Release Timeline', currentPage++);
+                currentPage = await addChartToPDF(pdf, 'trendChart', 'Update Release Timeline', currentPage);
             }
             
             // Detailed table
@@ -1078,6 +1144,7 @@
         
         async function addChartToPDF(pdf, chartId, title, pageNum) {
             pdf.addPage();
+            pageNum++;
             addPageHeader(pdf, title, pageNum);
             
             const canvas = document.getElementById(chartId);
@@ -1120,7 +1187,7 @@
                 });
             }
             
-            return pageNum + 1;
+            return pageNum;
         }
         
         function getChartInsights(chartId) {
@@ -1276,3 +1343,133 @@
             
             return currentPage;
         }
+        
+        function updateProgress(percentage, text) {
+            const progressFill = document.getElementById('progressFill');
+            const statusText = document.getElementById('statusText');
+            
+            progressFill.style.width = percentage + '%';
+            progressFill.textContent = percentage + '%';
+            statusText.textContent = text;
+        }
+        
+        function downloadSampleCSV() {
+            const sampleData = [
+                ['Update Name', 'Version', 'Security Severity', 'Release Date', 'Updates Missing', 'Recently Deployed', 'Details'],
+                ['Windows Security Update KB5034441', '2025-01', 'Critical', '2025-01-10', '15', '85', '1'],
+                ['Microsoft Defender Definition Update', '1.403.2956.0', 'Important', '2025-01-12', '3', '97', '1'],
+                ['Microsoft Edge Security Update', '120.0.2210.144', 'Important', '2025-01-08', '8', '92', '1'],
+                ['Windows Cumulative Update KB5034439', '2025-01', 'Moderate', '2025-01-10', '22', '78', '1'],
+                ['.NET Framework Security Update', '4.8.1', 'Important', '2025-01-09', '12', '88', '1'],
+                ['Office Security Update KB5034442', '16.0.17328', 'Critical', '2025-01-10', '5', '95', '1'],
+                ['Windows Defender Update', '1.403.2958.0', 'Important', '2025-01-14', '10', '90', '1'],
+                ['Visual C++ Redistributable Update', '14.38.33130', 'Moderate', '2025-01-05', '30', '70', '1'],
+                ['Windows Malicious Software Removal Tool', '5.120', 'Low', '2025-01-10', '0', '100', '1'],
+                ['SQL Server Security Update', '15.0.4365.2', 'Critical', '2025-01-08', '18', '82', '1']
+            ];
+            
+            const csvContent = sampleData.map(row => row.join(',')).join('\n');
+            const blob = new Blob([csvContent], { type: 'text/csv' });
+            const url = URL.createObjectURL(blob);
+            
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'sample_update_data.csv';
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+        }
+        
+        function showAlert(message, type) {
+            const alertDiv = document.createElement('div');
+            alertDiv.className = `alert alert-${type}`;
+            alertDiv.textContent = message;
+            
+            const mainContent = document.querySelector('.main-content');
+            mainContent.insertBefore(alertDiv, mainContent.firstChild);
+            
+            setTimeout(() => {
+                alertDiv.remove();
+            }, 5000);
+        }
+        
+        function saveFormData() {
+            const formData = {
+                reportTitle: document.getElementById('reportTitle').value,
+                organizationName: document.getElementById('organizationName').value,
+                reportPeriod: document.getElementById('reportPeriod').value,
+                reportTheme: document.getElementById('reportTheme').value,
+                additionalNotes: document.getElementById('additionalNotes').value,
+                options: {
+                    includeSummary: document.getElementById('includeSummary').checked,
+                    includeSeverityChart: document.getElementById('includeSeverityChart').checked,
+                    includeDeploymentChart: document.getElementById('includeDeploymentChart').checked,
+                    includeTrendChart: document.getElementById('includeTrendChart').checked,
+                    includeDetailTable: document.getElementById('includeDetailTable').checked,
+                    includeRecommendations: document.getElementById('includeRecommendations').checked
+                }
+            };
+            localStorage.setItem('updateReportFormData', JSON.stringify(formData));
+        }
+        
+        function loadSavedPreferences() {
+            // Load organization name
+            const orgName = localStorage.getItem('updateReportOrgName');
+            if (orgName) {
+                document.getElementById('organizationName').value = orgName;
+            }
+            
+            // Save organization name on change
+            document.getElementById('organizationName').addEventListener('change', (e) => {
+                localStorage.setItem('updateReportOrgName', e.target.value);
+            });
+            
+            // Auto-populate current month
+            const currentMonth = new Date().toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
+            document.getElementById('reportPeriod').value = currentMonth;
+            
+            // Load saved form data
+            const saved = localStorage.getItem('updateReportFormData');
+            if (saved) {
+                try {
+                    const formData = JSON.parse(saved);
+                    if (csvData.length === 0) { // Only load if no file uploaded yet
+                        document.getElementById('reportTitle').value = formData.reportTitle || 'Windows Update Compliance Report';
+                        document.getElementById('reportTheme').value = formData.reportTheme || 'professional';
+                        document.getElementById('additionalNotes').value = formData.additionalNotes || '';
+                        
+                        if (formData.options) {
+                            Object.keys(formData.options).forEach(key => {
+                                const checkbox = document.getElementById(key);
+                                if (checkbox) {
+                                    checkbox.checked = formData.options[key];
+                                }
+                            });
+                        }
+                    }
+                } catch (e) {
+                    console.error('Error loading saved form data:', e);
+                }
+            }
+        }
+        
+        // Keyboard shortcuts
+        document.addEventListener('keydown', (e) => {
+            // Ctrl/Cmd + O to open file
+            if ((e.ctrlKey || e.metaKey) && e.key === 'o') {
+                e.preventDefault();
+                csvFile.click();
+            }
+            
+            // Ctrl/Cmd + G to generate report
+            if ((e.ctrlKey || e.metaKey) && e.key === 'g' && !generateReportBtn.disabled) {
+                e.preventDefault();
+                generateReportBtn.click();
+            }
+        });
+        
+        console.log('Windows Update Report Generator initialized successfully');
+    </script>
+</body>
+</html>
