@@ -476,12 +476,12 @@
                 
                 <div class="chart-container">
                     <div class="chart-title">Deployment Status Overview</div>
-                    <canvas id="deploymentChart" width="400" height="250"></canvas>
+                    <canvas id="deploymentChart" width="400" height="300"></canvas>
                 </div>
                 
                 <div class="chart-container">
                     <div class="chart-title">Updates by Release Month</div>
-                    <canvas id="trendChart" width="400" height="250"></canvas>
+                    <canvas id="trendChart" width="400" height="300"></canvas>
                 </div>
             </div>
 
@@ -816,12 +816,13 @@
                     maintainAspectRatio: false,
                     plugins: {
                         legend: {
-                            position: 'right', // Better position for readability
+                            position: 'right',
                             labels: {
                                 font: {
-                                    size: 12 // Increased legend font size
+                                    size: 14 // Increased legend font size
                                 },
-                                boxWidth: 20 // Make legend color boxes larger
+                                boxWidth: 25,
+                                padding: 20
                             }
                         }
                     }
@@ -870,31 +871,32 @@
                     maintainAspectRatio: false,
                     scales: {
                         x: {
-                            display: true, // Re-enabled X-axis
+                            display: true,
                             ticks: {
                                 font: {
-                                    size: 10 // Set X-axis font size
+                                    size: 12 // Increased font size
                                 },
                                 autoSkip: false,
-                                maxRotation: 45, // Rotate labels slightly to prevent overlap
+                                maxRotation: 45,
                                 minRotation: 45
                             }
                         },
                         y: {
                             beginAtZero: true,
-                            stacked: true,
+                            stacked: false, // Changed to grouped bar chart
                              ticks: {
                                 font: {
-                                    size: 10 // Set Y-axis font size
+                                    size: 12 // Increased font size
                                 }
                             }
                         }
                     },
                     plugins: {
                         legend: {
+                            position: 'top',
                             labels: {
                                 font: {
-                                    size: 12 // Increased legend font size
+                                    size: 14 // Increased font size
                                 }
                             }
                         },
@@ -961,7 +963,7 @@
                          x: {
                             ticks: {
                                 font: {
-                                    size: 10 // Increased X-axis font size
+                                    size: 12 // Increased font size
                                 }
                             }
                         },
@@ -969,16 +971,17 @@
                             beginAtZero: true,
                             ticks: {
                                 font: {
-                                    size: 10 // Increased Y-axis font size
+                                    size: 12 // Increased font size
                                 }
                             }
                         }
                     },
                     plugins: {
                         legend: {
+                            position: 'top',
                             labels: {
                                 font: {
-                                    size: 12 // Increased legend font size
+                                    size: 14 // Increased font size
                                 }
                             }
                         }
@@ -1212,9 +1215,6 @@
             pdf.setTextColor(0, 0, 0);
         }
         
-        // =================================================================
-        // === SCALING FIX: This function has been updated for better scaling ===
-        // =================================================================
         async function addChartToPDF(pdf, chartId, title, pageNum) {
             pdf.addPage();
             pageNum++;
@@ -1229,7 +1229,7 @@
             const pageHeight = pdf.internal.pageSize.getHeight();
             const margin = 20;
             const contentWidth = pageWidth - margin * 2;
-            const maxHeight = 90; // A reasonable max height for the chart in mm
+            const maxHeight = 120; // A reasonable max height for the chart in mm
             
             // Calculate image dimensions to fit within a bounding box, preserving aspect ratio
             const aspectRatio = canvas.width / canvas.height;
@@ -1250,7 +1250,7 @@
 
             // Center the final image horizontally and place it vertically after the header
             const x = (pageWidth - finalWidth) / 2;
-            const y = 50;
+            const y = 45;
             
             pdf.addImage(imgData, 'PNG', x, y, finalWidth, finalHeight);
             
