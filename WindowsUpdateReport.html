@@ -1165,34 +1165,43 @@
             addPageHeader(pdf, title, pageNum);
             
             const canvas = document.getElementById(chartId);
+            // Ensure chart animation is complete before getting data URL
+            await new Promise(resolve => setTimeout(resolve, 500));
             const imgData = canvas.toDataURL('image/png', 1.0); 
             
             const pageWidth = pdf.internal.pageSize.getWidth();
             const pageHeight = pdf.internal.pageSize.getHeight();
             const margin = 20;
             const contentWidth = pageWidth - margin * 2;
-            const maxHeight = 120; // Max height for a chart to avoid being too large
+            const maxHeight = 100; // A reasonable max height for the chart in mm
             
             // Calculate image dimensions to fit within a bounding box, preserving aspect ratio
             const aspectRatio = canvas.width / canvas.height;
-            let imgWidth = contentWidth * 0.8; // Use 80% of content width as a base
-            let imgHeight = imgWidth / aspectRatio;
+            let finalWidth = contentWidth;
+            let finalHeight = finalWidth / aspectRatio;
 
-            if (imgHeight > maxHeight) {
-                imgHeight = maxHeight;
-                imgWidth = imgHeight * aspectRatio;
+            // If the calculated height is too big, we cap it and recalculate width to maintain aspect ratio
+            if (finalHeight > maxHeight) {
+                finalHeight = maxHeight;
+                finalWidth = finalHeight * aspectRatio;
+            }
+            
+            // If the calculated width is still too wide for the page, shrink it and the height again.
+            if (finalWidth > contentWidth) {
+                finalWidth = contentWidth;
+                finalHeight = finalWidth / aspectRatio;
             }
 
-            // Center the image horizontally and place it vertically after the header
-            const x = (pageWidth - imgWidth) / 2;
+            // Center the final image horizontally and place it vertically after the header
+            const x = (pageWidth - finalWidth) / 2;
             const y = 50;
             
-            pdf.addImage(imgData, 'PNG', x, y, imgWidth, imgHeight);
+            pdf.addImage(imgData, 'PNG', x, y, finalWidth, finalHeight);
             
             // Add chart insights below the chart
             const insights = getChartInsights(chartId);
             if (insights) {
-                let textY = y + imgHeight + 20;
+                let textY = y + finalHeight + 20;
                 pdf.setFontSize(11);
                 pdf.setFont(undefined, 'normal');
                 
