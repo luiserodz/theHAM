@@ -307,7 +307,6 @@
             padding: 20px;
             margin: 15px 0;
             position: relative;
-            /* Removed fixed height to prevent stretching */
         }
 
         .chart-title {
@@ -471,7 +470,7 @@
             <div class="charts-preview" id="chartsPreview">
                 <h3>📈 Report Preview</h3>
                 
-                <div class="chart-container" style="height: 300px;">
+                <div class="chart-container" style="height: 350px;">
                     <div class="chart-title">Security Severity Distribution</div>
                     <canvas id="severityChart"></canvas>
                 </div>
@@ -510,12 +509,17 @@
 
     <!-- Include Chart.js for data visualization -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js"></script>
+    <!-- Include Chart.js Datalabels plugin for displaying percentages -->
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.1.0"></script>
     <!-- Include jsPDF for PDF generation -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <!-- Include jsPDF AutoTable plugin -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.31/jspdf.plugin.autotable.min.js"></script>
     
     <script>
+        // Register the datalabels plugin globally
+        Chart.register(ChartDataLabels);
+
         // Global variables
         let csvData = [];
         let charts = {};
@@ -822,10 +826,25 @@
                             labels: {
                                 font: {
                                     size: 14,
-                                    weight: 'bold'
                                 },
                                 boxWidth: 25,
                                 padding: 20
+                            }
+                        },
+                        datalabels: {
+                            formatter: (value, ctx) => {
+                                let sum = 0;
+                                let dataArr = ctx.chart.data.datasets[0].data;
+                                dataArr.map(data => {
+                                    sum += data;
+                                });
+                                let percentage = (value*100 / sum).toFixed(1) + "%";
+                                return percentage;
+                            },
+                            color: '#fff',
+                            font: {
+                                weight: 'bold',
+                                size: 14,
                             }
                         }
                     }
@@ -879,8 +898,7 @@
                             stacked: false, 
                              ticks: {
                                 font: {
-                                    size: 14, // Increased font size
-                                    weight: 'bold'
+                                    size: 14,
                                 }
                             }
                         },
@@ -888,7 +906,7 @@
                             stacked: false,
                             ticks: {
                                 font: {
-                                    size: 12, // Increased font size
+                                    size: 12,
                                 },
                                 autoSkip: false
                             }
@@ -899,8 +917,7 @@
                             position: 'top',
                             labels: {
                                 font: {
-                                    size: 14, // Increased font size
-                                    weight: 'bold'
+                                    size: 14,
                                 }
                             }
                         }
@@ -922,8 +939,7 @@
                 const dateStr = row['Release Date'];
                 if (dateStr) {
                     try {
-                        // Use robust, direct date parsing
-                        const date = new Date(dateStr);
+                        const date = new Date(dateStr.replace(/-/g, '/')); // More reliable parsing
                         if (!isNaN(date.getTime())) {
                             const monthKey = date.toLocaleDateString('en-US', { month: 'short', year: 'numeric' });
                             monthCounts[monthKey] = (monthCounts[monthKey] || 0) + 1;
@@ -960,8 +976,7 @@
                          x: {
                             ticks: {
                                 font: {
-                                    size: 14, // Increased font size
-                                    weight: 'bold'
+                                    size: 14,
                                 }
                             }
                         },
@@ -969,8 +984,7 @@
                             beginAtZero: true,
                             ticks: {
                                 font: {
-                                    size: 14, // Increased font size
-                                    weight: 'bold'
+                                    size: 14,
                                 }
                             }
                         }
@@ -980,8 +994,7 @@
                             position: 'top',
                             labels: {
                                 font: {
-                                    size: 14, // Increased font size
-                                    weight: 'bold'
+                                    size: 14,
                                 }
                             }
                         }
@@ -1314,7 +1327,7 @@
             addPageHeader(pdf, 'Detailed Update List', currentPage);
             const firstTablePage = currentPage;
             
-            // Prepare table data - Use ALL data, not just a slice
+            // Prepare table data - Use ALL data
             const tableData = csvData.map(row => [
                 row['Update Name'] || '',
                 row['Version']?.substring(0, 20) || '',
@@ -1341,7 +1354,6 @@
                 },
                 columnStyles: {
                     // A4 page width is 210mm. Margins are 20mm each side. Content width = 170mm.
-                    // New widths add up to 170mm.
                     0: { cellWidth: 65 }, 
                     1: { cellWidth: 25 },
                     2: { cellWidth: 20 },
