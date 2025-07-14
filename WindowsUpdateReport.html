@@ -642,6 +642,10 @@
             const criticalUpdates = severityCounts['Critical'] || 0;
             const importantUpdates = severityCounts['Important'] || 0;
             
+            // Calculate compliance rate based on deployed vs total deployments needed
+            const totalDeploymentTargets = totalDeployed + totalMissing;
+            const complianceRate = totalDeploymentTargets > 0 ? Math.round((totalDeployed / totalDeploymentTargets) * 100) : 100;
+            
             return {
                 totalUpdates,
                 totalMissing,
@@ -649,7 +653,7 @@
                 criticalUpdates,
                 importantUpdates,
                 severityCounts,
-                complianceRate: Math.round(((totalUpdates - totalMissing) / totalUpdates) * 100)
+                complianceRate
             };
         }
         
@@ -974,65 +978,110 @@
         
         async function addChartToPDF(pdf, chartId, title) {
             const canvas = document.getElementById(chartId);
-            const imgData = canvas.toDataURL('image/png');
+            const imgData = canvas.toDataURL('image/png', 1.0);
             
             pdf.addPage();
             const pageWidth = pdf.internal.pageSize.getWidth();
+            const pageHeight = pdf.internal.pageSize.getHeight();
+            const margin = 15;
             
+            // Add title
             pdf.setFontSize(16);
-            pdf.text(title, pageWidth / 2, 20, { align: 'center' });
+            pdf.setFont(undefined, 'bold');
+            pdf.text(title, pageWidth / 2, margin + 15, { align: 'center' });
             
-            // Add chart image
-            const imgWidth = pageWidth - 40;
-            const imgHeight = (canvas.height * imgWidth) / canvas.width;
+            // Calculate proper chart dimensions to fit page
+            const maxWidth = pageWidth - (margin * 2);
+            const maxHeight = pageHeight - 80; // Leave room for title and margins
             
-            pdf.addImage(imgData, 'PNG', 20, 35, imgWidth, imgHeight);
+            // Get canvas dimensions
+            const canvasWidth = canvas.width;
+            const canvasHeight = canvas.height;
+            const aspectRatio = canvasHeight / canvasWidth;
+            
+            // Calculate final dimensions maintaining aspect ratio
+            let finalWidth = maxWidth;
+            let finalHeight = finalWidth * aspectRatio;
+            
+            // If height is too large, scale based on height instead
+            if (finalHeight > maxHeight) {
+                finalHeight = maxHeight;
+                finalWidth = finalHeight / aspectRatio;
+            }
+            
+            // Center the image
+            const xPosition = (pageWidth - finalWidth) / 2;
+            const yPosition = margin + 30;
+            
+            // Add chart image with proper scaling
+            pdf.addImage(imgData, 'PNG', xPosition, yPosition, finalWidth, finalHeight, undefined, 'MEDIUM');
         }
         
         function addDetailedTable(pdf) {
             pdf.addPage();
             const pageWidth = pdf.internal.pageSize.getWidth();
-            let yPosition = 20;
+            const pageHeight = pdf.internal.pageSize.getHeight();
+            const margin = 15;
+            let yPosition = margin + 15;
             
             pdf.setFontSize(16);
+            pdf.setFont(undefined, 'bold');
             pdf.text('Detailed Update Information', pageWidth / 2, yPosition, { align: 'center' });
             yPosition += 20;
             
-            // Table headers
-            pdf.setFontSize(10);
+            // Table setup with proper margins
+            pdf.setFontSize(9);
             pdf.setFont(undefined, 'bold');
             const headers = ['Update Name', 'Version', 'Severity', 'Release Date', 'Missing', 'Deployed'];
-            const colWidths = [60, 25, 25, 30, 20, 20];
-            let xPosition = 20;
+            const colWidths = [65, 25, 25, 30, 18, 18]; // Adjusted for better fit
+            let xPosition = margin;
             
+            // Draw header background
+            pdf.setFillColor(240, 248, 255);
+            pdf.rect(margin, yPosition - 5, pageWidth - (margin * 2), 8, 'F');
+            
+            // Header text
             headers.forEach((header, index) => {
-                pdf.text(header, xPosition, yPosition);
+                pdf.text(header, xPosition + 2, yPosition);
                 xPosition += colWidths[index];
             });
             
+            yPosition += 5;
+            
+            // Header underline
+            pdf.setDrawColor(0, 120, 212);
+            pdf.setLineWidth(0.5);
+            pdf.line(margin, yPosition, pageWidth - margin, yPosition);
             yPosition += 8;
-            pdf.line(20, yPosition - 2, pageWidth - 20, yPosition - 2);
             
             // Table data
             pdf.setFont(undefined, 'normal');
-            csvData.slice(0, 30).forEach((row, index) => { // Limit to 30 rows
-                if (yPosition > 250) { // New page if needed
+            pdf.setFontSize(8);
+            
+            csvData.slice(0, 35).forEach((row, index) => { // Limit rows to fit better
+                if (yPosition > pageHeight - 30) { // Check for page overflow
                     pdf.addPage();
-                    yPosition = 20;
+                    yPosition = margin + 15;
                 }
                 
-                xPosition = 20;
+                xPosition = margin;
                 const rowData = [
-                    row['Update Name']?.substring(0, 25) + '...' || '',
-                    row['Version'] || '',
+                    (row['Update Name'] || '').substring(0, 30) + (row['Update Name']?.length > 30 ? '...' : ''),
+                    (row['Version'] || '').substring(0, 12),
                     row['Security Severity'] || '',
                     row['Release Date'] || '',
                     row['Updates Missing'] || '0',
                     row['Recently Deployed'] || '0'
                 ];
                 
+                // Alternate row background
+                if (index % 2 === 0) {
+                    pdf.setFillColor(248, 249, 250);
+                    pdf.rect(margin, yPosition - 3, pageWidth - (margin * 2), 6, 'F');
+                }
+                
                 rowData.forEach((data, colIndex) => {
-                    // Color code severity
+                    // Color code severity column
                     if (colIndex === 2) {
                         const severity = data.toLowerCase();
                         if (severity.includes('critical')) pdf.setTextColor(220, 53, 69);
@@ -1043,12 +1092,15 @@
                         pdf.setTextColor(0, 0, 0);
                     }
                     
-                    pdf.text(data.toString(), xPosition, yPosition);
+                    pdf.text(data.toString(), xPosition + 2, yPosition);
                     xPosition += colWidths[colIndex];
                 });
                 
                 yPosition += 6;
             });
+            
+            // Reset text color
+            pdf.setTextColor(0, 0, 0);
         }
         
         function addRecommendations(pdf, stats) {
