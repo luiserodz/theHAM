@@ -853,7 +853,7 @@
         }
         
         // =================================================================
-        // === SCALING FIX: This function has been updated for better scaling ===
+        // === FIX: Changed to a stacked bar chart for clarity ===
         // =================================================================
         function generateDeploymentChart() {
             const ctx = document.getElementById('deploymentChart').getContext('2d');
@@ -893,6 +893,7 @@
                     maintainAspectRatio: false,
                     scales: {
                         x: {
+                            stacked: true, // Make X-axis stacked
                             ticks: {
                                 font: {
                                     size: 12
@@ -903,9 +904,9 @@
                             }
                         },
                         y: {
+                            stacked: true, // Make Y-axis stacked
                             beginAtZero: true,
-                            stacked: false, 
-                             ticks: {
+                            ticks: {
                                 font: {
                                     size: 14,
                                 }
@@ -922,11 +923,11 @@
                             }
                         },
                         tooltip: {
-                           callbacks: {
-                               title: (context) => {
-                                   return deploymentData[context[0].dataIndex].name;
-                               }
-                           }
+                            callbacks: {
+                                title: (context) => {
+                                    return deploymentData[context[0].dataIndex].name;
+                                }
+                            }
                         }
                     }
                 }
