@@ -471,17 +471,17 @@
                 
                 <div class="chart-container">
                     <div class="chart-title">Security Severity Distribution</div>
-                    <canvas id="severityChart" width="400" height="200"></canvas>
+                    <canvas id="severityChart" width="400" height="250"></canvas>
                 </div>
                 
                 <div class="chart-container">
                     <div class="chart-title">Deployment Status Overview</div>
-                    <canvas id="deploymentChart" width="400" height="200"></canvas>
+                    <canvas id="deploymentChart" width="400" height="250"></canvas>
                 </div>
                 
                 <div class="chart-container">
                     <div class="chart-title">Updates by Release Month</div>
-                    <canvas id="trendChart" width="400" height="200"></canvas>
+                    <canvas id="trendChart" width="400" height="250"></canvas>
                 </div>
             </div>
 
@@ -778,6 +778,9 @@
             chartsPreview.classList.add('show');
         }
         
+        // =================================================================
+        // === SCALING FIX: This function has been updated for better scaling ===
+        // =================================================================
         function generateSeverityChart() {
             const ctx = document.getElementById('severityChart').getContext('2d');
             
@@ -813,13 +816,22 @@
                     maintainAspectRatio: false,
                     plugins: {
                         legend: {
-                            position: 'bottom'
+                            position: 'right', // Better position for readability
+                            labels: {
+                                font: {
+                                    size: 12 // Increased legend font size
+                                },
+                                boxWidth: 20 // Make legend color boxes larger
+                            }
                         }
                     }
                 }
             });
         }
         
+        // =================================================================
+        // === SCALING FIX: This function has been updated for better scaling ===
+        // =================================================================
         function generateDeploymentChart() {
             const ctx = document.getElementById('deploymentChart').getContext('2d');
             
@@ -839,7 +851,7 @@
             charts.deployment = new Chart(ctx, {
                 type: 'bar',
                 data: {
-                    labels: deploymentData.map(d => d.name.substring(0, 30) + (d.name.length > 30 ? '...' : '')),
+                    labels: deploymentData.map(d => d.name.substring(0, 25) + (d.name.length > 25 ? '...' : '')),
                     datasets: [
                         {
                             label: 'Deployed',
@@ -858,14 +870,34 @@
                     maintainAspectRatio: false,
                     scales: {
                         x: {
-                            display: false // Hiding labels to keep it clean
+                            display: true, // Re-enabled X-axis
+                            ticks: {
+                                font: {
+                                    size: 10 // Set X-axis font size
+                                },
+                                autoSkip: false,
+                                maxRotation: 45, // Rotate labels slightly to prevent overlap
+                                minRotation: 45
+                            }
                         },
                         y: {
                             beginAtZero: true,
                             stacked: true,
+                             ticks: {
+                                font: {
+                                    size: 10 // Set Y-axis font size
+                                }
+                            }
                         }
                     },
                     plugins: {
+                        legend: {
+                            labels: {
+                                font: {
+                                    size: 12 // Increased legend font size
+                                }
+                            }
+                        },
                         tooltip: {
                            callbacks: {
                                title: (context) => {
@@ -877,7 +909,10 @@
                 }
             });
         }
-        
+
+        // =================================================================
+        // === SCALING FIX: This function has been updated for better scaling ===
+        // =================================================================
         function generateTrendChart() {
             const ctx = document.getElementById('trendChart').getContext('2d');
             
@@ -923,8 +958,29 @@
                     responsive: true,
                     maintainAspectRatio: false,
                     scales: {
+                         x: {
+                            ticks: {
+                                font: {
+                                    size: 10 // Increased X-axis font size
+                                }
+                            }
+                        },
                         y: {
-                            beginAtZero: true
+                            beginAtZero: true,
+                            ticks: {
+                                font: {
+                                    size: 10 // Increased Y-axis font size
+                                }
+                            }
+                        }
+                    },
+                    plugins: {
+                        legend: {
+                            labels: {
+                                font: {
+                                    size: 12 // Increased legend font size
+                                }
+                            }
                         }
                     }
                 }
@@ -1173,7 +1229,7 @@
             const pageHeight = pdf.internal.pageSize.getHeight();
             const margin = 20;
             const contentWidth = pageWidth - margin * 2;
-            const maxHeight = 100; // A reasonable max height for the chart in mm
+            const maxHeight = 90; // A reasonable max height for the chart in mm
             
             // Calculate image dimensions to fit within a bounding box, preserving aspect ratio
             const aspectRatio = canvas.width / canvas.height;
@@ -1251,9 +1307,6 @@
             }
         }
         
-        // =================================================================
-        // === SCALING FIX: This function has been updated for better scaling ===
-        // =================================================================
         function addDetailedTable(pdf, currentPage) {
             pdf.addPage();
             currentPage++;
