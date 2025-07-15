@@ -510,15 +510,20 @@
     <!-- Include Chart.js for data visualization -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js"></script>
     <!-- Include Chart.js Datalabels plugin for displaying percentages -->
-    <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.1.0"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.1.0/dist/chartjs-plugin-datalabels.min.js"></script>
     <!-- Include jsPDF for PDF generation -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <!-- Include jsPDF AutoTable plugin -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.31/jspdf.plugin.autotable.min.js"></script>
     
     <script>
-        // Register the datalabels plugin globally
-        Chart.register(ChartDataLabels);
+        // Wait for the window to load before registering plugins
+        window.addEventListener('DOMContentLoaded', function() {
+            // The plugin should be available as ChartDataLabels after loading
+            if (typeof ChartDataLabels !== 'undefined') {
+                Chart.register(ChartDataLabels);
+            }
+        });
 
         // Global variables
         let csvData = [];
@@ -853,7 +858,7 @@
         }
         
         // =================================================================
-        // === FIX: Changed to a stacked bar chart for clarity ===
+        // === FIX: Changed to grouped bar chart for better visibility ===
         // =================================================================
         function generateDeploymentChart() {
             const ctx = document.getElementById('deploymentChart').getContext('2d');
@@ -893,7 +898,6 @@
                     maintainAspectRatio: false,
                     scales: {
                         x: {
-                            stacked: true, // Make X-axis stacked
                             ticks: {
                                 font: {
                                     size: 12
@@ -904,7 +908,6 @@
                             }
                         },
                         y: {
-                            stacked: true, // Make Y-axis stacked
                             beginAtZero: true,
                             ticks: {
                                 font: {
@@ -926,7 +929,27 @@
                             callbacks: {
                                 title: (context) => {
                                     return deploymentData[context[0].dataIndex].name;
+                                },
+                                label: (context) => {
+                                    const label = context.dataset.label || '';
+                                    const value = context.parsed.y;
+                                    const total = deploymentData[context.dataIndex].deployed + deploymentData[context.dataIndex].missing;
+                                    const percentage = ((value / total) * 100).toFixed(1);
+                                    return `${label}: ${value} (${percentage}%)`;
                                 }
+                            }
+                        },
+                        datalabels: {
+                            display: function(context) {
+                                return context.dataset.data[context.dataIndex] > 0;
+                            },
+                            color: '#fff',
+                            font: {
+                                weight: 'bold',
+                                size: 12
+                            },
+                            formatter: (value) => {
+                                return value > 0 ? value : '';
                             }
                         }
                     }
