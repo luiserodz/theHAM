@@ -92,6 +92,7 @@
             transition: all 0.3s;
             margin: 5px;
             display: inline-block;
+            text-decoration: none;
         }
 
         .btn:hover {
@@ -317,12 +318,14 @@
             color: #333;
         }
 
-        #downloadLink {
+        #downloadSection {
+            text-align: center;
+            margin: 30px 0;
             display: none;
         }
 
-        #downloadLink.show {
-            display: inline-block;
+        #downloadSection.show {
+            display: block;
         }
 
         .stats-grid {
@@ -496,7 +499,7 @@
             </div>
 
             <!-- Download Section -->
-            <div id="downloadSection" style="text-align: center; margin: 30px 0; display: none;">
+            <div id="downloadSection">
                 <div class="alert alert-success">
                     ✅ Report generated successfully!
                 </div>
@@ -509,22 +512,12 @@
 
     <!-- Include Chart.js for data visualization -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js"></script>
-    <!-- Include Chart.js Datalabels plugin for displaying percentages -->
-    <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.1.0/dist/chartjs-plugin-datalabels.min.js"></script>
     <!-- Include jsPDF for PDF generation -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <!-- Include jsPDF AutoTable plugin -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.31/jspdf.plugin.autotable.min.js"></script>
     
     <script>
-        // Wait for the window to load before registering plugins
-        window.addEventListener('DOMContentLoaded', function() {
-            // The plugin should be available as ChartDataLabels after loading
-            if (typeof ChartDataLabels !== 'undefined') {
-                Chart.register(ChartDataLabels);
-            }
-        });
-
         // Global variables
         let csvData = [];
         let charts = {};
@@ -832,22 +825,6 @@
                                 boxWidth: 25,
                                 padding: 20
                             }
-                        },
-                        datalabels: {
-                            formatter: (value, ctx) => {
-                                let sum = 0;
-                                let dataArr = ctx.chart.data.datasets[0].data;
-                                dataArr.map(data => {
-                                    sum += data;
-                                });
-                                let percentage = (value*100 / sum).toFixed(1) + "%";
-                                return percentage;
-                            },
-                            color: '#fff',
-                            font: {
-                                weight: 'bold',
-                                size: 14,
-                            }
                         }
                     }
                 }
@@ -931,19 +908,6 @@
                                     const percentage = ((value / total) * 100).toFixed(1);
                                     return `${label}: ${value} (${percentage}%)`;
                                 }
-                            }
-                        },
-                        datalabels: {
-                            display: function(context) {
-                                return context.dataset.data[context.dataIndex] > 0;
-                            },
-                            color: '#fff',
-                            font: {
-                                weight: 'bold',
-                                size: 12
-                            },
-                            formatter: (value) => {
-                                return value > 0 ? value : '';
                             }
                         }
                     }
@@ -1058,10 +1022,13 @@
                 const downloadLink = document.getElementById('downloadLink');
                 downloadLink.href = url;
                 downloadLink.download = `${reportTitle.replace(/[^a-z0-9]/gi, '_')}_${new Date().toISOString().slice(0, 10)}.pdf`;
-                downloadLink.classList.add('show');
                 
-                downloadSection.style.display = 'block';
+                // Show download section
+                downloadSection.classList.add('show');
                 statusSection.classList.remove('show');
+                
+                // Scroll to download section
+                downloadSection.scrollIntoView({ behavior: 'smooth', block: 'center' });
                 
             } catch (error) {
                 console.error('Error generating PDF:', error);
@@ -1075,45 +1042,45 @@
             const pageHeight = pdf.internal.pageSize.getHeight();
             let currentPage = 1;
             
-            // --- OPTIMIZED TITLE PAGE ---
+            // --- TITLE PAGE ---
             updateProgress(20, 'Creating title page...');
             
-            // Reduced header height from 60 to 40
+            // Header
             pdf.setFillColor(0, 120, 212);
             pdf.rect(0, 0, pageWidth, 40, 'F');
             
             // Title
             pdf.setTextColor(255, 255, 255);
-            pdf.setFontSize(24); // Reduced from 28
+            pdf.setFontSize(24);
             pdf.text(config.title, pageWidth / 2, 20, { align: 'center' });
             
-            // Organization - moved up
+            // Organization
             if (config.organization) {
-                pdf.setFontSize(14); // Reduced from 18
+                pdf.setFontSize(14);
                 pdf.text(config.organization, pageWidth / 2, 32, { align: 'center' });
             }
             
             pdf.setTextColor(0, 0, 0);
             
-            // Smaller info box - moved up, reduced height
+            // Info box
             pdf.setFillColor(248, 249, 250);
-            pdf.rect(20, 50, pageWidth - 40, 25, 'F'); // Reduced height from 40 to 25
+            pdf.rect(20, 50, pageWidth - 40, 25, 'F');
             
-            pdf.setFontSize(11); // Reduced from 12
+            pdf.setFontSize(11);
             pdf.text(`Period: ${config.period || 'Current'}`, pageWidth / 2, 58, { align: 'center' });
             pdf.text(`Generated: ${new Date().toLocaleDateString()}`, pageWidth / 2, 67, { align: 'center' });
             
-            // MOVE STATISTICS UP - start at y=85 instead of 140
+            // Statistics
             const stats = generateStatistics();
             let y = 85;
             
-            pdf.setFontSize(14); // Reduced from 16
+            pdf.setFontSize(14);
             pdf.setFont(undefined, 'bold');
             pdf.text('Executive Summary', pageWidth / 2, y, { align: 'center' });
             
-            y += 12; // Reduced spacing
+            y += 12;
             
-            // Create compact metric boxes in 2 rows
+            // Metric boxes
             const metrics = [
                 { label: 'Total Updates', value: stats.totalUpdates, color: [0, 120, 212] },
                 { label: 'Critical', value: stats.criticalUpdates, color: [220, 53, 69] },
@@ -1122,8 +1089,8 @@
                 { label: 'Deployed', value: stats.totalDeployed, color: [40, 167, 69] }
             ];
             
-            const boxWidth = 30; // Reduced from 50
-            const boxHeight = 20; // Reduced from 25
+            const boxWidth = 30;
+            const boxHeight = 20;
             const cols = 3;
             const rows = Math.ceil(metrics.length / cols);
             
@@ -1139,11 +1106,11 @@
                     pdf.rect(x, boxY, boxWidth, boxHeight, 'F');
                     
                     pdf.setTextColor(255, 255, 255);
-                    pdf.setFontSize(12); // Reduced from 16
+                    pdf.setFontSize(12);
                     pdf.setFont(undefined, 'bold');
                     pdf.text(metric.value.toString(), x + boxWidth / 2, boxY + 8, { align: 'center' });
                     
-                    pdf.setFontSize(7); // Reduced from 9
+                    pdf.setFontSize(7);
                     pdf.setFont(undefined, 'normal');
                     pdf.text(metric.label, x + boxWidth / 2, boxY + 15, { align: 'center' });
                 });
@@ -1151,7 +1118,7 @@
             
             pdf.setTextColor(0, 0, 0);
             
-            // ADD QUICK INSIGHTS ON FIRST PAGE
+            // Key Insights
             y += (rows * (boxHeight + 8)) + 15;
             
             pdf.setFontSize(12);
@@ -1172,336 +1139,116 @@
             ];
             
             insights.forEach(insight => {
-                if (y > pageHeight - 20) return; // Don't overflow page
+                if (y > pageHeight - 20) return;
                 pdf.text(insight, 25, y);
                 y += 6;
             });
             
-            // --- EXECUTIVE SUMMARY (if enabled) ---
-            if (document.getElementById('includeSummary').checked) {
-                updateProgress(30, 'Adding executive summary...');
-                
-                pdf.addPage();
-                currentPage++;
-                
-                addCompactPageHeader(pdf, 'Executive Summary', currentPage);
-                
-                let y = 25; // Start right after compact header
-                pdf.setFontSize(10); // Smaller font
-                pdf.setFont(undefined, 'normal');
-                
-                const summary = [
-                    `This report analyzes ${stats.totalUpdates} Windows updates across the organization. ` +
-                    `Currently, ${stats.complianceRate}% of required updates have been deployed successfully.`,
-                    '',
-                    `Security Overview: ${stats.criticalUpdates} critical and ${stats.importantUpdates} important security updates ` +
-                    `have been identified. ${stats.totalMissing} total deployments are pending across all systems.`,
-                    '',
-                    stats.criticalUpdates > 0 ? 
-                        `ATTENTION: ${stats.criticalUpdates} critical security updates require immediate deployment to maintain security posture.` :
-                        'All critical security updates have been successfully deployed.',
-                    '',
-                    config.notes || ''
-                ];
-                
-                summary.forEach(paragraph => {
-                    if (paragraph) {
-                        const lines = pdf.splitTextToSize(paragraph, pageWidth - 30); // Reduced margins
-                        lines.forEach(line => {
-                            if (y > pageHeight - 20) {
-                                pdf.addPage();
-                                currentPage++;
-                                addCompactPageHeader(pdf, 'Executive Summary (continued)', currentPage);
-                                y = 25;
-                            }
-                            pdf.text(line, 15, y); // Reduced left margin
-                            y += 5; // Reduced line height
-                        });
-                        y += 3; // Reduced paragraph spacing
-                    }
-                });
+            // Additional pages based on options
+            updateProgress(40, 'Adding charts and details...');
+            
+            // Charts
+            if (document.getElementById('includeSeverityChart').checked && charts.severity) {
+                await addChartToPDF(pdf, 'severityChart', 'Security Severity Distribution');
             }
             
-            // --- CHARTS WITH OPTIMIZED LAYOUT ---
-            updateProgress(50, 'Adding charts...');
-            
-            if (document.getElementById('includeSeverityChart').checked) {
-                currentPage = await addOptimizedChartToPDF(pdf, 'severityChart', 'Security Severity Distribution', currentPage);
+            if (document.getElementById('includeDeploymentChart').checked && charts.deployment) {
+                await addChartToPDF(pdf, 'deploymentChart', 'Deployment Status Overview');
             }
             
-            if (document.getElementById('includeDeploymentChart').checked) {
-                currentPage = await addOptimizedChartToPDF(pdf, 'deploymentChart', 'Deployment Status Overview', currentPage);
+            if (document.getElementById('includeTrendChart').checked && charts.trend) {
+                await addChartToPDF(pdf, 'trendChart', 'Update Release Timeline');
             }
             
-            if (document.getElementById('includeTrendChart').checked) {
-                currentPage = await addOptimizedChartToPDF(pdf, 'trendChart', 'Update Release Timeline', currentPage);
-            }
-            
-            // --- DETAILED TABLE WITH BETTER LAYOUT ---
-            updateProgress(70, 'Adding detailed tables...');
-            
+            // Detailed table
             if (document.getElementById('includeDetailTable').checked) {
-                currentPage = addOptimizedDetailedTable(pdf, currentPage);
+                updateProgress(70, 'Adding detailed table...');
+                addDetailedTable(pdf);
             }
             
-            // --- RECOMMENDATIONS WITH COMPACT LAYOUT ---
-            updateProgress(85, 'Adding recommendations...');
-            
-            if (document.getElementById('includeRecommendations').checked) {
-                currentPage = addCompactRecommendations(pdf, stats, currentPage);
-            }
-            
-            updateProgress(95, 'Finalizing report...');
+            updateProgress(90, 'Finalizing report...');
         }
         
-        function addCompactPageHeader(pdf, title, pageNum) {
-            const pageWidth = pdf.internal.pageSize.getWidth();
+        async function addChartToPDF(pdf, chartId, title) {
+            pdf.addPage();
             
-            // Thinner header bar - reduced from 25 to 15
+            // Add header
             pdf.setFillColor(240, 248, 255);
-            pdf.rect(0, 0, pageWidth, 15, 'F');
+            pdf.rect(0, 0, pdf.internal.pageSize.getWidth(), 15, 'F');
             
-            // Title
-            pdf.setFontSize(11); // Reduced from 14
+            pdf.setFontSize(11);
             pdf.setFont(undefined, 'bold');
             pdf.setTextColor(51, 51, 51);
-            pdf.text(title, 15, 9); // Reduced margin and position
+            pdf.text(title, 15, 9);
             
-            // Page number
-            pdf.setFontSize(9); // Reduced from 10
-            pdf.setFont(undefined, 'normal');
-            pdf.setTextColor(108, 117, 125);
-            pdf.text(`Page ${pageNum}`, pageWidth - 15, 9, { align: 'right' });
-            
-            // Thinner line
-            pdf.setDrawColor(0, 120, 212);
-            pdf.setLineWidth(0.3); // Reduced from 0.5
-            pdf.line(0, 15, pageWidth, 15);
-
             pdf.setTextColor(0, 0, 0);
-        }
-        
-        async function addOptimizedChartToPDF(pdf, chartId, title, pageNum) {
-            pdf.addPage();
-            pageNum++;
-            addCompactPageHeader(pdf, title, pageNum);
             
+            // Get chart canvas
             const canvas = document.getElementById(chartId);
-            await new Promise(resolve => setTimeout(resolve, 500));
-            const imgData = canvas.toDataURL('image/png', 1.0); 
+            if (!canvas) return;
             
+            // Wait a bit for chart to render properly
+            await new Promise(resolve => setTimeout(resolve, 100));
+            
+            // Convert chart to image
+            const imgData = canvas.toDataURL('image/png');
+            
+            // Add image to PDF
             const pageWidth = pdf.internal.pageSize.getWidth();
-            const pageHeight = pdf.internal.pageSize.getHeight();
-            const margin = 15; // Reduced from 20
-            const contentWidth = pageWidth - margin * 2;
-            const maxHeight = 160; // Increased chart size
+            const margin = 15;
+            const imgWidth = pageWidth - (margin * 2);
+            const imgHeight = (canvas.height / canvas.width) * imgWidth;
             
-            const aspectRatio = canvas.width / canvas.height;
-            let finalWidth = contentWidth;
-            let finalHeight = finalWidth / aspectRatio;
-
-            if (finalHeight > maxHeight) {
-                finalHeight = maxHeight;
-                finalWidth = finalHeight * aspectRatio;
-            }
-            
-            if (finalWidth > contentWidth) {
-                finalWidth = contentWidth;
-                finalHeight = finalWidth / aspectRatio;
-            }
-
-            const x = (pageWidth - finalWidth) / 2;
-            const y = 20; // Start right after header
-            
-            pdf.addImage(imgData, 'PNG', x, y, finalWidth, finalHeight);
-            
-            // Add insights in a more compact layout
-            const insights = getChartInsights(chartId);
-            if (insights) {
-                let textY = y + finalHeight + 8; // Reduced spacing
-                pdf.setFontSize(9); // Smaller font
-                pdf.setFont(undefined, 'normal');
-                
-                // Create two-column layout for insights if space allows
-                const colWidth = (contentWidth - 10) / 2;
-                let currentCol = 0;
-                let colStartY = textY;
-                
-                insights.forEach((insight, index) => {
-                    if (textY > pageHeight - 20) return; // Prevent overflow
-                    
-                    const xPos = margin + (currentCol * (colWidth + 10));
-                    const lines = pdf.splitTextToSize(`• ${insight}`, colWidth);
-                    
-                    lines.forEach(line => {
-                        pdf.text(line, xPos, textY);
-                        textY += 5; // Reduced line height
-                    });
-                    
-                    // Switch to second column after first insight if there's space
-                    if (index === 0 && insights.length > 1 && textY < pageHeight - 40) {
-                        currentCol = 1;
-                        textY = colStartY;
-                    }
-                });
-            }
-            
-            return pdf.internal.getNumberOfPages();
-        }
-
-        function getChartInsights(chartId) {
-            const stats = generateStatistics();
-            
-            switch(chartId) {
-                case 'severityChart':
-                    return [
-                        `${Math.round((stats.criticalUpdates / stats.totalUpdates) * 100)}% of updates are Critical severity`,
-                        `${Object.keys(stats.severityCounts).length} severity levels identified`,
-                        stats.criticalUpdates > 5 ? 'High critical update count - elevated risk' : 'Critical updates within acceptable range'
-                    ];
-                case 'deploymentChart':
-                    return [
-                        `Top ${Math.min(10, csvData.length)} updates by deployment volume`,
-                        `${stats.totalMissing} total pending deployments`,
-                        `${stats.complianceRate}% overall compliance rate`
-                    ];
-                case 'trendChart':
-                    return [
-                        'Update release patterns follow Microsoft Patch Tuesday cycle',
-                        'Consistent update flow indicates active vendor maintenance',
-                        'Timeline peaks align with monthly security releases'
-                    ];
-                default:
-                    return null;
-            }
+            pdf.addImage(imgData, 'PNG', margin, 25, imgWidth, Math.min(imgHeight, 200));
         }
         
-        function addOptimizedDetailedTable(pdf, currentPage) {
+        function addDetailedTable(pdf) {
             pdf.addPage();
-            currentPage++;
-            addCompactPageHeader(pdf, 'Detailed Update List', currentPage);
-            const firstTablePage = currentPage;
             
-            // Prepare table data with truncated content for better fit
+            // Add header
+            pdf.setFillColor(240, 248, 255);
+            pdf.rect(0, 0, pdf.internal.pageSize.getWidth(), 15, 'F');
+            
+            pdf.setFontSize(11);
+            pdf.setFont(undefined, 'bold');
+            pdf.setTextColor(51, 51, 51);
+            pdf.text('Detailed Update List', 15, 9);
+            
+            pdf.setTextColor(0, 0, 0);
+            
+            // Prepare table data
             const tableData = csvData.map(row => [
-                (row['Update Name'] || '').substring(0, 50) + ((row['Update Name'] || '').length > 50 ? '...' : ''),
-                (row['Version'] || '').substring(0, 15),
+                row['Update Name'] || '',
+                row['Version'] || '',
                 row['Security Severity'] || '',
                 row['Release Date'] || '',
                 row['Updates Missing'] || '0',
                 row['Recently Deployed'] || '0'
             ]);
             
+            // Add table
             pdf.autoTable({
                 head: [['Update Name', 'Version', 'Severity', 'Date', 'Missing', 'Deployed']],
                 body: tableData,
-                startY: 20, // Start right after compact header
+                startY: 20,
                 theme: 'striped',
                 headStyles: {
                     fillColor: [0, 120, 212],
-                    fontSize: 8, // Reduced from 9
-                    fontStyle: 'bold',
-                    cellPadding: 1.5 // Reduced padding
+                    fontSize: 8,
+                    fontStyle: 'bold'
                 },
                 bodyStyles: {
-                    fontSize: 7, // Reduced from 8
-                    cellPadding: 1.5, // Reduced padding
+                    fontSize: 7
                 },
                 columnStyles: {
-                    0: { cellWidth: 80 }, // Increased for update name
-                    1: { cellWidth: 20 },
+                    0: { cellWidth: 80 },
+                    1: { cellWidth: 25 },
                     2: { cellWidth: 20 },
-                    3: { cellWidth: 22 },
+                    3: { cellWidth: 25 },
                     4: { cellWidth: 15, halign: 'center' },
-                    5: { cellWidth: 18, halign: 'center' }
-                },
-                margin: { left: 15, right: 15 }, // Reduced margins
-                didDrawPage: function(data) {
-                    if (data.pageNumber > firstTablePage) {
-                        addCompactPageHeader(pdf, 'Detailed Update List (cont.)', data.pageNumber);
-                    }
+                    5: { cellWidth: 20, halign: 'center' }
                 }
             });
-            
-            return pdf.internal.getNumberOfPages();
-        }
-        
-        function addCompactRecommendations(pdf, stats, currentPage) {
-            pdf.addPage();
-            currentPage++;
-            addCompactPageHeader(pdf, 'Recommendations & Actions', currentPage);
-            
-            let y = 25; // Start after header
-            pdf.setFontSize(10); // Smaller font
-            
-            const recommendations = [
-                {
-                    priority: 'CRITICAL',
-                    condition: stats.criticalUpdates > 0,
-                    title: 'Deploy Critical Security Updates',
-                    text: `Deploy ${stats.criticalUpdates} critical updates immediately to prevent security breaches.`,
-                    color: [220, 53, 69]
-                },
-                {
-                    priority: 'HIGH',
-                    condition: stats.complianceRate < 90,
-                    title: 'Improve Compliance Rate',
-                    text: `${stats.complianceRate}% compliance is below 90% target. Implement automated deployment policies.`,
-                    color: [253, 126, 20]
-                },
-                {
-                    priority: 'MEDIUM',
-                    condition: stats.totalMissing > 100,
-                    title: 'Address Deployment Backlog',
-                    text: `${stats.totalMissing} missing deployments indicate significant backlog. Use phased deployment.`,
-                    color: [255, 193, 7]
-                },
-                {
-                    priority: 'STANDARD',
-                    condition: true,
-                    title: 'Regular Review Process',
-                    text: 'Maintain monthly compliance reviews and quarterly security assessments.',
-                    color: [40, 167, 69]
-                }
-            ];
-            
-            recommendations.filter(r => r.condition).forEach(rec => {
-                if (y > 270) { // More generous space check
-                    pdf.addPage();
-                    currentPage++;
-                    addCompactPageHeader(pdf, 'Recommendations (cont.)', currentPage);
-                    y = 25;
-                }
-                
-                // Compact priority badge
-                pdf.setFillColor(...rec.color);
-                pdf.rect(15, y - 3, 25, 6, 'F'); // Smaller badge
-                pdf.setTextColor(255, 255, 255);
-                pdf.setFontSize(6); // Smaller font
-                pdf.setFont(undefined, 'bold');
-                pdf.text(rec.priority, 27.5, y + 1, { align: 'center' });
-                
-                // Title
-                pdf.setTextColor(0, 0, 0);
-                pdf.setFontSize(10); // Reduced font
-                pdf.setFont(undefined, 'bold');
-                pdf.text(rec.title, 45, y);
-                
-                y += 6; // Reduced spacing
-                
-                // Description with better text wrapping
-                pdf.setFontSize(8); // Smaller font
-                pdf.setFont(undefined, 'normal');
-                const lines = pdf.splitTextToSize(rec.text, pageWidth - 40); // Better margin
-                lines.forEach(line => {
-                    pdf.text(line, 20, y);
-                    y += 4; // Reduced line height
-                });
-                
-                y += 6; // Reduced section spacing
-            });
-            
-            return pdf.internal.getNumberOfPages();
         }
         
         function updateProgress(percentage, text) {
@@ -1516,16 +1263,13 @@
         function downloadSampleCSV() {
             const sampleData = [
                 ['Update Name', 'Version', 'Security Severity', 'Release Date', 'Updates Missing', 'Recently Deployed', 'Details'],
-                // January Data
                 ['Windows Security Update KB5034441', '2025-01', 'Critical', '2025-01-10', '15', '85', '1'],
                 ['Microsoft Defender Definition Update', '1.403.2956.0', 'Important', '2025-01-12', '3', '97', '1'],
                 ['Microsoft Edge Security Update', '120.0.2210.144', 'Important', '2025-01-08', '8', '92', '1'],
                 ['Windows Cumulative Update KB5034439', '2025-01', 'Moderate', '2025-01-10', '22', '78', '1'],
-                // February Data
                 ['.NET Framework Security Update', '4.8.1', 'Important', '2025-02-09', '12', '88', '1'],
                 ['Office Security Update KB5035552', '16.0.17425', 'Critical', '2025-02-11', '5', '95', '1'],
                 ['Windows Defender Update', '1.404.123.0', 'Important', '2025-02-14', '10', '90', '1'],
-                // December Data
                 ['Visual C++ Redistributable Update', '14.38.33130', 'Moderate', '2024-12-05', '30', '70', '1'],
                 ['Windows Malicious Software Removal Tool', '5.119', 'Low', '2024-12-12', '0', '100', '1'],
                 ['SQL Server Security Update', '15.0.4360.1', 'Critical', '2024-12-12', '18', '82', '1']
@@ -1577,17 +1321,6 @@
         }
         
         function loadSavedPreferences() {
-            // Load organization name
-            const orgName = localStorage.getItem('updateReportOrgName');
-            if (orgName) {
-                document.getElementById('organizationName').value = orgName;
-            }
-            
-            // Save organization name on change
-            document.getElementById('organizationName').addEventListener('change', (e) => {
-                localStorage.setItem('updateReportOrgName', e.target.value);
-            });
-            
             // Auto-populate current month
             const currentMonth = new Date().toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
             document.getElementById('reportPeriod').value = currentMonth;
@@ -1597,19 +1330,8 @@
             if (saved) {
                 try {
                     const formData = JSON.parse(saved);
-                    if (csvData.length === 0) { // Only load if no file uploaded yet
-                        document.getElementById('reportTitle').value = formData.reportTitle || 'Windows Update Compliance Report';
-                        document.getElementById('reportTheme').value = formData.reportTheme || 'professional';
-                        document.getElementById('additionalNotes').value = formData.additionalNotes || '';
-                        
-                        if (formData.options) {
-                            Object.keys(formData.options).forEach(key => {
-                                const checkbox = document.getElementById(key);
-                                if (checkbox) {
-                                    checkbox.checked = formData.options[key];
-                                }
-                            });
-                        }
+                    if (formData.organizationName) {
+                        document.getElementById('organizationName').value = formData.organizationName;
                     }
                 } catch (e) {
                     console.error('Error loading saved form data:', e);
@@ -1617,20 +1339,29 @@
             }
         }
         
-        // Keyboard shortcuts
-        document.addEventListener('keydown', (e) => {
-            // Ctrl/Cmd + O to open file
-            if ((e.ctrlKey || e.metaKey) && e.key === 'o') {
-                e.preventDefault();
-                csvFile.click();
-            }
+        // Test function to simulate the process
+        function testPDFGeneration() {
+            console.log('Testing PDF generation...');
             
-            // Ctrl/Cmd + G to generate report
-            if ((e.ctrlKey || e.metaKey) && e.key === 'g' && !generateReportBtn.disabled) {
-                e.preventDefault();
-                generateReportBtn.click();
-            }
-        });
+            // Create test data
+            csvData = [
+                {'Update Name': 'Test Update 1', 'Version': '1.0', 'Security Severity': 'Critical', 'Release Date': '2025-01-01', 'Updates Missing': '10', 'Recently Deployed': '90'},
+                {'Update Name': 'Test Update 2', 'Version': '2.0', 'Security Severity': 'Important', 'Release Date': '2025-01-15', 'Updates Missing': '5', 'Recently Deployed': '95'}
+            ];
+            
+            // Enable the generate button
+            generateReportBtn.disabled = false;
+            
+            // Show sections
+            dataPreview.classList.add('show');
+            reportOptions.classList.add('show');
+            chartsPreview.classList.add('show');
+            
+            // Generate charts
+            generateCharts();
+            
+            console.log('Test setup complete. Click "Generate PDF Report" to test.');
+        }
         
         console.log('Windows Update Report Generator initialized successfully');
     </script>
