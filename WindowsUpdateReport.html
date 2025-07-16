@@ -1167,8 +1167,12 @@
             
             pdf.setTextColor(0, 0, 0);
             
-            // Key Insights
+            // Key Insights - Enhanced layout
             y += (rows * (boxHeight + 8)) + 15;
+            
+            // Add background for insights section
+            pdf.setFillColor(248, 249, 250);
+            pdf.rect(15, y - 5, pageWidth - 30, 40, 'F');
             
             pdf.setFontSize(12);
             pdf.setFont(undefined, 'bold');
@@ -1187,11 +1191,44 @@
                 `• ${stats.totalMissing} deployments pending completion`
             ];
             
-            insights.forEach(insight => {
+            insights.forEach((insight, index) => {
                 if (y > pageHeight - 20) return;
+                
+                // Add icon or bullet with color coding
+                if (insight.includes('critical') && stats.criticalUpdates > 0) {
+                    pdf.setTextColor(220, 53, 69); // Red for critical
+                } else if (insight.includes('compliance')) {
+                    pdf.setTextColor(40, 167, 69); // Green for compliance
+                } else {
+                    pdf.setTextColor(0, 0, 0);
+                }
+                
                 pdf.text(insight, 25, y);
                 y += 6;
             });
+            
+            pdf.setTextColor(0, 0, 0);
+            
+            // Add note if additional notes exist
+            if (config.notes) {
+                y += 10;
+                pdf.setFillColor(255, 243, 224); // Light yellow background
+                pdf.rect(15, y - 5, pageWidth - 30, 30, 'F');
+                
+                pdf.setFontSize(10);
+                pdf.setFont(undefined, 'bold');
+                pdf.text('Additional Notes:', 20, y);
+                y += 6;
+                
+                pdf.setFontSize(9);
+                pdf.setFont(undefined, 'normal');
+                const noteLines = pdf.splitTextToSize(config.notes, pageWidth - 40);
+                noteLines.forEach(line => {
+                    if (y > pageHeight - 20) return;
+                    pdf.text(line, 20, y);
+                    y += 5;
+                });
+            }
             
             // --- CHARTS PAGE(S) ---
             updateProgress(40, 'Adding charts and analysis...');
@@ -1199,62 +1236,101 @@
             // Start new page for charts
             pdf.addPage();
             currentPage++;
-            y = 20;
+            y = 25; // Increased from 20 to move content down
             
-            // Add page header
+            // Add page header with gradient effect
             pdf.setFillColor(240, 248, 255);
-            pdf.rect(0, 0, pageWidth, 15, 'F');
-            pdf.setFontSize(11);
+            pdf.rect(0, 0, pageWidth, 18, 'F'); // Slightly taller header
+            
+            // Add accent line
+            pdf.setDrawColor(0, 120, 212);
+            pdf.setLineWidth(0.5);
+            pdf.line(0, 18, pageWidth, 18);
+            
+            pdf.setFontSize(12); // Larger header font
             pdf.setFont(undefined, 'bold');
             pdf.setTextColor(51, 51, 51);
-            pdf.text('Charts & Analysis', 15, 9);
+            pdf.text('Charts & Analysis', 15, 11);
+            
+            // Add page number
+            pdf.setFontSize(9);
+            pdf.setFont(undefined, 'normal');
+            pdf.setTextColor(108, 117, 125);
+            pdf.text(`Page ${currentPage}`, pageWidth - 20, 11, { align: 'right' });
+            
             pdf.setTextColor(0, 0, 0);
             
-            // Chart dimensions for multiple charts per page
-            const chartWidth = pageWidth - 30;
-            const chartHeight = 70; // Adjusted to fit more content
+            // Chart dimensions optimized for better page usage
+            const chartWidth = pageWidth - 40; // Slightly narrower for better margins
+            const chartHeight = 65; // Optimized height
             
             // Security Severity Chart
             if (document.getElementById('includeSeverityChart').checked && charts.severity) {
-                // Chart title
-                pdf.setFontSize(12);
+                // Add subtle background for chart section
+                pdf.setFillColor(250, 252, 255);
+                pdf.rect(10, y - 5, pageWidth - 20, chartHeight + 100, 'F');
+                
+                // Chart title with better styling
+                pdf.setFontSize(13);
                 pdf.setFont(undefined, 'bold');
+                pdf.setTextColor(0, 78, 120);
                 pdf.text('Security Severity Distribution – Weekly Summary', 15, y);
-                y += 8;
+                pdf.setTextColor(0, 0, 0);
+                y += 10;
                 
-                await addCompactChartToPDF(pdf, 'severityChart', '', 15, y, chartWidth, chartHeight);
-                y += chartHeight + 5;
+                // Add the chart with border
+                pdf.setDrawColor(220, 220, 220);
+                pdf.setLineWidth(0.5);
+                pdf.rect(20, y - 2, chartWidth - 10, chartHeight + 4);
                 
-                // Detailed explanation
-                pdf.setFontSize(9);
+                await addCompactChartToPDF(pdf, 'severityChart', '', 20, y, chartWidth - 10, chartHeight);
+                y += chartHeight + 8;
+                
+                // Detailed explanation with better formatting
+                pdf.setFontSize(10);
                 pdf.setFont(undefined, 'normal');
                 
-                // Introduction
-                const lines1 = pdf.splitTextToSize('For the updates released or discovered this week, the following breakdown was observed:', pageWidth - 30);
+                // Introduction with background
+                pdf.setFillColor(248, 249, 250);
+                pdf.rect(15, y - 2, pageWidth - 30, 20, 'F');
+                
+                const lines1 = pdf.splitTextToSize('For the updates released or discovered this week, the following breakdown was observed:', pageWidth - 35);
                 lines1.forEach(line => {
-                    pdf.text(line, 15, y);
+                    pdf.text(line, 18, y + 3);
                     y += 5;
                 });
-                y += 2;
+                y += 8;
                 
-                // Breakdown details
+                // Breakdown details in a styled box
+                pdf.setFillColor(255, 255, 255);
+                pdf.rect(20, y - 2, pageWidth - 40, 20, 'F');
+                pdf.setDrawColor(0, 120, 212);
+                pdf.setLineWidth(0.3);
+                pdf.rect(20, y - 2, pageWidth - 40, 20);
+                
                 pdf.setFont(undefined, 'bold');
                 const criticalCount = stats.criticalUpdates;
                 const criticalPercent = Math.round((criticalCount / stats.totalUpdates) * 100);
-                pdf.text(`• Critical: ${criticalCount} updates (${criticalPercent}%)`, 20, y);
-                y += 5;
+                pdf.setTextColor(220, 53, 69); // Red for critical
+                pdf.text(`• Critical: ${criticalCount} updates (${criticalPercent}%)`, 25, y + 3);
+                y += 6;
                 
                 const importantCount = stats.importantUpdates;
                 const importantPercent = Math.round((importantCount / stats.totalUpdates) * 100);
-                pdf.text(`• Important: ${importantCount} updates (${importantPercent}%)`, 20, y);
-                y += 5;
+                pdf.setTextColor(253, 126, 20); // Orange for important
+                pdf.text(`• Important: ${importantCount} updates (${importantPercent}%)`, 25, y + 3);
+                y += 6;
                 
                 const otherCount = stats.totalUpdates - criticalCount - importantCount;
                 const otherPercent = Math.round((otherCount / stats.totalUpdates) * 100);
-                pdf.text(`• Unspecified or Low: ${otherCount} updates (${otherPercent}%)`, 20, y);
-                y += 8;
+                pdf.setTextColor(108, 117, 125); // Gray for other
+                pdf.text(`• Unspecified or Low: ${otherCount} updates (${otherPercent}%)`, 25, y + 3);
+                y += 10;
                 
+                pdf.setTextColor(0, 0, 0);
                 pdf.setFont(undefined, 'normal');
+                pdf.setFontSize(9);
+                
                 const cvssExplanation = [
                     'The severity of each update is assessed using the Common Vulnerability Scoring System (CVSS).',
                     '• Critical updates are typically reserved for vulnerabilities that could allow remote code execution without user interaction.',
@@ -1263,79 +1339,122 @@
                     'We continue to monitor and triage these updates as part of your Intune Maintenance plan.'
                 ];
                 
-                cvssExplanation.forEach(text => {
-                    if (y > pageHeight - 25) {
+                cvssExplanation.forEach((text, index) => {
+                    if (y > pageHeight - 30) {
                         pdf.addPage();
                         currentPage++;
-                        y = 20;
+                        y = 25;
                         // Add page header
                         pdf.setFillColor(240, 248, 255);
-                        pdf.rect(0, 0, pageWidth, 15, 'F');
-                        pdf.setFontSize(11);
+                        pdf.rect(0, 0, pageWidth, 18, 'F');
+                        pdf.setDrawColor(0, 120, 212);
+                        pdf.setLineWidth(0.5);
+                        pdf.line(0, 18, pageWidth, 18);
+                        pdf.setFontSize(12);
                         pdf.setFont(undefined, 'bold');
                         pdf.setTextColor(51, 51, 51);
-                        pdf.text('Charts & Analysis (continued)', 15, 9);
+                        pdf.text('Charts & Analysis (continued)', 15, 11);
+                        pdf.setFontSize(9);
+                        pdf.setFont(undefined, 'normal');
+                        pdf.setTextColor(108, 117, 125);
+                        pdf.text(`Page ${currentPage}`, pageWidth - 20, 11, { align: 'right' });
                         pdf.setTextColor(0, 0, 0);
                         pdf.setFontSize(9);
                         pdf.setFont(undefined, 'normal');
                     }
                     
-                    const lines = pdf.splitTextToSize(text, pageWidth - 30);
+                    // Add emphasis to the first line
+                    if (index === 0) {
+                        pdf.setFont(undefined, 'bold');
+                    } else {
+                        pdf.setFont(undefined, 'normal');
+                    }
+                    
+                    const lines = pdf.splitTextToSize(text, pageWidth - 35);
                     lines.forEach(line => {
-                        pdf.text(line, text.startsWith('•') ? 20 : 15, y);
+                        pdf.text(line, text.startsWith('•') ? 25 : 18, y);
                         y += 5;
                     });
                 });
                 
-                y += 10; // Space before next chart
+                y += 15; // Space before next chart
             }
             
-            // Check if we need a new page
-            if (y > pageHeight - 150) {
+            // Check if we need a new page - adjusted threshold
+            if (y > pageHeight - 140) {
                 pdf.addPage();
                 currentPage++;
-                y = 20;
+                y = 25;
                 
                 // Add page header
                 pdf.setFillColor(240, 248, 255);
-                pdf.rect(0, 0, pageWidth, 15, 'F');
-                pdf.setFontSize(11);
+                pdf.rect(0, 0, pageWidth, 18, 'F');
+                pdf.setDrawColor(0, 120, 212);
+                pdf.setLineWidth(0.5);
+                pdf.line(0, 18, pageWidth, 18);
+                pdf.setFontSize(12);
                 pdf.setFont(undefined, 'bold');
                 pdf.setTextColor(51, 51, 51);
-                pdf.text('Charts & Analysis (continued)', 15, 9);
+                pdf.text('Charts & Analysis (continued)', 15, 11);
+                pdf.setFontSize(9);
+                pdf.setFont(undefined, 'normal');
+                pdf.setTextColor(108, 117, 125);
+                pdf.text(`Page ${currentPage}`, pageWidth - 20, 11, { align: 'right' });
                 pdf.setTextColor(0, 0, 0);
             }
             
             // Deployment Status Chart
             if (document.getElementById('includeDeploymentChart').checked && charts.deployment) {
-                // Chart title
-                pdf.setFontSize(12);
-                pdf.setFont(undefined, 'bold');
-                pdf.text('Deployment Summary – Top 10 Updates by Volume', 15, y);
-                y += 8;
+                // Add subtle background for chart section
+                pdf.setFillColor(250, 252, 255);
+                pdf.rect(10, y - 5, pageWidth - 20, chartHeight + 100, 'F');
                 
-                await addCompactChartToPDF(pdf, 'deploymentChart', '', 15, y, chartWidth, chartHeight);
-                y += chartHeight + 5;
+                // Chart title
+                pdf.setFontSize(13);
+                pdf.setFont(undefined, 'bold');
+                pdf.setTextColor(0, 78, 120);
+                pdf.text('Deployment Summary – Top 10 Updates by Volume', 15, y);
+                pdf.setTextColor(0, 0, 0);
+                y += 10;
+                
+                // Add the chart with border
+                pdf.setDrawColor(220, 220, 220);
+                pdf.setLineWidth(0.5);
+                pdf.rect(20, y - 2, chartWidth - 10, chartHeight + 4);
+                
+                await addCompactChartToPDF(pdf, 'deploymentChart', '', 20, y, chartWidth - 10, chartHeight);
+                y += chartHeight + 8;
                 
                 // Detailed explanation
-                pdf.setFontSize(9);
+                pdf.setFontSize(10);
                 pdf.setFont(undefined, 'normal');
                 
-                const deploymentIntro = pdf.splitTextToSize('For this reporting period, the following deployment data was observed across the top 10 updates with the highest number of assigned devices:', pageWidth - 30);
+                // Introduction with background
+                pdf.setFillColor(248, 249, 250);
+                pdf.rect(15, y - 2, pageWidth - 30, 20, 'F');
+                
+                const deploymentIntro = pdf.splitTextToSize('For this reporting period, the following deployment data was observed across the top 10 updates with the highest number of assigned devices:', pageWidth - 35);
                 deploymentIntro.forEach(line => {
-                    pdf.text(line, 15, y);
+                    pdf.text(line, 18, y + 3);
                     y += 5;
                 });
-                y += 2;
-                
-                // Deployment stats
-                pdf.setFont(undefined, 'bold');
-                pdf.text(`• Total missing deployments: ${stats.totalMissing}`, 20, y);
-                y += 5;
-                pdf.text(`• Overall compliance rate: ${stats.complianceRate}%`, 20, y);
                 y += 8;
                 
+                // Deployment stats in styled box
+                pdf.setFillColor(255, 255, 255);
+                pdf.rect(20, y - 2, pageWidth - 40, 14, 'F');
+                pdf.setDrawColor(40, 167, 69);
+                pdf.setLineWidth(0.3);
+                pdf.rect(20, y - 2, pageWidth - 40, 14);
+                
+                pdf.setFont(undefined, 'bold');
+                pdf.text(`• Total missing deployments: ${stats.totalMissing}`, 25, y + 3);
+                y += 6;
+                pdf.text(`• Overall compliance rate: ${stats.complianceRate}%`, 25, y + 3);
+                y += 10;
+                
                 pdf.setFont(undefined, 'normal');
+                pdf.setFontSize(9);
                 
                 // Find the update with most missing deployments
                 const topMissingUpdate = csvData
@@ -1356,62 +1475,94 @@
                     '• Potential priorities for remediation in the next patch cycle'
                 ];
                 
-                deploymentExplanation.forEach(text => {
-                    if (y > pageHeight - 25) {
+                deploymentExplanation.forEach((text, index) => {
+                    if (y > pageHeight - 30) {
                         pdf.addPage();
                         currentPage++;
-                        y = 20;
+                        y = 25;
                         // Add page header
                         pdf.setFillColor(240, 248, 255);
-                        pdf.rect(0, 0, pageWidth, 15, 'F');
-                        pdf.setFontSize(11);
+                        pdf.rect(0, 0, pageWidth, 18, 'F');
+                        pdf.setDrawColor(0, 120, 212);
+                        pdf.setLineWidth(0.5);
+                        pdf.line(0, 18, pageWidth, 18);
+                        pdf.setFontSize(12);
                         pdf.setFont(undefined, 'bold');
                         pdf.setTextColor(51, 51, 51);
-                        pdf.text('Charts & Analysis (continued)', 15, 9);
+                        pdf.text('Charts & Analysis (continued)', 15, 11);
+                        pdf.setFontSize(9);
+                        pdf.setFont(undefined, 'normal');
+                        pdf.setTextColor(108, 117, 125);
+                        pdf.text(`Page ${currentPage}`, pageWidth - 20, 11, { align: 'right' });
                         pdf.setTextColor(0, 0, 0);
                         pdf.setFontSize(9);
                         pdf.setFont(undefined, 'normal');
                     }
                     
-                    const lines = pdf.splitTextToSize(text, pageWidth - 30);
+                    // Emphasize the identification section
+                    if (text === 'This data is used to help identify:') {
+                        pdf.setFont(undefined, 'bold');
+                    } else {
+                        pdf.setFont(undefined, 'normal');
+                    }
+                    
+                    const lines = pdf.splitTextToSize(text, pageWidth - 35);
                     lines.forEach(line => {
-                        pdf.text(line, text.startsWith('•') ? 20 : 15, y);
+                        pdf.text(line, text.startsWith('•') ? 25 : 18, y);
                         y += 5;
                     });
                 });
                 
-                y += 10;
+                y += 15;
             }
             
             // Check if we need a new page
-            if (y > pageHeight - 150) {
+            if (y > pageHeight - 140) {
                 pdf.addPage();
                 currentPage++;
-                y = 20;
+                y = 25;
                 
                 // Add page header
                 pdf.setFillColor(240, 248, 255);
-                pdf.rect(0, 0, pageWidth, 15, 'F');
-                pdf.setFontSize(11);
+                pdf.rect(0, 0, pageWidth, 18, 'F');
+                pdf.setDrawColor(0, 120, 212);
+                pdf.setLineWidth(0.5);
+                pdf.line(0, 18, pageWidth, 18);
+                pdf.setFontSize(12);
                 pdf.setFont(undefined, 'bold');
                 pdf.setTextColor(51, 51, 51);
-                pdf.text('Charts & Analysis (continued)', 15, 9);
+                pdf.text('Charts & Analysis (continued)', 15, 11);
+                pdf.setFontSize(9);
+                pdf.setFont(undefined, 'normal');
+                pdf.setTextColor(108, 117, 125);
+                pdf.text(`Page ${currentPage}`, pageWidth - 20, 11, { align: 'right' });
                 pdf.setTextColor(0, 0, 0);
             }
             
             // Trend Chart
             if (document.getElementById('includeTrendChart').checked && charts.trend) {
-                // Chart title
-                pdf.setFontSize(12);
-                pdf.setFont(undefined, 'bold');
-                pdf.text('Update Release Timeline – Overview', 15, y);
-                y += 8;
+                // Add subtle background for chart section
+                pdf.setFillColor(250, 252, 255);
+                pdf.rect(10, y - 5, pageWidth - 20, chartHeight + 100, 'F');
                 
-                await addCompactChartToPDF(pdf, 'trendChart', '', 15, y, chartWidth, chartHeight);
-                y += chartHeight + 5;
+                // Chart title
+                pdf.setFontSize(13);
+                pdf.setFont(undefined, 'bold');
+                pdf.setTextColor(0, 78, 120);
+                pdf.text('Update Release Timeline – Overview', 15, y);
+                pdf.setTextColor(0, 0, 0);
+                y += 10;
+                
+                // Add the chart with border
+                pdf.setDrawColor(220, 220, 220);
+                pdf.setLineWidth(0.5);
+                pdf.rect(20, y - 2, chartWidth - 10, chartHeight + 4);
+                
+                await addCompactChartToPDF(pdf, 'trendChart', '', 20, y, chartWidth - 10, chartHeight);
+                y += chartHeight + 8;
                 
                 // Detailed explanation
-                pdf.setFontSize(9);
+                pdf.setFontSize(10);
                 pdf.setFont(undefined, 'normal');
                 
                 // Get trend data
@@ -1453,23 +1604,34 @@
                     }
                 }
                 
-                const trendIntro = pdf.splitTextToSize('This chart shows the number of updates released over time, reflecting ongoing maintenance and security operations:', pageWidth - 30);
+                // Introduction with background
+                pdf.setFillColor(248, 249, 250);
+                pdf.rect(15, y - 2, pageWidth - 30, 20, 'F');
+                
+                const trendIntro = pdf.splitTextToSize('This chart shows the number of updates released over time, reflecting ongoing maintenance and security operations:', pageWidth - 35);
                 trendIntro.forEach(line => {
-                    pdf.text(line, 15, y);
+                    pdf.text(line, 18, y + 3);
                     y += 5;
                 });
-                y += 2;
-                
-                // Trend stats
-                pdf.setFont(undefined, 'bold');
-                pdf.text(`• Update count (latest month): ${latestCount}`, 20, y);
-                y += 5;
-                pdf.text(`• Trend: ${trendDescription}`, 20, y);
-                y += 5;
-                pdf.text(`• Observation period: ${firstMonth} to ${latestMonth}`, 20, y);
                 y += 8;
                 
+                // Trend stats in styled box
+                pdf.setFillColor(255, 255, 255);
+                pdf.rect(20, y - 2, pageWidth - 40, 20, 'F');
+                pdf.setDrawColor(0, 120, 212);
+                pdf.setLineWidth(0.3);
+                pdf.rect(20, y - 2, pageWidth - 40, 20);
+                
+                pdf.setFont(undefined, 'bold');
+                pdf.text(`• Update count (latest month): ${latestCount}`, 25, y + 3);
+                y += 6;
+                pdf.text(`• Trend: ${trendDescription}`, 25, y + 3);
+                y += 6;
+                pdf.text(`• Observation period: ${firstMonth} to ${latestMonth}`, 25, y + 3);
+                y += 10;
+                
                 pdf.setFont(undefined, 'normal');
+                pdf.setFontSize(9);
                 
                 const trendExplanation = [
                     'All updates are reviewed and addressed as part of our structured patch management process.',
@@ -1479,26 +1641,40 @@
                     'We continue to take timely action on all identified updates to maintain compliance and minimize risk across your environment as part of your Intune Maintenance plan.'
                 ];
                 
-                trendExplanation.forEach(text => {
-                    if (y > pageHeight - 25) {
+                trendExplanation.forEach((text, index) => {
+                    if (y > pageHeight - 30) {
                         pdf.addPage();
                         currentPage++;
-                        y = 20;
+                        y = 25;
                         // Add page header
                         pdf.setFillColor(240, 248, 255);
-                        pdf.rect(0, 0, pageWidth, 15, 'F');
-                        pdf.setFontSize(11);
+                        pdf.rect(0, 0, pageWidth, 18, 'F');
+                        pdf.setDrawColor(0, 120, 212);
+                        pdf.setLineWidth(0.5);
+                        pdf.line(0, 18, pageWidth, 18);
+                        pdf.setFontSize(12);
                         pdf.setFont(undefined, 'bold');
                         pdf.setTextColor(51, 51, 51);
-                        pdf.text('Charts & Analysis (continued)', 15, 9);
+                        pdf.text('Charts & Analysis (continued)', 15, 11);
+                        pdf.setFontSize(9);
+                        pdf.setFont(undefined, 'normal');
+                        pdf.setTextColor(108, 117, 125);
+                        pdf.text(`Page ${currentPage}`, pageWidth - 20, 11, { align: 'right' });
                         pdf.setTextColor(0, 0, 0);
                         pdf.setFontSize(9);
                         pdf.setFont(undefined, 'normal');
                     }
                     
-                    const lines = pdf.splitTextToSize(text, pageWidth - 30);
+                    // Emphasize the first line
+                    if (index === 0) {
+                        pdf.setFont(undefined, 'bold');
+                    } else {
+                        pdf.setFont(undefined, 'normal');
+                    }
+                    
+                    const lines = pdf.splitTextToSize(text, pageWidth - 35);
                     lines.forEach(line => {
-                        pdf.text(line, text.startsWith('•') ? 20 : 15, y);
+                        pdf.text(line, text.startsWith('•') ? 25 : 18, y);
                         y += 5;
                     });
                 });
@@ -1548,17 +1724,34 @@
         
         function addDetailedTable(pdf) {
             pdf.addPage();
+            const tableStartPage = pdf.internal.getNumberOfPages();
             
-            // Add header
+            // Enhanced header with gradient effect
             pdf.setFillColor(240, 248, 255);
-            pdf.rect(0, 0, pdf.internal.pageSize.getWidth(), 15, 'F');
+            pdf.rect(0, 0, pdf.internal.pageSize.getWidth(), 18, 'F');
             
-            pdf.setFontSize(11);
+            // Add accent line
+            pdf.setDrawColor(0, 120, 212);
+            pdf.setLineWidth(0.5);
+            pdf.line(0, 18, pdf.internal.pageSize.getWidth(), 18);
+            
+            pdf.setFontSize(12);
             pdf.setFont(undefined, 'bold');
             pdf.setTextColor(51, 51, 51);
-            pdf.text('Detailed Update List', 15, 9);
+            pdf.text('Detailed Update List', 15, 11);
+            
+            // Add page number
+            pdf.setFontSize(9);
+            pdf.setFont(undefined, 'normal');
+            pdf.setTextColor(108, 117, 125);
+            pdf.text(`Page ${tableStartPage}`, pdf.internal.pageSize.getWidth() - 20, 11, { align: 'right' });
             
             pdf.setTextColor(0, 0, 0);
+            
+            // Add table description
+            pdf.setFontSize(9);
+            pdf.setFont(undefined, 'normal');
+            pdf.text('Complete listing of all Windows updates tracked during this reporting period.', 15, 25);
             
             // Prepare table data - show full update names
             const tableData = csvData.map(row => {
@@ -1573,50 +1766,131 @@
                 ];
             });
             
-            // Add table with better column widths
+            // Add table with enhanced styling
             pdf.autoTable({
                 head: [['Update Name', 'Version', 'Severity', 'Date', 'Missing', 'Deployed']],
                 body: tableData,
-                startY: 20,
+                startY: 32,
                 theme: 'striped',
                 headStyles: {
                     fillColor: [0, 120, 212],
-                    fontSize: 8,
+                    fontSize: 9,
                     fontStyle: 'bold',
-                    cellPadding: 2
+                    cellPadding: 3,
+                    halign: 'center'
                 },
                 bodyStyles: {
-                    fontSize: 7,
-                    cellPadding: 2
+                    fontSize: 8,
+                    cellPadding: 2.5
+                },
+                alternateRowStyles: {
+                    fillColor: [248, 249, 250]
                 },
                 columnStyles: {
                     0: { 
-                        cellWidth: 90,  // Wider column for update names
-                        overflow: 'linebreak'  // Allow text wrapping
+                        cellWidth: 85,  // Optimized for A4
+                        overflow: 'linebreak',
+                        halign: 'left'
                     },
-                    1: { cellWidth: 20 },
-                    2: { cellWidth: 18 },
-                    3: { cellWidth: 22 },
-                    4: { cellWidth: 15, halign: 'center' },
-                    5: { cellWidth: 18, halign: 'center' }
+                    1: { 
+                        cellWidth: 22,
+                        halign: 'center'
+                    },
+                    2: { 
+                        cellWidth: 20,
+                        halign: 'center',
+                        cellPadding: 1
+                    },
+                    3: { 
+                        cellWidth: 24,
+                        halign: 'center'
+                    },
+                    4: { 
+                        cellWidth: 16, 
+                        halign: 'center',
+                        fontStyle: 'bold'
+                    },
+                    5: { 
+                        cellWidth: 18, 
+                        halign: 'center',
+                        fontStyle: 'bold'
+                    }
                 },
-                margin: { left: 10, right: 10 },
+                margin: { left: 12, right: 12 },
                 showHead: 'everyPage',
                 didDrawPage: function(data) {
                     // Add page header on continuation pages
                     if (data.pageNumber > 1) {
                         pdf.setFillColor(240, 248, 255);
-                        pdf.rect(0, 0, pdf.internal.pageSize.getWidth(), 15, 'F');
+                        pdf.rect(0, 0, pdf.internal.pageSize.getWidth(), 18, 'F');
                         
-                        pdf.setFontSize(11);
+                        pdf.setDrawColor(0, 120, 212);
+                        pdf.setLineWidth(0.5);
+                        pdf.line(0, 18, pdf.internal.pageSize.getWidth(), 18);
+                        
+                        pdf.setFontSize(12);
                         pdf.setFont(undefined, 'bold');
                         pdf.setTextColor(51, 51, 51);
-                        pdf.text('Detailed Update List (continued)', 15, 9);
+                        pdf.text('Detailed Update List (continued)', 15, 11);
+                        
+                        const currentPage = tableStartPage + data.pageNumber - 1;
+                        pdf.setFontSize(9);
+                        pdf.setFont(undefined, 'normal');
+                        pdf.setTextColor(108, 117, 125);
+                        pdf.text(`Page ${currentPage}`, pdf.internal.pageSize.getWidth() - 20, 11, { align: 'right' });
                         
                         pdf.setTextColor(0, 0, 0);
                     }
+                },
+                didParseCell: function(data) {
+                    // Color code severity cells
+                    if (data.column.index === 2 && data.cell.raw) {
+                        const severity = data.cell.raw.toLowerCase();
+                        if (severity.includes('critical')) {
+                            data.cell.styles.textColor = [220, 53, 69];
+                            data.cell.styles.fontStyle = 'bold';
+                        } else if (severity.includes('important')) {
+                            data.cell.styles.textColor = [253, 126, 20];
+                            data.cell.styles.fontStyle = 'bold';
+                        } else if (severity.includes('moderate')) {
+                            data.cell.styles.textColor = [255, 193, 7];
+                        } else if (severity.includes('low')) {
+                            data.cell.styles.textColor = [40, 167, 69];
+                        }
+                    }
+                    
+                    // Highlight high missing counts
+                    if (data.column.index === 4 && data.cell.raw) {
+                        const missing = parseInt(data.cell.raw);
+                        if (missing > 20) {
+                            data.cell.styles.textColor = [220, 53, 69];
+                        } else if (missing > 10) {
+                            data.cell.styles.textColor = [253, 126, 20];
+                        }
+                    }
+                    
+                    // Highlight high deployment counts
+                    if (data.column.index === 5 && data.cell.raw) {
+                        const deployed = parseInt(data.cell.raw);
+                        if (deployed >= 90) {
+                            data.cell.styles.textColor = [40, 167, 69];
+                        }
+                    }
                 }
             });
+            
+            // Add summary at the end of the table
+            const finalY = pdf.lastAutoTable.finalY || pdf.internal.pageSize.getHeight() - 50;
+            if (finalY < pdf.internal.pageSize.getHeight() - 40) {
+                pdf.setFillColor(248, 249, 250);
+                pdf.rect(12, finalY + 10, pdf.internal.pageSize.getWidth() - 24, 25, 'F');
+                
+                pdf.setFontSize(8);
+                pdf.setFont(undefined, 'italic');
+                pdf.text(`Table contains ${csvData.length} total updates. Updates are sorted by original data order.`, 15, finalY + 18);
+                pdf.text('Color coding: Critical (Red), Important (Orange), Moderate (Yellow), Low (Green)', 15, finalY + 25);
+                pdf.text('High missing counts (>10) are highlighted for attention.', 15, finalY + 32);
+            }
         }
         
         function updateProgress(percentage, text) {
