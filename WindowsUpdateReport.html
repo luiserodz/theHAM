@@ -1678,7 +1678,6 @@
                     });
                 });
             }
-        }
         
         // Detailed table
         if (document.getElementById('includeDetailTable').checked) {
@@ -1689,7 +1688,8 @@
         updateProgress(90, 'Finalizing report...');
         // --- END OF CHARTS & ANALYSIS SECTION ---
         // Finalize PDF
-        
+    } // <-- Add this closing brace to end createPDFContent
+
     async function addCompactChartToPDF(pdf, chartId, title, x, y, width, height) {
             // Title is now added separately, so skip if empty
             if (title) {
