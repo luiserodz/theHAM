@@ -889,7 +889,7 @@
                             borderColor: '#1e7e34'
                         },
                         {
-                            label: 'Missing',
+                            label: 'Pending Updates',
                             data: deploymentData.map(d => d.missing),
                             backgroundColor: '#dc3545',
                             borderWidth: 1,
@@ -1134,7 +1134,7 @@
                 { label: 'Total Updates', value: stats.totalUpdates, color: [0, 120, 212] },
                 { label: 'Critical', value: stats.criticalUpdates, color: [220, 53, 69] },
                 { label: 'Compliance', value: stats.complianceRate + '%', color: [40, 167, 69] },
-                { label: 'Missing', value: stats.totalMissing, color: [253, 126, 20] },
+                { label: 'Pending Updates', value: stats.totalMissing, color: [253, 126, 20] },
                 { label: 'Deployed', value: stats.totalDeployed, color: [40, 167, 69] }
             ];
             
