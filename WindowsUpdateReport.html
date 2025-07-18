@@ -1294,7 +1294,7 @@
                 pdf.setFillColor(248, 249, 250);
                 pdf.rect(15, y - 2, pageWidth - 30, 20, 'F');
                 
-                const lines1 = pdf.splitTextToSize('For the updates released or discovered this week, the following breakdown was observed:', pageWidth - 35);
+                const lines1 = pdf.splitTextToSize('This chart shows the distribution of updates by security severity for the current week:', pageWidth - 35);
                 lines1.forEach(line => {
                     pdf.text(line, 18, y + 3);
                     y += 5;
@@ -1305,7 +1305,7 @@
                 pdf.setFillColor(255, 255, 255);
                 pdf.rect(20, y - 2, pageWidth - 40, 20, 'F');
                 pdf.setDrawColor(0, 120, 212);
-                pdf.setLineWidth(0.3);
+                pdf.setLineWidth(0.2);
                 pdf.rect(20, y - 2, pageWidth - 40, 20);
                 
                 pdf.setFont(undefined, 'bold');
@@ -1370,7 +1370,7 @@
                     pdf.setFont(undefined, 'normal');
                 }
                 
-                const lines = pdf.splitTextToSize(text, pageWidth - 35);
+                const lines = pdf.splitTextToSize(text, pageWidth - 40);
                 lines.forEach(line => {
                     pdf.text(line, text.startsWith('•') ? 25 : 18, y);
                     y += 5;
@@ -1432,7 +1432,7 @@
                 pdf.setFillColor(248, 249, 250);
                 pdf.rect(15, y - 2, pageWidth - 30, 20, 'F');
                 
-                const deploymentIntro = pdf.splitTextToSize('For this reporting period, the following deployment data was observed across the top 10 updates with the highest number of assigned devices:', pageWidth - 35);
+                const deploymentIntro = pdf.splitTextToSize('This chart visualizes the deployment status of the top 10 updates with the highest number of assigned devices:', pageWidth - 35);
                 deploymentIntro.forEach(line => {
                     pdf.text(line, 18, y + 3);
                     y += 5;
@@ -1443,7 +1443,7 @@
                 pdf.setFillColor(255, 255, 255);
                 pdf.rect(20, y - 2, pageWidth - 40, 14, 'F');
                 pdf.setDrawColor(40, 167, 69);
-                pdf.setLineWidth(0.3);
+                pdf.setLineWidth(0.2);
                 pdf.rect(20, y - 2, pageWidth - 40, 14);
                 
                 pdf.setFont(undefined, 'bold');
@@ -1505,7 +1505,7 @@
                         pdf.setFont(undefined, 'normal');
                     }
                     
-                    const lines = pdf.splitTextToSize(text, pageWidth - 35);
+                    const lines = pdf.splitTextToSize(text, pageWidth - 40);
                     lines.forEach(line => {
                         pdf.text(line, text.startsWith('•') ? 25 : 18, y);
                         y += 5;
@@ -1607,7 +1607,7 @@
                 pdf.setFillColor(248, 249, 250);
                 pdf.rect(15, y - 2, pageWidth - 30, 20, 'F');
                 
-                const trendIntro = pdf.splitTextToSize('This chart shows the number of updates released over time, reflecting ongoing maintenance and security operations:', pageWidth - 35);
+                const trendIntro = pdf.splitTextToSize('This line graph displays the trend of updates released over time, highlighting our ongoing maintenance and security efforts:', pageWidth - 35);
                 trendIntro.forEach(line => {
                     pdf.text(line, 18, y + 3);
                     y += 5;
@@ -1618,7 +1618,7 @@
                 pdf.setFillColor(255, 255, 255);
                 pdf.rect(20, y - 2, pageWidth - 40, 20, 'F');
                 pdf.setDrawColor(0, 120, 212);
-                pdf.setLineWidth(0.3);
+                pdf.setLineWidth(0.2);
                 pdf.rect(20, y - 2, pageWidth - 40, 20);
                 
                 pdf.setFont(undefined, 'bold');
@@ -1671,7 +1671,7 @@
                         pdf.setFont(undefined, 'normal');
                     }
                     
-                    const lines = pdf.splitTextToSize(text, pageWidth - 35);
+                    const lines = pdf.splitTextToSize(text, pageWidth - 40);
                     lines.forEach(line => {
                         pdf.text(line, text.startsWith('•') ? 25 : 18, y);
                         y += 5;
@@ -1754,7 +1754,7 @@
             pdf.text('Complete listing of all Windows updates tracked during this reporting period.', 15, 25);
             
             // Prepare table data - show full update names
-            const tableData = csvData.map(row => {
+            let tableData = csvData.map(row => {
                 return [
                     row['Update Name'] || '',
                     row['Version'] || '',
@@ -1767,8 +1767,7 @@
             
             // Add table with corrected column widths to fit page
             pdf.autoTable({
-                head: [['Update Name', 'Version', 'Severity', 'Date', 'Pending Updates', 'Deployed']],
-                body: tableData,
+                head: [['Update Name', 'Version', 'Severity', 'Date', 'Pending Updates', 'Deployed']], body: tableData,
                 startY: 32,
                 theme: 'striped',
                 headStyles: {
@@ -1833,7 +1832,7 @@
                         pdf.text('Detailed Update List (continued)', 15, 11);
                         
                         const currentPage = tableStartPage + data.pageNumber - 1;
-                        pdf.setFontSize(9);
+                        pdf.setFontSize(9); // Use a smaller font size for continuation page numbers
                         pdf.setFont(undefined, 'normal');
                         pdf.setTextColor(108, 117, 125);
                         pdf.text(`Page ${currentPage}`, pdf.internal.pageSize.getWidth() - 20, 11, { align: 'right' });
@@ -1884,7 +1883,7 @@
                 pdf.setFillColor(248, 249, 250);
                 pdf.rect(15, finalY + 10, pdf.internal.pageSize.getWidth() - 30, 25, 'F');
                 
-                pdf.setFontSize(8);
+                pdf.setFontSize(8); // Use a smaller font size for summary text
                 pdf.setFont(undefined, 'italic');
                 pdf.text(`Table contains ${csvData.length} total updates. Updates are sorted by original data order.`, 18, finalY + 18);
                 pdf.text('Color coding: Critical (Red), Important (Orange), Moderate (Yellow), Low (Green)', 18, finalY + 25);
