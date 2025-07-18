@@ -13,7 +13,7 @@
 
         body {
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            background: linear-gradient(135deg, #0078d4 0%, #005a9e 100%);
             min-height: 100vh;
             padding: 20px;
         }
@@ -23,29 +23,30 @@
             margin: 0 auto;
             background: white;
             border-radius: 12px;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
             overflow: hidden;
         }
 
         .header {
-            background: linear-gradient(135deg, #0078d4 0%, #106ebe 100%);
+            background: linear-gradient(135deg, #0078d4, #106ebe);
             color: white;
             padding: 30px;
             text-align: center;
         }
 
         .header h1 {
-            font-size: 2.2em;
+            font-size: 2.5em;
             margin-bottom: 10px;
+            font-weight: 300;
         }
 
         .header p {
-            opacity: 0.9;
             font-size: 1.1em;
+            opacity: 0.9;
         }
 
         .main-content {
-            padding: 40px;
+            padding: 30px;
         }
 
         .upload-section {
@@ -81,15 +82,15 @@
         }
 
         .btn {
-            background: linear-gradient(135deg, #0078d4 0%, #106ebe 100%);
+            background: linear-gradient(135deg, #0078d4, #106ebe);
             color: white;
             border: none;
-            padding: 15px 30px;
+            padding: 12px 30px;
             border-radius: 6px;
-            font-size: 16px;
-            font-weight: 600;
+            font-size: 14px;
+            font-weight: 500;
             cursor: pointer;
-            transition: all 0.3s;
+            transition: all 0.3s ease;
             margin: 5px;
             display: inline-block;
             text-decoration: none;
@@ -97,15 +98,19 @@
 
         .btn:hover {
             transform: translateY(-2px);
-            box-shadow: 0 5px 15px rgba(0,120,212,0.3);
+            box-shadow: 0 4px 12px rgba(0, 120, 212, 0.3);
         }
 
         .btn-success {
-            background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
+            background: linear-gradient(135deg, #28a745, #20923a);
         }
 
         .btn-secondary {
-            background: linear-gradient(135deg, #6c757d 0%, #5a6268 100%);
+            background: linear-gradient(135deg, #6c757d, #545b62);
+        }
+
+        .btn-danger {
+            background: linear-gradient(135deg, #dc3545, #c82333);
         }
 
         .btn:disabled {
@@ -131,6 +136,7 @@
             padding: 15px 20px;
             border-bottom: 1px solid #dee2e6;
             font-weight: 600;
+            color: #333;
         }
 
         .preview-content {
@@ -155,6 +161,7 @@
         .preview-table th {
             background: #f8f9fa;
             font-weight: 600;
+            color: #333;
         }
 
         .report-options {
@@ -167,6 +174,13 @@
 
         .report-options.show {
             display: block;
+        }
+
+        .report-options h3 {
+            color: #333;
+            margin-bottom: 20px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid #0078d4;
         }
 
         .options-grid {
@@ -183,7 +197,7 @@
         .form-group label {
             display: block;
             margin-bottom: 8px;
-            font-weight: 600;
+            font-weight: 500;
             color: #333;
         }
 
@@ -192,10 +206,10 @@
         .form-group textarea {
             width: 100%;
             padding: 12px;
-            border: 2px solid #e9ecef;
+            border: 2px solid #e1e5e9;
             border-radius: 6px;
-            font-size: 16px;
-            transition: border-color 0.3s;
+            font-size: 14px;
+            transition: all 0.3s ease;
         }
 
         .form-group input:focus,
@@ -203,7 +217,7 @@
         .form-group textarea:focus {
             outline: none;
             border-color: #0078d4;
-            box-shadow: 0 0 0 3px rgba(0,120,212,0.1);
+            box-shadow: 0 0 0 3px rgba(0, 120, 212, 0.1);
         }
 
         .checkbox-group {
@@ -224,8 +238,8 @@
         }
 
         .status-section {
-            background: #e7f3ff;
-            border: 1px solid #0078d4;
+            background: #e3f2fd;
+            border: 2px solid #1976d2;
             border-radius: 8px;
             padding: 20px;
             margin: 20px 0;
@@ -238,9 +252,9 @@
 
         .progress-bar {
             width: 100%;
-            height: 25px;
+            height: 20px;
             background: #e9ecef;
-            border-radius: 15px;
+            border-radius: 10px;
             overflow: hidden;
             margin: 15px 0;
         }
@@ -277,9 +291,9 @@
         }
 
         .alert-info {
-            background: #d1ecf1;
-            color: #0c5460;
-            border: 1px solid #bee5eb;
+            background: #e7f3ff;
+            border: 2px solid #0078d4;
+            color: #0078d4;
         }
 
         .sample-format {
@@ -288,7 +302,7 @@
             border-radius: 5px;
             padding: 15px;
             margin: 15px 0;
-            font-family: monospace;
+            font-family: 'Courier New', monospace;
             font-size: 14px;
         }
 
@@ -301,6 +315,13 @@
             display: block;
         }
 
+        .charts-preview h3 {
+            color: #333;
+            margin-bottom: 20px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid #0078d4;
+        }
+
         .chart-container {
             background: white;
             border: 1px solid #dee2e6;
@@ -308,14 +329,15 @@
             padding: 20px;
             margin: 15px 0;
             position: relative;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
         }
 
         .chart-title {
-            font-size: 18px;
+            font-size: 1.1em;
             font-weight: 600;
             margin-bottom: 15px;
             text-align: center;
-            color: #333;
+            color: #0078d4;
         }
 
         #downloadSection {
@@ -341,6 +363,13 @@
             border-radius: 8px;
             padding: 20px;
             text-align: center;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+            transition: all 0.3s ease;
+        }
+
+        .stat-card:hover {
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            transform: translateY(-2px);
         }
 
         .stat-number {
@@ -352,6 +381,7 @@
         .stat-label {
             color: #6c757d;
             margin-top: 5px;
+            font-size: 14px;
         }
 
         .severity-critical { color: #dc3545; }
@@ -359,6 +389,77 @@
         .severity-moderate { color: #ffc107; }
         .severity-low { color: #28a745; }
         .severity-none { color: #6c757d; }
+
+        /* Intune-style Navigation Tabs */
+        .nav-tabs {
+            display: flex;
+            background: #f8f9fa;
+            border-bottom: 1px solid #dee2e6;
+            margin: -30px -30px 30px;
+            padding: 0 30px;
+        }
+
+        .nav-tab {
+            flex: 0 0 auto;
+            padding: 15px 20px;
+            text-align: center;
+            background: #f8f9fa;
+            border: none;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 500;
+            color: #495057;
+            transition: all 0.3s ease;
+            border-bottom: 3px solid transparent;
+        }
+
+        .nav-tab:hover {
+            background: #e9ecef;
+        }
+
+        .nav-tab.active {
+            background: white;
+            color: #0078d4;
+            border-bottom-color: #0078d4;
+        }
+
+        /* Section Headers */
+        .section-title {
+            font-size: 1.3em;
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 20px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid #0078d4;
+        }
+
+        /* Info Cards */
+        .info-card {
+            background: #e7f3ff;
+            border-left: 4px solid #0078d4;
+            padding: 15px;
+            margin-bottom: 20px;
+            border-radius: 0 6px 6px 0;
+        }
+
+        /* Scrollbar styling */
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: #f1f1f1;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: #888;
+            border-radius: 4px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: #555;
+        }
     </style>
 </head>
 <body>
@@ -369,6 +470,18 @@
         </div>
 
         <div class="main-content">
+            <!-- Navigation Tabs -->
+            <div class="nav-tabs">
+                <div class="nav-tab active">Upload Data</div>
+                <div class="nav-tab">Configure Report</div>
+                <div class="nav-tab">Preview & Generate</div>
+            </div>
+
+            <!-- Info Alert -->
+            <div class="alert alert-info">
+                <strong>Note:</strong> This tool generates professional Windows Update compliance reports for Microsoft Intune managed environments. Upload your CSV export from Intune to get started.
+            </div>
+
             <!-- File Upload Section -->
             <div class="upload-section" id="uploadSection">
                 <div class="upload-icon">📁</div>
@@ -579,6 +692,23 @@
             // Save form data on change
             document.querySelectorAll('#reportOptions input, #reportOptions select, #reportOptions textarea').forEach(element => {
                 element.addEventListener('change', saveFormData);
+            });
+
+            // Tab navigation
+            document.querySelectorAll('.nav-tab').forEach((tab, index) => {
+                tab.addEventListener('click', () => {
+                    document.querySelectorAll('.nav-tab').forEach(t => t.classList.remove('active'));
+                    tab.classList.add('active');
+                    
+                    // Simple tab switching logic
+                    if (index === 0) {
+                        uploadSection.scrollIntoView({ behavior: 'smooth' });
+                    } else if (index === 1) {
+                        reportOptions.scrollIntoView({ behavior: 'smooth' });
+                    } else if (index === 2) {
+                        chartsPreview.scrollIntoView({ behavior: 'smooth' });
+                    }
+                });
             });
         }
         
@@ -1240,7 +1370,7 @@
             
             // Add page header with gradient effect
             pdf.setFillColor(240, 248, 255);
-            pdf.rect(0, 0, pageWidth, 18, 'F'); // Slightly taller header
+            pdf.rect(0, 0, pageWidth, 18, 'F');
             
             // Add accent line
             pdf.setDrawColor(0, 120, 212);
