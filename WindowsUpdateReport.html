@@ -1452,7 +1452,7 @@
                 const otherPercent = Math.round((otherCount / stats.totalUpdates) * 100);
                 pdf.setTextColor(108, 117, 125); // Gray for other
                 pdf.text(`• Unspecified or Low: ${otherCount} updates (${otherPercent}%)`, 25, y + 3);
-                y += 8;
+                y += 12;
                 
                 pdf.setTextColor(0, 0, 0);
                 pdf.setFont(undefined, 'normal');
@@ -1578,7 +1578,7 @@
                 pdf.text(`• Total missing deployments: ${stats.totalMissing}`, 25, y + 3);
                 y += 6;
                 pdf.text(`• Overall compliance rate: ${stats.complianceRate}%`, 25, y + 3);
-                y += 10;
+                y += 14;
                 
                 pdf.setFont(undefined, 'normal');
                 pdf.setFontSize(9);
@@ -1753,7 +1753,7 @@
                 pdf.text(`• Trend: ${trendDescription}`, 25, y + 3);
                 y += 6;
                 pdf.text(`• Observation period: ${firstMonth} to ${latestMonth}`, 25, y + 3);
-                y += 8;
+                y += 12;
                 
                 pdf.setFont(undefined, 'normal');
                 pdf.setFontSize(9);
