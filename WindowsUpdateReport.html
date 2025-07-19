@@ -1502,6 +1502,7 @@
                         pdf.text(line, text.startsWith('•') ? 25 : 20, y);
                         y += 5;
                     });
+                    y += 4; // Add spacing between paragraphs
                 });
                 y += 15; // Space before next chart
             }
@@ -1634,9 +1635,10 @@
                     
                     const lines = pdf.splitTextToSize(text, pageWidth - 40);
                     lines.forEach(line => {
-                        pdf.text(line, text.startsWith('•') ? 25 : 18, y);
+                        pdf.text(line, text.startsWith('•') ? 25 : 20, y);
                         y += 5;
                     });
+                    y += 4; // Add spacing between paragraphs
                 });
                 
                 y += 15;
@@ -1800,6 +1802,7 @@
                         pdf.text(line, text.startsWith('•') ? 25 : 20, y);
                         y += 5;
                     });
+                    y += 4; // Add spacing between paragraphs
                 });
             }
         
