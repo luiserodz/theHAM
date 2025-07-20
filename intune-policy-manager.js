@@ -2021,7 +2021,6 @@
         };
 
         console.log('Intune Policy Manager ready');
-
         // Expose public methods
         window.IntunePolicyManager = {
             switchTab,
