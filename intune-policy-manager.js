@@ -1,4 +1,4 @@
-(() => {
+;(function() {
     "use strict";
     const GRAPH_BASE = "https://graph.microsoft.com/beta";
 
@@ -2021,6 +2021,26 @@
         };
 
         console.log('Intune Policy Manager ready');
-
-    window.IntunePolicyManager = { switchTab, searchGroups, searchManageGroups, selectAllUpload, deselectAllUpload, exportResults, clearResults, refreshPolicies, selectAllManage, deselectAllManage, exportSelected, duplicateSelected, assignSelected, unassignSelected, deleteSelected, closeAssignmentModal, confirmAssignment, closePolicyViewer, copyRedirectUri };
-})();
+        // Expose public methods
+        window.IntunePolicyManager = {
+            switchTab,
+            searchGroups,
+            searchManageGroups,
+            selectAllUpload,
+            deselectAllUpload,
+            exportResults,
+            clearResults,
+            refreshPolicies,
+            selectAllManage,
+            deselectAllManage,
+            exportSelected,
+            duplicateSelected,
+            assignSelected,
+            unassignSelected,
+            deleteSelected,
+            closeAssignmentModal,
+            confirmAssignment,
+            closePolicyViewer,
+            copyRedirectUri
+        };
+    })();
