@@ -1398,7 +1398,8 @@
             if (document.getElementById('includeSeverityChart').checked && charts.severity) {
                 // Add subtle background for chart section
                 pdf.setFillColor(250, 252, 255);
-                pdf.rect(10, y - 5, pageWidth - 20, chartHeight + 100, 'F');
+                // Extend background height to cover extra spacing
+                pdf.rect(10, y - 5, pageWidth - 20, chartHeight + 230, 'F');
                 
                 // Chart title with better styling
                 pdf.setFontSize(13);
@@ -1452,8 +1453,8 @@
                 const otherPercent = Math.round((otherCount / stats.totalUpdates) * 100);
                 pdf.setTextColor(108, 117, 125); // Gray for other
                 pdf.text(`• Unspecified or Low: ${otherCount} updates (${otherPercent}%)`, 25, y + 3);
-                y += 20;
-                
+                y += 24;
+
                 pdf.setTextColor(0, 0, 0);
                 pdf.setFont(undefined, 'normal');
                 pdf.setFontSize(9);
@@ -1504,7 +1505,7 @@
                     });
                     y += 6; // Add spacing between paragraphs
                 });
-                y += 20; // Space before next chart
+                y += 24; // Space before next chart
             }
             
             // Check if we need a new page
@@ -1534,7 +1535,8 @@
             if (document.getElementById('includeDeploymentChart').checked && charts.deployment) {
                 // Add subtle background for chart section
                 pdf.setFillColor(250, 252, 255);
-                pdf.rect(10, y - 5, pageWidth - 20, chartHeight + 100, 'F');
+                // Extend background height to cover extra spacing
+                pdf.rect(10, y - 5, pageWidth - 20, chartHeight + 230, 'F');
                 
                 // Chart title
                 pdf.setFontSize(13);
@@ -1565,8 +1567,8 @@
                     pdf.text(line, 18, y + 3);
                     y += 6;
                 });
-                y += 10;
-                
+                y += 12;
+
                 // Deployment stats in styled box
                 pdf.setFillColor(255, 255, 255);
                 pdf.rect(20, y - 2, pageWidth - 40, 14, 'F');
@@ -1578,7 +1580,7 @@
                 pdf.text(`• Total missing deployments: ${stats.totalMissing}`, 25, y + 3);
                 y += 6;
                 pdf.text(`• Overall compliance rate: ${stats.complianceRate}%`, 25, y + 3);
-                y += 22;
+                y += 24;
                 
                 pdf.setFont(undefined, 'normal');
                 pdf.setFontSize(9);
@@ -1641,7 +1643,8 @@
                     y += 6; // Add spacing between paragraphs
                 });
                 
-                y += 20;
+                y += 24;
+
             }
             
             // Check if we need a new page for trend chart
@@ -1671,7 +1674,8 @@
             if (document.getElementById('includeTrendChart').checked && charts.trend) {
                 // Add subtle background for chart section
                 pdf.setFillColor(250, 252, 255);
-                pdf.rect(10, y - 5, pageWidth - 20, chartHeight + 100, 'F');
+                // Extend background height to cover extra spacing
+                pdf.rect(10, y - 5, pageWidth - 20, chartHeight + 230, 'F');
                 
                 // Chart title
                 pdf.setFontSize(13);
@@ -1753,7 +1757,7 @@
                 pdf.text(`• Trend: ${trendDescription}`, 25, y + 3);
                 y += 6;
                 pdf.text(`• Observation period: ${firstMonth} to ${latestMonth}`, 25, y + 3);
-                y += 20;
+                y += 24;
                 
                 pdf.setFont(undefined, 'normal');
                 pdf.setFontSize(9);
@@ -1804,7 +1808,7 @@
                     });
                     y += 6; // Add spacing between paragraphs
                 });
-                y += 20;
+                y += 24;
             }
         
         // Detailed table
