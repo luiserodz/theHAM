@@ -1398,7 +1398,8 @@
             if (document.getElementById('includeSeverityChart').checked && charts.severity) {
                 // Add subtle background for chart section
                 pdf.setFillColor(250, 252, 255);
-                pdf.rect(10, y - 5, pageWidth - 20, chartHeight + 100, 'F');
+                // Extend background height to cover additional spacing
+                pdf.rect(10, y - 5, pageWidth - 20, chartHeight + 210, 'F');
                 
                 // Chart title with better styling
                 pdf.setFontSize(13);
@@ -1414,7 +1415,7 @@
                 pdf.rect(20, y - 2, chartWidth - 10, chartHeight + 4);
                 
                 await addCompactChartToPDF(pdf, 'severityChart', '', 20, y, chartWidth - 10, chartHeight);
-                y += chartHeight + 8;
+                y += chartHeight + 16;
                 
                 // Detailed explanation with better formatting
                 pdf.setFontSize(10);
@@ -1424,9 +1425,9 @@
                 const lines1 = pdf.splitTextToSize('This chart shows the distribution of updates by security severity for the current week:', pageWidth - 40);
                 lines1.forEach(line => {
                     pdf.text(line, 20, y);
-                    y += 5;
+                    y += 6;
                 });
-                y += 5;
+                y += 8;
                 
                 // Breakdown details in a styled box
                 pdf.setFillColor(255, 255, 255);
@@ -1452,8 +1453,7 @@
                 const otherPercent = Math.round((otherCount / stats.totalUpdates) * 100);
                 pdf.setTextColor(108, 117, 125); // Gray for other
                 pdf.text(`• Unspecified or Low: ${otherCount} updates (${otherPercent}%)`, 25, y + 3);
-                y += 12;
-                
+                y += 24;
                 pdf.setTextColor(0, 0, 0);
                 pdf.setFont(undefined, 'normal');
                 pdf.setFontSize(9);
@@ -1500,11 +1500,11 @@
                     const lines = pdf.splitTextToSize(text, pageWidth - 40);
                     lines.forEach(line => {
                         pdf.text(line, text.startsWith('•') ? 25 : 20, y);
-                        y += 5;
+                        y += 6;
                     });
-                    y += 4; // Add spacing between paragraphs
+                    y += 6; // Add spacing between paragraphs
                 });
-                y += 15; // Space before next chart
+                y += 24; // Space before next chart
             }
             
             // Check if we need a new page
@@ -1534,7 +1534,8 @@
             if (document.getElementById('includeDeploymentChart').checked && charts.deployment) {
                 // Add subtle background for chart section
                 pdf.setFillColor(250, 252, 255);
-                pdf.rect(10, y - 5, pageWidth - 20, chartHeight + 100, 'F');
+                // Extend background height to cover additional spacing
+                pdf.rect(10, y - 5, pageWidth - 20, chartHeight + 210, 'F');
                 
                 // Chart title
                 pdf.setFontSize(13);
@@ -1550,7 +1551,7 @@
                 pdf.rect(20, y - 2, chartWidth - 10, chartHeight + 4);
                 
                 await addCompactChartToPDF(pdf, 'deploymentChart', '', 20, y, chartWidth - 10, chartHeight);
-                y += chartHeight + 8;
+                y += chartHeight + 16;
                 
                 // Detailed explanation
                 pdf.setFontSize(10);
@@ -1563,10 +1564,9 @@
                 const deploymentIntro = pdf.splitTextToSize('This chart visualizes the deployment status of the top 10 updates with the highest number of assigned devices:', pageWidth - 35);
                 deploymentIntro.forEach(line => {
                     pdf.text(line, 18, y + 3);
-                    y += 5;
+                    y += 6;
                 });
-                y += 8;
-                
+                y += 12;
                 // Deployment stats in styled box
                 pdf.setFillColor(255, 255, 255);
                 pdf.rect(20, y - 2, pageWidth - 40, 14, 'F');
@@ -1578,8 +1578,7 @@
                 pdf.text(`• Total missing deployments: ${stats.totalMissing}`, 25, y + 3);
                 y += 6;
                 pdf.text(`• Overall compliance rate: ${stats.complianceRate}%`, 25, y + 3);
-                y += 14;
-                
+                y += 24;
                 pdf.setFont(undefined, 'normal');
                 pdf.setFontSize(9);
                 
@@ -1636,12 +1635,12 @@
                     const lines = pdf.splitTextToSize(text, pageWidth - 40);
                     lines.forEach(line => {
                         pdf.text(line, text.startsWith('•') ? 25 : 20, y);
-                        y += 5;
+                        y += 6;
                     });
-                    y += 4; // Add spacing between paragraphs
+                    y += 6; // Add spacing between paragraphs
                 });
                 
-                y += 15;
+                y += 24;
             }
             
             // Check if we need a new page for trend chart
@@ -1671,7 +1670,8 @@
             if (document.getElementById('includeTrendChart').checked && charts.trend) {
                 // Add subtle background for chart section
                 pdf.setFillColor(250, 252, 255);
-                pdf.rect(10, y - 5, pageWidth - 20, chartHeight + 100, 'F');
+                // Extend background height to cover additional spacing
+                pdf.rect(10, y - 5, pageWidth - 20, chartHeight + 210, 'F');
                 
                 // Chart title
                 pdf.setFontSize(13);
@@ -1687,7 +1687,7 @@
                 pdf.rect(20, y - 2, chartWidth - 10, chartHeight + 4);
                 
                 await addCompactChartToPDF(pdf, 'trendChart', '', 20, y, chartWidth - 10, chartHeight);
-                y += chartHeight + 8;
+                y += chartHeight + 16;
                 
                 // Detailed explanation
                 pdf.setFontSize(10);
@@ -1736,9 +1736,9 @@
                 const trendIntro = pdf.splitTextToSize('This line graph displays the trend of updates released over time, highlighting our ongoing maintenance and security efforts:', pageWidth - 40);
                 trendIntro.forEach(line => {
                     pdf.text(line, 20, y);
-                    y += 5;
+                    y += 6;
                 });
-                y += 5;
+                y += 8;
                 
                 // Trend stats in styled box
                 pdf.setFillColor(255, 255, 255);
@@ -1753,7 +1753,7 @@
                 pdf.text(`• Trend: ${trendDescription}`, 25, y + 3);
                 y += 6;
                 pdf.text(`• Observation period: ${firstMonth} to ${latestMonth}`, 25, y + 3);
-                y += 12;
+                y += 24;
                 
                 pdf.setFont(undefined, 'normal');
                 pdf.setFontSize(9);
@@ -1800,10 +1800,11 @@
                     const lines = pdf.splitTextToSize(text, pageWidth - 40);
                     lines.forEach(line => {
                         pdf.text(line, text.startsWith('•') ? 25 : 20, y);
-                        y += 5;
+                        y += 6;
                     });
-                    y += 4; // Add spacing between paragraphs
+                    y += 6; // Add spacing between paragraphs
                 });
+                y += 24;
             }
         
         // Detailed table
