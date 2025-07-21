@@ -1,6 +1,18 @@
         // Global variables
         let csvData = [];
-        let charts = {};
+let charts = {};
+
+// Load logo image as data URL
+async function loadLogo() {
+    const response = await fetch('Primary Branding Asset.png');
+    const blob = await response.blob();
+    return new Promise((resolve) => {
+        const reader = new FileReader();
+        reader.onloadend = () => resolve(reader.result);
+        reader.readAsDataURL(blob);
+    });
+}
+
         
         // DOM elements
         const csvFile = document.getElementById('csvFile');
@@ -551,13 +563,16 @@
                 const orgName = document.getElementById('organizationName').value;
                 const reportPeriod = document.getElementById('reportPeriod').value;
                 const additionalNotes = document.getElementById('additionalNotes').value;
-                
+
+                const logo = await loadLogo();
+
                 // Generate report content
                 await createPDFContent(pdf, {
                     title: reportTitle,
                     organization: orgName,
                     period: reportPeriod,
-                    notes: additionalNotes
+                    notes: additionalNotes,
+                    logo: logo
                 });
                 
                 updateProgress(100, 'Report generation complete!');
@@ -593,32 +608,44 @@
             
             // Header
             pdf.setFillColor(0, 120, 212);
-            pdf.rect(0, 0, pageWidth, 40, 'F');
-            
-            // Title
+            // Slightly taller header accommodates the centered logo
+            const headerHeight = 65;
+            pdf.rect(0, 0, pageWidth, headerHeight, 'F');
+
+            let headerY = 10;
+            if (config.logo) {
+                const props = pdf.getImageProperties(config.logo);
+                const logoWidth = 30;
+                const logoHeight = (props.height / props.width) * logoWidth;
+                const logoX = (pageWidth - logoWidth) / 2;
+                pdf.addImage(config.logo, 'PNG', logoX, headerY, logoWidth, logoHeight);
+                headerY += logoHeight + 5;
+            }
+
             pdf.setTextColor(255, 255, 255);
             pdf.setFontSize(24);
-            pdf.text(config.title, pageWidth / 2, 20, { align: 'center' });
-            
-            // Organization
+            pdf.text(config.title, pageWidth / 2, headerY, { align: 'center' });
+            headerY += 10;
+
             if (config.organization) {
                 pdf.setFontSize(14);
-                pdf.text(config.organization, pageWidth / 2, 32, { align: 'center' });
+                pdf.text(config.organization, pageWidth / 2, headerY, { align: 'center' });
             }
             
             pdf.setTextColor(0, 0, 0);
             
             // Info box
             pdf.setFillColor(248, 249, 250);
-            pdf.rect(20, 50, pageWidth - 40, 25, 'F');
-            
+            const infoBoxY = headerHeight + 15;
+            pdf.rect(20, infoBoxY, pageWidth - 40, 25, 'F');
+
             pdf.setFontSize(11);
-            pdf.text(`Period: ${config.period || 'Current'}`, pageWidth / 2, 58, { align: 'center' });
-            pdf.text(`Generated: ${new Date().toLocaleDateString()}`, pageWidth / 2, 67, { align: 'center' });
+            pdf.text(`Period: ${config.period || 'Current'}`, pageWidth / 2, infoBoxY + 8, { align: 'center' });
+            pdf.text(`Generated: ${new Date().toLocaleDateString()}`, pageWidth / 2, infoBoxY + 17, { align: 'center' });
             
             // Statistics
             const stats = generateStatistics();
-            let y = 85;
+            let y = infoBoxY + 35;
             
             pdf.setFontSize(14);
             pdf.setFont(undefined, 'bold');
