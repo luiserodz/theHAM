@@ -626,7 +626,6 @@ async function loadLogo() {
             pdf.setFontSize(24);
             pdf.text(config.title, pageWidth / 2, headerY, { align: 'center' });
             headerY += 10;
-
             if (config.organization) {
                 pdf.setFontSize(14);
                 pdf.text(config.organization, pageWidth / 2, headerY, { align: 'center' });
