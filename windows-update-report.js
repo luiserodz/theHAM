@@ -608,16 +608,19 @@ async function loadLogo() {
             
             // Header
             pdf.setFillColor(0, 120, 212);
-            pdf.rect(0, 0, pageWidth, 40, 'F');
+            const headerHeight = 55;
+            pdf.rect(0, 0, pageWidth, headerHeight, 'F');
 
             if (config.logo) {
-                pdf.addImage(config.logo, 'PNG', pageWidth - 35, 7, 25, 25);
+                const logoWidth = 30;
+                const logoX = (pageWidth - logoWidth) / 2;
+                pdf.addImage(config.logo, 'PNG', logoX, 7, logoWidth, 30);
             }
-            
-            // Title
+
+            // Title below the logo
             pdf.setTextColor(255, 255, 255);
             pdf.setFontSize(24);
-            pdf.text(config.title, pageWidth / 2, 20, { align: 'center' });
+            pdf.text(config.title, pageWidth / 2, 45, { align: 'center' });
             
             // Organization
             if (config.organization) {
@@ -629,15 +632,16 @@ async function loadLogo() {
             
             // Info box
             pdf.setFillColor(248, 249, 250);
-            pdf.rect(20, 50, pageWidth - 40, 25, 'F');
-            
+            const infoBoxY = 70;
+            pdf.rect(20, infoBoxY, pageWidth - 40, 25, 'F');
+
             pdf.setFontSize(11);
-            pdf.text(`Period: ${config.period || 'Current'}`, pageWidth / 2, 58, { align: 'center' });
-            pdf.text(`Generated: ${new Date().toLocaleDateString()}`, pageWidth / 2, 67, { align: 'center' });
+            pdf.text(`Period: ${config.period || 'Current'}`, pageWidth / 2, infoBoxY + 8, { align: 'center' });
+            pdf.text(`Generated: ${new Date().toLocaleDateString()}`, pageWidth / 2, infoBoxY + 17, { align: 'center' });
             
             // Statistics
             const stats = generateStatistics();
-            let y = 85;
+            let y = infoBoxY + 35;
             
             pdf.setFontSize(14);
             pdf.setFont(undefined, 'bold');
