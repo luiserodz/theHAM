@@ -1,6 +1,18 @@
         // Global variables
         let csvData = [];
-        let charts = {};
+let charts = {};
+
+// Load logo image as data URL
+async function loadLogo() {
+    const response = await fetch('Primary Branding Asset.png');
+    const blob = await response.blob();
+    return new Promise((resolve) => {
+        const reader = new FileReader();
+        reader.onloadend = () => resolve(reader.result);
+        reader.readAsDataURL(blob);
+    });
+}
+
         
         // DOM elements
         const csvFile = document.getElementById('csvFile');
@@ -551,13 +563,16 @@
                 const orgName = document.getElementById('organizationName').value;
                 const reportPeriod = document.getElementById('reportPeriod').value;
                 const additionalNotes = document.getElementById('additionalNotes').value;
-                
+
+                const logo = await loadLogo();
+
                 // Generate report content
                 await createPDFContent(pdf, {
                     title: reportTitle,
                     organization: orgName,
                     period: reportPeriod,
-                    notes: additionalNotes
+                    notes: additionalNotes,
+                    logo: logo
                 });
                 
                 updateProgress(100, 'Report generation complete!');
@@ -594,6 +609,10 @@
             // Header
             pdf.setFillColor(0, 120, 212);
             pdf.rect(0, 0, pageWidth, 40, 'F');
+
+            if (config.logo) {
+                pdf.addImage(config.logo, 'PNG', pageWidth - 35, 7, 25, 25);
+            }
             
             // Title
             pdf.setTextColor(255, 255, 255);
