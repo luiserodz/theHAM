@@ -611,28 +611,32 @@ async function loadLogo() {
             const headerHeight = 55;
             pdf.rect(0, 0, pageWidth, headerHeight, 'F');
 
+            let headerY = 10;
             if (config.logo) {
+                const props = pdf.getImageProperties(config.logo);
                 const logoWidth = 30;
+                const logoHeight = (props.height / props.width) * logoWidth;
                 const logoX = (pageWidth - logoWidth) / 2;
-                pdf.addImage(config.logo, 'PNG', logoX, 7, logoWidth, 30);
+                pdf.addImage(config.logo, 'PNG', logoX, headerY, logoWidth, logoHeight);
+                headerY += logoHeight + 5;
             }
 
-            // Title below the logo
             pdf.setTextColor(255, 255, 255);
             pdf.setFontSize(24);
-            pdf.text(config.title, pageWidth / 2, 45, { align: 'center' });
-            
-            // Organization
+            pdf.text(config.title, pageWidth / 2, headerY, { align: 'center' });
+            headerY += 10;
+          
             if (config.organization) {
                 pdf.setFontSize(14);
-                pdf.text(config.organization, pageWidth / 2, 32, { align: 'center' });
+                pdf.text(config.organization, pageWidth / 2, headerY, { align: 'center' });
             }
             
             pdf.setTextColor(0, 0, 0);
             
             // Info box
             pdf.setFillColor(248, 249, 250);
-            const infoBoxY = 70;
+            const infoBoxY = headerHeight + 15;
+
             pdf.rect(20, infoBoxY, pageWidth - 40, 25, 'F');
 
             pdf.setFontSize(11);
