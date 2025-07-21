@@ -608,7 +608,8 @@ async function loadLogo() {
             
             // Header
             pdf.setFillColor(0, 120, 212);
-            const headerHeight = 55;
+            // Slightly taller header accommodates the centered logo
+            const headerHeight = 65;
             pdf.rect(0, 0, pageWidth, headerHeight, 'F');
 
             let headerY = 10;
@@ -625,7 +626,6 @@ async function loadLogo() {
             pdf.setFontSize(24);
             pdf.text(config.title, pageWidth / 2, headerY, { align: 'center' });
             headerY += 10;
-          
             if (config.organization) {
                 pdf.setFontSize(14);
                 pdf.text(config.organization, pageWidth / 2, headerY, { align: 'center' });
@@ -636,7 +636,6 @@ async function loadLogo() {
             // Info box
             pdf.setFillColor(248, 249, 250);
             const infoBoxY = headerHeight + 15;
-
             pdf.rect(20, infoBoxY, pageWidth - 40, 25, 'F');
 
             pdf.setFontSize(11);
