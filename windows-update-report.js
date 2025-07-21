@@ -625,7 +625,7 @@ async function loadLogo() {
             pdf.setFontSize(24);
             pdf.text(config.title, pageWidth / 2, headerY, { align: 'center' });
             headerY += 10;
-
+          
             if (config.organization) {
                 pdf.setFontSize(14);
                 pdf.text(config.organization, pageWidth / 2, headerY, { align: 'center' });
@@ -636,6 +636,7 @@ async function loadLogo() {
             // Info box
             pdf.setFillColor(248, 249, 250);
             const infoBoxY = headerHeight + 15;
+
             pdf.rect(20, infoBoxY, pageWidth - 40, 25, 'F');
 
             pdf.setFontSize(11);
