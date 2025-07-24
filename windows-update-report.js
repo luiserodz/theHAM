@@ -602,7 +602,18 @@ async function createPDFContent(pdf, config) {
     const pageHeight = pdf.internal.pageSize.getHeight();
     let currentPage = 1;
     
-    // Standard spacing values for consistency
+    // Standardized font sizes
+    const FONT_SIZES = {
+        title: 24,
+        subtitle: 14,
+        sectionTitle: 14,
+        heading: 12,
+        body: 10,
+        small: 9,
+        caption: 8
+    };
+    
+    // Standard spacing values
     const lineHeight = 5;
     const paragraphSpacing = 3;
     const sectionSpacing = 8;
@@ -626,11 +637,11 @@ async function createPDFContent(pdf, config) {
     }
 
     pdf.setTextColor(255, 255, 255);
-    pdf.setFontSize(24);
+    pdf.setFontSize(FONT_SIZES.title);
     pdf.text(config.title, pageWidth / 2, headerY, { align: 'center' });
     headerY += 10;
     if (config.organization) {
-        pdf.setFontSize(14);
+        pdf.setFontSize(FONT_SIZES.subtitle);
         pdf.text(config.organization, pageWidth / 2, headerY, { align: 'center' });
     }
     
@@ -641,7 +652,7 @@ async function createPDFContent(pdf, config) {
     const infoBoxY = headerHeight + 15;
     pdf.rect(20, infoBoxY, pageWidth - 40, 25, 'F');
 
-    pdf.setFontSize(11);
+    pdf.setFontSize(FONT_SIZES.body);
     pdf.text(`Period: ${config.period || 'Current'}`, pageWidth / 2, infoBoxY + 8, { align: 'center' });
     pdf.text(`Generated: ${new Date().toLocaleDateString()}`, pageWidth / 2, infoBoxY + 17, { align: 'center' });
     
@@ -649,7 +660,7 @@ async function createPDFContent(pdf, config) {
     const stats = generateStatistics();
     let y = infoBoxY + 35;
     
-    pdf.setFontSize(14);
+    pdf.setFontSize(FONT_SIZES.sectionTitle);
     pdf.setFont(undefined, 'bold');
     pdf.text('Executive Summary', pageWidth / 2, y, { align: 'center' });
     
@@ -681,11 +692,11 @@ async function createPDFContent(pdf, config) {
             pdf.rect(x, boxY, boxWidth, boxHeight, 'F');
             
             pdf.setTextColor(255, 255, 255);
-            pdf.setFontSize(12);
+            pdf.setFontSize(FONT_SIZES.heading);
             pdf.setFont(undefined, 'bold');
             pdf.text(metric.value.toString(), x + boxWidth / 2, boxY + 8, { align: 'center' });
             
-            pdf.setFontSize(7);
+            pdf.setFontSize(FONT_SIZES.caption);
             pdf.setFont(undefined, 'normal');
             pdf.text(metric.label, x + boxWidth / 2, boxY + 15, { align: 'center' });
         });
@@ -699,12 +710,12 @@ async function createPDFContent(pdf, config) {
     pdf.setFillColor(248, 249, 250);
     pdf.rect(15, y - 5, pageWidth - 30, 40, 'F');
     
-    pdf.setFontSize(12);
+    pdf.setFontSize(FONT_SIZES.heading);
     pdf.setFont(undefined, 'bold');
     pdf.text('Key Insights', 20, y);
     y += 8;
     
-    pdf.setFontSize(9);
+    pdf.setFontSize(FONT_SIZES.small);
     pdf.setFont(undefined, 'normal');
     
     const insights = [
@@ -739,12 +750,12 @@ async function createPDFContent(pdf, config) {
         pdf.setFillColor(255, 243, 224);
         pdf.rect(15, y - 5, pageWidth - 30, 30, 'F');
         
-        pdf.setFontSize(10);
+        pdf.setFontSize(FONT_SIZES.body);
         pdf.setFont(undefined, 'bold');
         pdf.text('Additional Notes:', 20, y);
         y += lineHeight;
         
-        pdf.setFontSize(9);
+        pdf.setFontSize(FONT_SIZES.small);
         pdf.setFont(undefined, 'normal');
         const noteLines = pdf.splitTextToSize(config.notes, pageWidth - 40);
         noteLines.forEach(line => {
@@ -769,12 +780,12 @@ async function createPDFContent(pdf, config) {
     pdf.setLineWidth(0.5);
     pdf.line(0, 15, pageWidth, 15);
     
-    pdf.setFontSize(11);
+    pdf.setFontSize(FONT_SIZES.body);
     pdf.setFont(undefined, 'bold');
     pdf.setTextColor(51, 51, 51);
     pdf.text('Charts & Analysis', 15, 10);
     
-    pdf.setFontSize(9);
+    pdf.setFontSize(FONT_SIZES.small);
     pdf.setFont(undefined, 'normal');
     pdf.setTextColor(108, 117, 125);
     pdf.text(`Page ${currentPage}`, pageWidth - 20, 10, { align: 'right' });
@@ -789,8 +800,8 @@ async function createPDFContent(pdf, config) {
     if (document.getElementById('includeSeverityChart').checked && charts.severity) {
         y = 25;
         
-        // Chart title - LEFT ALIGNED
-        pdf.setFontSize(12);
+        // Chart title
+        pdf.setFontSize(FONT_SIZES.heading);
         pdf.setFont(undefined, 'bold');
         pdf.setTextColor(0, 78, 120);
         pdf.text('Security Severity Distribution – Weekly Summary', 20, y);
@@ -802,7 +813,7 @@ async function createPDFContent(pdf, config) {
         y += chartHeight + sectionSpacing;
         
         // Explanation
-        pdf.setFontSize(10);
+        pdf.setFontSize(FONT_SIZES.body);
         pdf.setFont(undefined, 'normal');
         
         const lines1 = pdf.splitTextToSize('This chart shows the distribution of updates by security severity for the current week:', pageWidth - 40);
@@ -834,7 +845,7 @@ async function createPDFContent(pdf, config) {
 
         pdf.setTextColor(0, 0, 0);
         pdf.setFont(undefined, 'normal');
-        pdf.setFontSize(9);
+        pdf.setFontSize(FONT_SIZES.small);
         
         const cvssExplanation = [
             'The severity of each update is assessed using the Common Vulnerability Scoring System (CVSS).',
@@ -856,16 +867,16 @@ async function createPDFContent(pdf, config) {
                 pdf.setDrawColor(0, 120, 212);
                 pdf.setLineWidth(0.5);
                 pdf.line(0, 15, pageWidth, 15);
-                pdf.setFontSize(11);
+                pdf.setFontSize(FONT_SIZES.body);
                 pdf.setFont(undefined, 'bold');
                 pdf.setTextColor(51, 51, 51);
                 pdf.text('Charts & Analysis (continued)', 15, 10);
-                pdf.setFontSize(9);
+                pdf.setFontSize(FONT_SIZES.small);
                 pdf.setFont(undefined, 'normal');
                 pdf.setTextColor(108, 117, 125);
                 pdf.text(`Page ${currentPage}`, pageWidth - 20, 10, { align: 'right' });
                 pdf.setTextColor(0, 0, 0);
-                pdf.setFontSize(9);
+                pdf.setFontSize(FONT_SIZES.small);
                 pdf.setFont(undefined, 'normal');
             }
             
@@ -897,11 +908,11 @@ async function createPDFContent(pdf, config) {
         pdf.setDrawColor(0, 120, 212);
         pdf.setLineWidth(0.5);
         pdf.line(0, 15, pageWidth, 15);
-        pdf.setFontSize(11);
+        pdf.setFontSize(FONT_SIZES.body);
         pdf.setFont(undefined, 'bold');
         pdf.setTextColor(51, 51, 51);
         pdf.text('Charts & Analysis (continued)', 15, 10);
-        pdf.setFontSize(9);
+        pdf.setFontSize(FONT_SIZES.small);
         pdf.setFont(undefined, 'normal');
         pdf.setTextColor(108, 117, 125);
         pdf.text(`Page ${currentPage}`, pageWidth - 20, 10, { align: 'right' });
@@ -910,8 +921,8 @@ async function createPDFContent(pdf, config) {
     
     // Deployment Status Chart
     if (document.getElementById('includeDeploymentChart').checked && charts.deployment) {
-        // Chart title - LEFT ALIGNED
-        pdf.setFontSize(12);
+        // Chart title
+        pdf.setFontSize(FONT_SIZES.heading);
         pdf.setFont(undefined, 'bold');
         pdf.setTextColor(0, 78, 120);
         pdf.text('Deployment Summary – Top 10 Updates by Volume', 20, y);
@@ -923,7 +934,7 @@ async function createPDFContent(pdf, config) {
         y += chartHeight + sectionSpacing;
         
         // Explanation
-        pdf.setFontSize(10);
+        pdf.setFontSize(FONT_SIZES.body);
         pdf.setFont(undefined, 'normal');
         
         const deploymentIntro = pdf.splitTextToSize('This chart visualizes the deployment status of the top 10 updates with the highest number of assigned devices:', pageWidth - 40);
@@ -941,7 +952,7 @@ async function createPDFContent(pdf, config) {
         y += sectionSpacing;
         
         pdf.setFont(undefined, 'normal');
-        pdf.setFontSize(9);
+        pdf.setFontSize(FONT_SIZES.small);
         
         const topMissingUpdate = csvData
             .map(row => ({
@@ -973,16 +984,16 @@ async function createPDFContent(pdf, config) {
                 pdf.setDrawColor(0, 120, 212);
                 pdf.setLineWidth(0.5);
                 pdf.line(0, 15, pageWidth, 15);
-                pdf.setFontSize(11);
+                pdf.setFontSize(FONT_SIZES.body);
                 pdf.setFont(undefined, 'bold');
                 pdf.setTextColor(51, 51, 51);
                 pdf.text('Charts & Analysis (continued)', 15, 10);
-                pdf.setFontSize(9);
+                pdf.setFontSize(FONT_SIZES.small);
                 pdf.setFont(undefined, 'normal');
                 pdf.setTextColor(108, 117, 125);
                 pdf.text(`Page ${currentPage}`, pageWidth - 20, 10, { align: 'right' });
                 pdf.setTextColor(0, 0, 0);
-                pdf.setFontSize(9);
+                pdf.setFontSize(FONT_SIZES.small);
                 pdf.setFont(undefined, 'normal');
             }
             
@@ -1015,11 +1026,11 @@ async function createPDFContent(pdf, config) {
         pdf.setDrawColor(0, 120, 212);
         pdf.setLineWidth(0.5);
         pdf.line(0, 15, pageWidth, 15);
-        pdf.setFontSize(11);
+        pdf.setFontSize(FONT_SIZES.body);
         pdf.setFont(undefined, 'bold');
         pdf.setTextColor(51, 51, 51);
         pdf.text('Charts & Analysis (continued)', 15, 10);
-        pdf.setFontSize(9);
+        pdf.setFontSize(FONT_SIZES.small);
         pdf.setFont(undefined, 'normal');
         pdf.setTextColor(108, 117, 125);
         pdf.text(`Page ${currentPage}`, pageWidth - 20, 10, { align: 'right' });
@@ -1028,8 +1039,8 @@ async function createPDFContent(pdf, config) {
     
     // Trend Chart
     if (document.getElementById('includeTrendChart').checked && charts.trend) {
-        // Chart title - LEFT ALIGNED
-        pdf.setFontSize(12);
+        // Chart title
+        pdf.setFontSize(FONT_SIZES.heading);
         pdf.setFont(undefined, 'bold');
         pdf.setTextColor(0, 78, 120);
         pdf.text('Update Release Timeline – Overview', 20, y);
@@ -1041,7 +1052,7 @@ async function createPDFContent(pdf, config) {
         y += chartHeight + sectionSpacing;
         
         // Explanation
-        pdf.setFontSize(10);
+        pdf.setFontSize(FONT_SIZES.body);
         pdf.setFont(undefined, 'normal');
         
         const monthCounts = {};
@@ -1098,7 +1109,7 @@ async function createPDFContent(pdf, config) {
         y += sectionSpacing;
         
         pdf.setFont(undefined, 'normal');
-        pdf.setFontSize(9);
+        pdf.setFontSize(FONT_SIZES.small);
         
         const trendExplanation = [
             'All updates are reviewed and addressed as part of our structured patch management process.',
@@ -1120,16 +1131,16 @@ async function createPDFContent(pdf, config) {
                 pdf.setDrawColor(0, 120, 212);
                 pdf.setLineWidth(0.5);
                 pdf.line(0, 15, pageWidth, 15);
-                pdf.setFontSize(11);
+                pdf.setFontSize(FONT_SIZES.body);
                 pdf.setFont(undefined, 'bold');
                 pdf.setTextColor(51, 51, 51);
                 pdf.text('Charts & Analysis (continued)', 15, 10);
-                pdf.setFontSize(9);
+                pdf.setFontSize(FONT_SIZES.small);
                 pdf.setFont(undefined, 'normal');
                 pdf.setTextColor(108, 117, 125);
                 pdf.text(`Page ${currentPage}`, pageWidth - 20, 10, { align: 'right' });
                 pdf.setTextColor(0, 0, 0);
-                pdf.setFontSize(9);
+                pdf.setFontSize(FONT_SIZES.small);
                 pdf.setFont(undefined, 'normal');
             }
             
@@ -1152,46 +1163,13 @@ async function createPDFContent(pdf, config) {
     // Detailed table
     if (document.getElementById('includeDetailTable').checked) {
         updateProgress(70, 'Adding detailed table...');
-        addDetailedTable(pdf);
+        addDetailedTable(pdf, FONT_SIZES);
     }
     
     updateProgress(90, 'Finalizing report...');
 }
 
-async function addCompactChartToPDF(pdf, chartId, title, x, y, width, height) {
-    // Title is now added separately, so skip if empty
-    if (title) {
-        pdf.setFontSize(10);
-        pdf.setFont(undefined, 'bold');
-        pdf.text(title, x, y - 2);
-    }
-    
-    // Get chart canvas
-    const canvas = document.getElementById(chartId);
-    if (!canvas) return;
-    
-    // Wait for chart to render
-    await new Promise(resolve => setTimeout(resolve, 100));
-    
-    // Convert chart to image
-    const imgData = canvas.toDataURL('image/png');
-    
-    // Calculate proper dimensions maintaining aspect ratio
-    const aspectRatio = canvas.width / canvas.height;
-    let imgWidth = width;
-    let imgHeight = height;
-    
-    if (imgWidth / imgHeight > aspectRatio) {
-        imgWidth = imgHeight * aspectRatio;
-    } else {
-        imgHeight = imgWidth / aspectRatio;
-    }
-    
-    // Add image to PDF
-    pdf.addImage(imgData, 'PNG', x, y, imgWidth, imgHeight);
-}
-
-function addDetailedTable(pdf) {
+function addDetailedTable(pdf, FONT_SIZES) {
     pdf.addPage();
     const tableStartPage = pdf.internal.getNumberOfPages();
     
@@ -1204,13 +1182,13 @@ function addDetailedTable(pdf) {
     pdf.setLineWidth(0.5);
     pdf.line(0, 15, pdf.internal.pageSize.getWidth(), 15);
     
-    pdf.setFontSize(11);
+    pdf.setFontSize(FONT_SIZES.body);
     pdf.setFont(undefined, 'bold');
     pdf.setTextColor(51, 51, 51);
     pdf.text('Detailed Update List', 15, 10);
     
     // Add page number
-    pdf.setFontSize(9);
+    pdf.setFontSize(FONT_SIZES.small);
     pdf.setFont(undefined, 'normal');
     pdf.setTextColor(108, 117, 125);
     pdf.text(`Page ${tableStartPage}`, pdf.internal.pageSize.getWidth() - 20, 10, { align: 'right' });
@@ -1218,7 +1196,7 @@ function addDetailedTable(pdf) {
     pdf.setTextColor(0, 0, 0);
     
     // Add table description
-    pdf.setFontSize(9);
+    pdf.setFontSize(FONT_SIZES.small);
     pdf.setFont(undefined, 'normal');
     pdf.text('Complete listing of all Windows updates tracked during this reporting period.', 15, 22);
     
@@ -1242,13 +1220,13 @@ function addDetailedTable(pdf) {
         theme: 'striped',
         headStyles: {
             fillColor: [0, 120, 212],
-            fontSize: 8,
+            fontSize: FONT_SIZES.caption,
             fontStyle: 'bold',
             cellPadding: 2,
             halign: 'center'
         },
         bodyStyles: {
-            fontSize: 7,
+            fontSize: FONT_SIZES.caption,
             cellPadding: 1.5
         },
         alternateRowStyles: {
@@ -1296,13 +1274,13 @@ function addDetailedTable(pdf) {
                 pdf.setLineWidth(0.5);
                 pdf.line(0, 15, pdf.internal.pageSize.getWidth(), 15);
                 
-                pdf.setFontSize(11);
+                pdf.setFontSize(FONT_SIZES.body);
                 pdf.setFont(undefined, 'bold');
                 pdf.setTextColor(51, 51, 51);
                 pdf.text('Detailed Update List (continued)', 15, 10);
                 
                 const currentPage = tableStartPage + data.pageNumber - 1;
-                pdf.setFontSize(9);
+                pdf.setFontSize(FONT_SIZES.small);
                 pdf.setFont(undefined, 'normal');
                 pdf.setTextColor(108, 117, 125);
                 pdf.text(`Page ${currentPage}`, pdf.internal.pageSize.getWidth() - 20, 10, { align: 'right' });
@@ -1353,7 +1331,7 @@ function addDetailedTable(pdf) {
         pdf.setFillColor(248, 249, 250);
         pdf.rect(15, finalY + 10, pdf.internal.pageSize.getWidth() - 30, 25, 'F');
         
-        pdf.setFontSize(8);
+        pdf.setFontSize(FONT_SIZES.caption);
         pdf.setFont(undefined, 'italic');
         pdf.text(`Table contains ${csvData.length} total updates. Updates are sorted by original data order.`, 18, finalY + 18);
         pdf.text('Color coding: Critical (Red), Important (Orange), Moderate (Yellow), Low (Green)', 18, finalY + 25);
