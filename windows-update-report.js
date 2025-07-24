@@ -1169,6 +1169,39 @@ async function createPDFContent(pdf, config) {
     updateProgress(90, 'Finalizing report...');
 }
 
+async function addCompactChartToPDF(pdf, chartId, title, x, y, width, height) {
+    // Title is now added separately, so skip if empty
+    if (title) {
+        pdf.setFontSize(10);
+        pdf.setFont(undefined, 'bold');
+        pdf.text(title, x, y - 2);
+    }
+    
+    // Get chart canvas
+    const canvas = document.getElementById(chartId);
+    if (!canvas) return;
+    
+    // Wait for chart to render
+    await new Promise(resolve => setTimeout(resolve, 100));
+    
+    // Convert chart to image
+    const imgData = canvas.toDataURL('image/png');
+    
+    // Calculate proper dimensions maintaining aspect ratio
+    const aspectRatio = canvas.width / canvas.height;
+    let imgWidth = width;
+    let imgHeight = height;
+    
+    if (imgWidth / imgHeight > aspectRatio) {
+        imgWidth = imgHeight * aspectRatio;
+    } else {
+        imgHeight = imgWidth / aspectRatio;
+    }
+    
+    // Add image to PDF
+    pdf.addImage(imgData, 'PNG', x, y, imgWidth, imgHeight);
+}
+
 function addDetailedTable(pdf, FONT_SIZES) {
     pdf.addPage();
     const tableStartPage = pdf.internal.getNumberOfPages();
