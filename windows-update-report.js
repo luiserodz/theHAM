@@ -812,7 +812,7 @@ async function createPDFContent(pdf, config) {
         pdf.setFontSize(FONT_SIZES.heading);
         pdf.setFont(undefined, 'bold');
         pdf.setTextColor(0, 78, 120);
-        pdf.text('Security Severity Distribution – Weekly Summary', 20, y);
+        pdf.text('Security Severity Distribution – Summary', 20, y);
         pdf.setTextColor(0, 0, 0);
         y += sectionSpacing;
         
@@ -824,7 +824,7 @@ async function createPDFContent(pdf, config) {
         pdf.setFontSize(FONT_SIZES.body);
         pdf.setFont(undefined, 'normal');
         
-        const lines1 = pdf.splitTextToSize('This chart shows the distribution of updates by security severity for the current week:', pageWidth - 40);
+        const lines1 = pdf.splitTextToSize('This chart shows the distribution of updates by security severity for the current period:', pageWidth - 40);
         lines1.forEach(line => {
             pdf.text(line, 20, y);
             y += lineHeight;
@@ -945,7 +945,7 @@ async function createPDFContent(pdf, config) {
         pdf.setFontSize(FONT_SIZES.body);
         pdf.setFont(undefined, 'normal');
         
-        const deploymentIntro = pdf.splitTextToSize('This chart visualizes the deployment status of the top 10 updates with the highest number of assigned devices:', pageWidth - 40);
+        const deploymentIntro = pdf.splitTextToSize('This chart shows the deployment status of the top 10 updates with the highest number of assigned devices:', pageWidth - 40);
         deploymentIntro.forEach(line => {
             pdf.text(line, 20, y);
             y += lineHeight;
@@ -970,7 +970,7 @@ async function createPDFContent(pdf, config) {
             .sort((a, b) => b.missing - a.missing)[0];
         
         const deploymentExplanation = [
-            'This chart highlights updates with the largest number of total targets (both successful and pending). Green bars represent successfully deployed updates, while red bars indicate devices where the update is still pending or failed.',
+            'In this chart we can see the updates with the largest number of total targets (both successful and pending). Green bars represent successfully deployed updates, while red bars indicate devices where the update is still pending or failed.',
             topMissingUpdate && topMissingUpdate.missing > 0 ? 
                 `High-miss updates such as "${topMissingUpdate.name.substring(0, 60)}${topMissingUpdate.name.length > 60 ? '...' : ''}" may require review of deployment assignments, application version conflicts, or device connectivity status.` :
                 'All updates show good deployment coverage with minimal missing installations.',
@@ -1100,7 +1100,7 @@ async function createPDFContent(pdf, config) {
             }
         }
         
-        const trendIntro = pdf.splitTextToSize('This line graph displays the trend of updates released over time, highlighting our ongoing maintenance and security efforts:', pageWidth - 40);
+        const trendIntro = pdf.splitTextToSize('This graph displays the trend of updates released over time, highlighting our ongoing maintenance and security efforts:', pageWidth - 40);
         trendIntro.forEach(line => {
             pdf.text(line, 20, y);
             y += lineHeight;
@@ -1124,6 +1124,7 @@ async function createPDFContent(pdf, config) {
             '• Releases follow Microsoft\'s Patch Tuesday schedule and include both first-party and third-party updates.',
             '• Elevated activity in certain months corresponds to major cumulative or security update cycles.',
             '• A consistent release pattern confirms that systems are being actively maintained in alignment with organizational policies and security standards.',
+            '• Some older updates may show up because new devices were scanned, systems were reset, or past updates were picked up during inventory checks.',
             'We continue to take timely action on all identified updates to maintain compliance and minimize risk across your environment as part of your Intune Maintenance plan.'
         ];
         
