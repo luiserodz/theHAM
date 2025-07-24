@@ -970,9 +970,9 @@ async function createPDFContent(pdf, config) {
             .sort((a, b) => b.missing - a.missing)[0];
         
         const deploymentExplanation = [
-            'In this chart we can see the updates with the largest number of total targets (both successful and pending). Green bars represent successfully deployed updates, while red bars indicate devices where the update is still pending or failed.',
+            'This chart shows the updates with the largest number of total targets (both successful and pending). Green bars represent successfully deployed updates, while red bars indicate devices where the update is still pending or failed.',
             topMissingUpdate && topMissingUpdate.missing > 0 ? 
-                `High-miss updates such as "${topMissingUpdate.name.substring(0, 60)}${topMissingUpdate.name.length > 60 ? '...' : ''}" may require review of deployment assignments, application version conflicts, or device connectivity status.` :
+                `Large amount of pending updates such as "${topMissingUpdate.name.substring(0, 60)}${topMissingUpdate.name.length > 60 ? '...' : ''}" may require review of deployment assignments, application version conflicts, or device connectivity status.` :
                 'All updates show good deployment coverage with minimal missing installations.',
             'This data is used to help identify:',
             '• Trends in common deployment failures',
@@ -1124,7 +1124,7 @@ async function createPDFContent(pdf, config) {
             '• Releases follow Microsoft\'s Patch Tuesday schedule and include both first-party and third-party updates.',
             '• Elevated activity in certain months corresponds to major cumulative or security update cycles.',
             '• A consistent release pattern confirms that systems are being actively maintained in alignment with organizational policies and security standards.',
-            '• Some older updates may show up because new devices were scanned, systems were reset, or past updates were picked up during inventory checks.',
+            '• Some older updates may show up because new devices were scanned, systems were reset, or additional updates were identified during inventory checks.',
             'We continue to take timely action on all identified updates to maintain compliance and minimize risk across your environment as part of your Intune Maintenance plan.'
         ];
         
