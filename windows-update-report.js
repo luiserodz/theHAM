@@ -3,14 +3,22 @@ let csvData = [];
 let charts = {};
 
 // Load logo image as data URL
+// If the logo cannot be loaded (e.g., running from the local file system),
+// return null so PDF generation can continue without it.
 async function loadLogo() {
-    const response = await fetch('Primary Branding Asset.png');
-    const blob = await response.blob();
-    return new Promise((resolve) => {
-        const reader = new FileReader();
-        reader.onloadend = () => resolve(reader.result);
-        reader.readAsDataURL(blob);
-    });
+    try {
+        const response = await fetch('Primary Branding Asset.png');
+        if (!response.ok) throw new Error('Network response was not ok');
+        const blob = await response.blob();
+        return new Promise((resolve) => {
+            const reader = new FileReader();
+            reader.onloadend = () => resolve(reader.result);
+            reader.readAsDataURL(blob);
+        });
+    } catch (error) {
+        console.warn('Logo could not be loaded:', error);
+        return null;
+    }
 }
 
 // DOM elements
