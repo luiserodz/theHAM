@@ -16,12 +16,13 @@
       <div class="header">
         <div class="header-title">
           <svg
-            aria-hidden="true"
+            role="img"
             class="icon"
             fill="none"
             stroke="currentColor"
             viewBox="0 0 24 24"
           >
+            <title>Intune App Repository Icon</title>
             <path
               stroke-linecap="round"
               stroke-linejoin="round"
@@ -81,6 +82,11 @@
               <option value="publisher-asc">Publisher (A-Z)</option>
               <option value="publisher-desc">Publisher (Z-A)</option>
             </select>
+          </div>
+          <div class="filter-group">
+            <label for="armOnly">
+              <input type="checkbox" id="armOnly" /> ARM64 Only
+            </label>
           </div>
         </div>
 
