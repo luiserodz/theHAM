@@ -31,6 +31,7 @@ function filterApplications() {
   const searchTerm = document.getElementById("searchInput").value.toLowerCase();
   const selectedCategory = document.getElementById("categorySelect").value;
   const selectedPublisher = document.getElementById("publisherSelect").value;
+  const armOnly = document.getElementById("armOnly").checked;
   currentSort = document.getElementById("sortSelect").value;
 
   filteredApps = applications.filter((app) => {
@@ -42,7 +43,8 @@ function filterApplications() {
     const matchesPublisher =
       selectedPublisher === "all" || app.publisher === selectedPublisher;
 
-    return matchesSearch && matchesCategory && matchesPublisher;
+    const matchesArm = !armOnly || app.armUrl;
+    return matchesSearch && matchesCategory && matchesPublisher && matchesArm;
   });
 
   renderApplications();
@@ -59,6 +61,7 @@ function resetFilters() {
   document.getElementById("categorySelect").value = "all";
   document.getElementById("publisherSelect").value = "all";
   document.getElementById("sortSelect").value = "name-asc";
+  document.getElementById("armOnly").checked = false;
   filterApplications();
 }
 function sortApps(arr) {
@@ -210,6 +213,9 @@ document.addEventListener("DOMContentLoaded", function () {
     .addEventListener("change", filterApplications);
   document
     .getElementById("sortSelect")
+    .addEventListener("change", filterApplications);
+  document
+    .getElementById("armOnly")
     .addEventListener("change", filterApplications);
 
   document

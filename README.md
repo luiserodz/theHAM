@@ -47,6 +47,8 @@ Browse and download common application installers for deployment through Intune.
 1. Visit https://luiserodz.github.io/theHAM/IntuneAppRepository.html
 2. Use the search box or filters to find an application
 3. Click the **x86/x64** or **ARM64** button to download the installer
+4. Use the copy icon to copy download links to the clipboard
+5. Check **ARM64 Only** to filter for applications with ARM packages
 
 ## Prerequisites
 
