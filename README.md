@@ -5,18 +5,27 @@ Hosted Administration & Management: A unified approach to managing Microsoft 365
 ## Tools
 
 ### Intune Policy Manager
+
 Deploy CIS compliance workflows and security baselines to Microsoft Intune with bulk upload capabilities.
 
 **Access:** https://luiserodz.github.io/theHAM/IntunePolicyManager.html
 
 ### Microsoft 365 Policy Downloader
+
 Export and backup Intune configurations, compliance policies, and device configurations for documentation or migration.
 
 **Access:** https://luiserodz.github.io/theHAM/Microsoft365PolicyDownloader.html
 
+### Intune App Repository
+
+Browse and download common application installers for deployment through Intune.
+
+**Access:** https://luiserodz.github.io/theHAM/IntuneAppRepository.html
+
 ## Usage
 
 ### Intune Policy Manager
+
 1. Visit https://luiserodz.github.io/theHAM/IntunePolicyManager.html
 2. Enter your Azure AD Client ID (or use the pre-configured one)
 3. Sign in with your Microsoft work account
@@ -25,12 +34,19 @@ Export and backup Intune configurations, compliance policies, and device configu
 6. Click Upload to deploy policies to Intune
 
 ### Microsoft 365 Policy Downloader
+
 1. Visit https://luiserodz.github.io/theHAM/Microsoft365PolicyDownloader.html
 2. Enter your Azure AD Client ID (or use the pre-configured one)
 3. Sign in with your Microsoft work account
 4. Select policy types to export (Configuration, Compliance, Apps)
 5. Choose individual policies or bulk download
 6. Download policies as JSON files
+
+### Intune App Repository
+
+1. Visit https://luiserodz.github.io/theHAM/IntuneAppRepository.html
+2. Use the search box or filters to find an application
+3. Click the **x86/x64** or **ARM64** button to download the installer
 
 ## Prerequisites
 
@@ -44,9 +60,11 @@ Export and backup Intune configurations, compliance policies, and device configu
 
 1. Register an application in Azure AD
 2. Add required API permissions:
-  - `DeviceManagementConfiguration.ReadWrite.All`
-  - `DeviceManagementApps.ReadWrite.All`
-  - `Group.Read.All`
+
+- `DeviceManagementConfiguration.ReadWrite.All`
+- `DeviceManagementApps.ReadWrite.All`
+- `Group.Read.All`
+
 3. Configure redirect URI: `https://luiserodz.github.io/theHAM/[ToolName].html`
 4. Grant admin consent for permissions
 5. Copy the Application (Client) ID
@@ -54,6 +72,7 @@ Export and backup Intune configurations, compliance policies, and device configu
 ## Features
 
 ### Intune Policy Manager
+
 - Bulk upload multiple policies simultaneously
 - Automatic policy naming with custom prefixes
 - Group-based assignment targeting
@@ -62,6 +81,7 @@ Export and backup Intune configurations, compliance policies, and device configu
 - Support for all Intune configuration policy types
 
 ### Microsoft 365 Policy Downloader
+
 - Export all policy types (Configuration, Compliance, Application)
 - Individual or bulk download options
 - JSON format for easy reimport
@@ -72,6 +92,7 @@ Export and backup Intune configurations, compliance policies, and device configu
 ## Troubleshooting
 
 ### Authentication Issues
+
 - Enable popups for GitHub Pages domain
 - Verify admin consent is granted in Azure AD
 - Check redirect URI matches exactly
@@ -79,12 +100,14 @@ Export and backup Intune configurations, compliance policies, and device configu
 - Try incognito/private browsing mode
 
 ### API Errors
+
 - **403 Forbidden**: Missing permissions - grant admin consent
 - **401 Unauthorized**: Token expired - sign in again
 - **429 Too Many Requests**: Rate limiting - reduce batch size
 - **400 Bad Request**: Invalid JSON format - verify workflow files
 
 ### Browser Issues
+
 - Disable ad blockers and privacy extensions
 - Update to latest browser version
 - Check browser console (F12) for detailed errors
@@ -101,6 +124,7 @@ Export and backup Intune configurations, compliance policies, and device configu
 ## Support
 
 Report issues or request features through GitHub Issues. Include:
+
 - Browser and version
 - Error messages from console
 - Steps to reproduce
