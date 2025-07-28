@@ -3,6 +3,10 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta
+      name="description"
+      content="Search and download common application installers for Microsoft Intune deployment"
+    />
     <title>Intune App Repository</title>
     <link rel="stylesheet" href="intune-app-repository.css" />
   </head>
@@ -48,7 +52,7 @@
       <div class="filters">
         <div class="filter-grid">
           <div class="filter-group">
-            <label>Search Applications</label>
+            <label for="searchInput">Search Applications</label>
             <input
               type="text"
               id="searchInput"
@@ -57,20 +61,20 @@
           </div>
 
           <div class="filter-group">
-            <label>Category</label>
+            <label for="categorySelect">Category</label>
             <select id="categorySelect">
               <option value="all">All Categories</option>
             </select>
           </div>
 
           <div class="filter-group">
-            <label>Publisher</label>
+            <label for="publisherSelect">Publisher</label>
             <select id="publisherSelect">
               <option value="all">All Publishers</option>
             </select>
           </div>
           <div class="filter-group">
-            <label>Sort By</label>
+            <label for="sortSelect">Sort By</label>
             <select id="sortSelect">
               <option value="name-asc">Name (A-Z)</option>
               <option value="name-desc">Name (Z-A)</option>
@@ -83,6 +87,7 @@
         <div class="results-count" id="resultsCount">
           Loading applications...
         </div>
+        <button id="resetFilters" class="reset-btn">Clear Filters</button>
       </div>
 
       <!-- Applications Container -->
