@@ -74,6 +74,30 @@ function sortApps(arr) {
   }
 }
 
+function createCopyButton(url, label) {
+  const btn = document.createElement("button");
+  btn.type = "button";
+  btn.className = "copy-btn";
+  btn.setAttribute("aria-label", `Copy ${label} link`);
+  btn.innerHTML = `
+        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 2h8a2 2 0 012 2v12a2 2 0 01-2 2H8a2 2 0 01-2-2V4a2 2 0 012-2zm-3 6H4a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-1"/>
+        </svg>
+        Copy
+    `;
+  btn.addEventListener("click", async () => {
+    try {
+      await navigator.clipboard.writeText(url);
+      const original = btn.textContent;
+      btn.textContent = "Copied!";
+      setTimeout(() => (btn.textContent = original), 2000);
+    } catch (err) {
+      alert("Failed to copy link");
+    }
+  });
+  return btn;
+}
+
 function renderApplications() {
   const container = document.getElementById("appsContainer");
   container.innerHTML = "";
@@ -137,6 +161,7 @@ function renderApplications() {
             x86/x64
         `;
         buttonGroup.appendChild(downloadBtn);
+        buttonGroup.appendChild(createCopyButton(app.msiUrl, `${app.name} x86/x64`));
 
         // ARM button (if available)
         if (app.armUrl) {
@@ -153,6 +178,7 @@ function renderApplications() {
                 ARM64
             `;
           buttonGroup.appendChild(armBtn);
+          buttonGroup.appendChild(createCopyButton(app.armUrl, `${app.name} ARM64`));
         }
 
         appCard.appendChild(appName);
