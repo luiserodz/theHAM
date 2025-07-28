@@ -53,6 +53,14 @@ function updateResultsCount() {
   document.getElementById("resultsCount").textContent =
     `Found ${filteredApps.length} applications`;
 }
+
+function resetFilters() {
+  document.getElementById("searchInput").value = "";
+  document.getElementById("categorySelect").value = "all";
+  document.getElementById("publisherSelect").value = "all";
+  document.getElementById("sortSelect").value = "name-asc";
+  filterApplications();
+}
 function sortApps(arr) {
   switch (currentSort) {
     case "name-desc":
@@ -177,4 +185,8 @@ document.addEventListener("DOMContentLoaded", function () {
   document
     .getElementById("sortSelect")
     .addEventListener("change", filterApplications);
+
+  document
+    .getElementById("resetFilters")
+    .addEventListener("click", resetFilters);
 });
