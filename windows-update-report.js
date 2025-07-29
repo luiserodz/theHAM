@@ -834,16 +834,17 @@ if (config.logo) {
     const logoHeight = (props.height / props.width) * logoWidth;
     const logoX = (pageWidth - logoWidth) / 2;
     pdf.addImage(config.logo, 'PNG', logoX, headerY, logoWidth, logoHeight);
-    headerY += logoHeight + 3;
+    headerY += logoHeight + 6; // extra space below logo
 }
 
 pdf.setTextColor(255, 255, 255);
 pdf.setFontSize(FONT_SIZES.title);
 pdf.text(config.title, pageWidth / 2, headerY, { align: 'center' });
-headerY += 8;
+headerY += 10; // more spacing after title
 if (config.organization) {
     pdf.setFontSize(FONT_SIZES.subtitle);
     pdf.text(config.organization, pageWidth / 2, headerY, { align: 'center' });
+    headerY += 6; // additional spacing after organization name
 }
 
 pdf.setTextColor(0, 0, 0);
@@ -853,46 +854,25 @@ let y = headerHeight + 15;
 
 // Health Score Section
 
-// Determine health status
-let healthStatus = 'EXCELLENT';
+// Determine color based on score
 let healthColor = [40, 167, 69];
 if (healthScore < 70) {
-    healthStatus = 'ACTION REQUIRED';
     healthColor = [220, 53, 69];
 } else if (healthScore < 85) {
-    healthStatus = 'NEEDS ATTENTION';
     healthColor = [253, 126, 20];
 }
 
 pdf.setFontSize(FONT_SIZES.sectionTitle);
 pdf.setFont(undefined, 'bold');
-pdf.text('OVERALL HEALTH SCORE', 20, y + 8);
+pdf.text('OVERALL HEALTH SCORE', pageWidth / 2, y + 8, { align: 'center' });
 
-// Draw health score bar
-const barWidth = 100;
-const barHeight = 8;
-const barX = (pageWidth - barWidth) / 2;
-const barY = y + 12;
-
-// Background bar
-pdf.setFillColor(230, 230, 230);
-pdf.rect(barX, barY, barWidth, barHeight, 'F');
-
-// Score fill with gradient effect
-const scoreWidth = (healthScore / 100) * barWidth;
-pdf.setFillColor(...healthColor);
-pdf.rect(barX, barY, scoreWidth, barHeight, 'F');
-
-// Score text
-pdf.setFontSize(18);
+// Score number
+pdf.setFontSize(26);
 pdf.setTextColor(...healthColor);
-pdf.text(`${healthScore}/100`, pageWidth / 2, y + 23, { align: 'center' });
+pdf.text(`${healthScore}/100`, pageWidth / 2, y + 24, { align: 'center' });
 
-pdf.setFontSize(FONT_SIZES.body);
 pdf.setTextColor(0, 0, 0);
-pdf.text(`Status: ${healthStatus}`, pageWidth / 2, y + 30, { align: 'center' });
-
-y += 40;
+y += 35;
 
 // Enhanced KPI Cards
 const kpiY = y;
@@ -904,8 +884,8 @@ const kpiStartX = (pageWidth - totalKpiWidth) / 2;
 
 // Compliance Rate Card
 pdf.setDrawColor(0, 120, 212);
-pdf.setLineWidth(0.5);
-pdf.rect(kpiStartX, kpiY, kpiWidth, kpiHeight, 'S');
+pdf.setFillColor(225, 236, 244);
+pdf.rect(kpiStartX, kpiY, kpiWidth, kpiHeight, 'FD');
 
 pdf.setFontSize(FONT_SIZES.body);
 pdf.setFont(undefined, 'bold');
@@ -921,14 +901,13 @@ pdf.text(`${stats.complianceRate}%`, kpiStartX + kpiWidth/2, kpiY + 18, { align:
 pdf.setFontSize(FONT_SIZES.small);
 pdf.setTextColor(0, 0, 0);
 pdf.setFont(undefined, 'normal');
-pdf.text(`${stats.totalDeployed} of ${stats.totalDeployed + stats.totalMissing}`, kpiStartX + kpiWidth/2, kpiY + 25, { align: 'center' });
-pdf.text(stats.complianceRate >= 95 ? '✓ Target Met' : `❌ Below 95%`, kpiStartX + kpiWidth/2, kpiY + 31, { align: 'center' });
+pdf.text(`${stats.totalDeployed} of ${stats.totalDeployed + stats.totalMissing}`, kpiStartX + kpiWidth/2, kpiY + 26, { align: 'center' });
 
 // Critical Risk Card
 const criticalX = kpiStartX + kpiWidth + kpiSpacing;
 pdf.setDrawColor(220, 53, 69);
-pdf.setLineWidth(0.5);
-pdf.rect(criticalX, kpiY, kpiWidth, kpiHeight, 'S');
+pdf.setFillColor(253, 232, 234);
+pdf.rect(criticalX, kpiY, kpiWidth, kpiHeight, 'FD');
 
 pdf.setFontSize(FONT_SIZES.body);
 pdf.setFont(undefined, 'bold');
@@ -937,7 +916,7 @@ pdf.text('CRITICAL UPDATES', criticalX + kpiWidth/2, kpiY + 6, { align: 'center'
 
 pdf.setFontSize(20);
 pdf.setTextColor(220, 53, 69);
-pdf.text(stats.criticalUpdates.toString(), criticalX + kpiWidth/2, kpiY + 18, { align: 'center' });
+pdf.text(`${stats.criticalUpdates}`, criticalX + kpiWidth/2, kpiY + 18, { align: 'center' });
 
 // Calculate affected systems for critical updates
 const criticalSystems = csvData
@@ -947,14 +926,13 @@ const criticalSystems = csvData
 pdf.setFontSize(FONT_SIZES.small);
 pdf.setTextColor(0, 0, 0);
 pdf.setFont(undefined, 'normal');
-pdf.text(`${criticalSystems} systems affected`, criticalX + kpiWidth/2, kpiY + 25, { align: 'center' });
-pdf.text(stats.criticalUpdates > 0 ? '⚠️ Action Required' : '✓ None Pending', criticalX + kpiWidth/2, kpiY + 31, { align: 'center' });
+pdf.text(`${criticalSystems} devices`, criticalX + kpiWidth/2, kpiY + 26, { align: 'center' });
 
 // Update Age Card
 const ageX = criticalX + kpiWidth + kpiSpacing;
 pdf.setDrawColor(253, 126, 20);
-pdf.setLineWidth(0.5);
-pdf.rect(ageX, kpiY, kpiWidth, kpiHeight, 'S');
+pdf.setFillColor(255, 240, 230);
+pdf.rect(ageX, kpiY, kpiWidth, kpiHeight, 'FD');
 
 pdf.setFontSize(FONT_SIZES.body);
 pdf.setFont(undefined, 'bold');
@@ -977,12 +955,12 @@ pdf.text(`${oldestDays}`, ageX + kpiWidth/2, kpiY + 18, { align: 'center' });
 pdf.setFontSize(FONT_SIZES.small);
 pdf.setTextColor(0, 0, 0);
 pdf.setFont(undefined, 'normal');
-pdf.text('days old', ageX + kpiWidth/2, kpiY + 25, { align: 'center' });
+pdf.text('days old', ageX + kpiWidth/2, kpiY + 26, { align: 'center' });
 
 const overdueCount = Object.entries(updateAges).reduce((sum, [key, value]) => {
     return key === '31-60 days' || key === '>60 days' ? sum + value : sum;
 }, 0);
-pdf.text(`${overdueCount} overdue (>30d)`, ageX + kpiWidth/2, kpiY + 31, { align: 'center' });
+pdf.text(`${overdueCount} overdue`, ageX + kpiWidth/2, kpiY + 32, { align: 'center' });
 
 y = kpiY + kpiHeight + 15;
 
@@ -1060,11 +1038,11 @@ if (deploymentGaps.length > 0) {
         pdf.setFontSize(FONT_SIZES.caption);
         pdf.text(`Released ${gap.daysOld} days ago`, 35, y + 4);
         
-        y += 7;
+        y += 9; // extra spacing between items
     });
 }
 
-y += 10;
+y += 5;
 
 // Risk Assessment
 const riskY = y;
