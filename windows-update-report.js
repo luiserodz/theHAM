@@ -127,29 +127,57 @@ function parseCSVData(csvText) {
     if (lines.length < 2) {
         throw new Error('CSV file must contain headers and at least one data row');
     }
-    
-    // Parse headers
-    const headers = parseCSVLine(lines[0]);
-    
+
+    // Parse headers and normalize common names (case/spacing differences)
+    const rawHeaders = parseCSVLine(lines[0]);
+    const headerMap = {};
+    rawHeaders.forEach(h => {
+        const key = h.trim().toLowerCase().replace(/\s+/g, '');
+        switch (key) {
+            case 'updatetitle':
+            case 'title':
+                headerMap[h] = 'Update Name';
+                break;
+            case 'securityseverity':
+            case 'severity':
+                headerMap[h] = 'Security Severity';
+                break;
+            case 'releasedate':
+            case 'releasedateutc':
+                headerMap[h] = 'Release Date';
+                break;
+            case 'updatesmissing':
+            case 'missingupdates':
+                headerMap[h] = 'Updates Missing';
+                break;
+            case 'recentlydeployed':
+            case 'deployed':
+                headerMap[h] = 'Recently Deployed';
+                break;
+            default:
+                headerMap[h] = h.trim();
+        }
+    });
+
     // Parse data rows
     csvData = [];
     for (let i = 1; i < lines.length; i++) {
         const values = parseCSVLine(lines[i]);
-        if (values.length === headers.length) {
+        if (values.length === rawHeaders.length) {
             const row = {};
-            headers.forEach((header, index) => {
-                row[header.trim()] = values[index] || '';
+            rawHeaders.forEach((header, index) => {
+                row[headerMap[header]] = values[index] || '';
             });
             if (row['Update Name']) { // Only add rows with update names
                 csvData.push(row);
             }
         }
     }
-    
+
     if (csvData.length === 0) {
         throw new Error('No valid data found in CSV');
     }
-    
+
     console.log('Parsed CSV data:', csvData.length, 'rows');
 }
 
