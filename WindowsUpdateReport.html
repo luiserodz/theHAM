@@ -163,6 +163,32 @@
             <!-- Charts Preview Section -->
             <div class="charts-preview" id="chartsPreview">
                 <h3>📈 Report Preview</h3>
+
+                <!-- Enhanced Executive Summary Preview -->
+<div class="chart-container">
+    <div class="chart-title">Executive Health Score</div>
+    <div class="health-score-container">
+        <div class="health-score-indicator" id="healthScoreIndicator"></div>
+    </div>
+    <div id="healthScoreText"></div>
+</div>
+
+<div class="chart-container">
+    <div class="chart-title">Update Age Distribution</div>
+    <div class="update-age-bar" id="updateAgeBar"></div>
+    <div style="display: flex; justify-content: space-between; margin-top: 10px; font-size: 12px;">
+        <span style="color: #28a745;">◼ Fresh (0-7d)</span>
+        <span style="color: #20c997;">◼ Recent (8-14d)</span>
+        <span style="color: #ffc107;">◼ Aging (15-30d)</span>
+        <span style="color: #fd7e14;">◼ Overdue (31-60d)</span>
+        <span style="color: #dc3545;">◼ Critical (>60d)</span>
+    </div>
+</div>
+
+<div class="deployment-gaps-preview" id="deploymentGapsPreview" style="display: none;">
+    <h4>Top Deployment Gaps</h4>
+    <div id="gapsList"></div>
+</div>
                 
                 <div class="chart-container" style="height: 350px;">
                     <div class="chart-title">Security Severity Distribution</div>
