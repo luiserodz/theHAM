@@ -892,11 +892,12 @@ async function generatePDFReport() {
         downloadLink.href = url;
         downloadLink.download = `${reportTitle.replace(/[^a-z0-9]/gi, '_')}_${new Date().toISOString().slice(0, 10)}.pdf`;
         
-        // Show download section
+        // Show download section and bring it into view
         downloadSection.classList.add('show');
         statusSection.classList.remove('show');
-        
-        // Focus download section without forcing scroll
+        downloadSection.scrollIntoView({ behavior: 'smooth' });
+
+        // Focus download section for accessibility
         downloadSection.focus();
         
     } catch (error) {
