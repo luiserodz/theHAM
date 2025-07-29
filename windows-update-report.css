@@ -1,6 +1,9 @@
-        * {
+        html, body {
             margin: 0;
             padding: 0;
+        }
+
+        *, *::before, *::after {
             box-sizing: border-box;
         }
 
@@ -637,9 +640,6 @@
 }
 
 .enhanced-stat-card:hover {
-    transform: translateY
-
-       .enhanced-stat-card:hover {
     transform: translateY(-2px);
     box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
 }

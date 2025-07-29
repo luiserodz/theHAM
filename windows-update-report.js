@@ -7,7 +7,7 @@ let charts = {};
 // return null so PDF generation can continue without it.
 async function loadLogo() {
     try {
-        const response = await fetch('Primary Branding Asset.png');
+        const response = await fetch('primary-branding-asset.png');
         if (!response.ok) throw new Error('Network response was not ok');
         const blob = await response.blob();
         return new Promise((resolve) => {
@@ -852,8 +852,6 @@ pdf.setTextColor(0, 0, 0);
 let y = headerHeight + 10;
 
 // Health Score Section
-pdf.setFillColor(248, 249, 250);
-pdf.rect(15, y, pageWidth - 30, 25, 'F');
 
 // Determine health status
 let healthStatus = 'EXCELLENT';
@@ -868,7 +866,7 @@ if (healthScore < 70) {
 
 pdf.setFontSize(FONT_SIZES.sectionTitle);
 pdf.setFont(undefined, 'bold');
-pdf.text('OVERALL HEALTH SCORE', pageWidth / 2, y + 8, { align: 'center' });
+pdf.text('OVERALL HEALTH SCORE', 20, y + 8);
 
 // Draw health score bar
 const barWidth = 100;
@@ -905,8 +903,6 @@ const totalKpiWidth = (3 * kpiWidth) + (2 * kpiSpacing);
 const kpiStartX = (pageWidth - totalKpiWidth) / 2;
 
 // Compliance Rate Card
-pdf.setFillColor(248, 249, 250);
-pdf.rect(kpiStartX, kpiY, kpiWidth, kpiHeight, 'F');
 pdf.setDrawColor(0, 120, 212);
 pdf.setLineWidth(0.5);
 pdf.rect(kpiStartX, kpiY, kpiWidth, kpiHeight, 'S');
@@ -930,8 +926,6 @@ pdf.text(stats.complianceRate >= 95 ? '✓ Target Met' : `❌ Below 95%`, kpiSta
 
 // Critical Risk Card
 const criticalX = kpiStartX + kpiWidth + kpiSpacing;
-pdf.setFillColor(248, 249, 250);
-pdf.rect(criticalX, kpiY, kpiWidth, kpiHeight, 'F');
 pdf.setDrawColor(220, 53, 69);
 pdf.setLineWidth(0.5);
 pdf.rect(criticalX, kpiY, kpiWidth, kpiHeight, 'S');
@@ -958,8 +952,6 @@ pdf.text(stats.criticalUpdates > 0 ? '⚠️ Action Required' : '✓ None Pendin
 
 // Update Age Card
 const ageX = criticalX + kpiWidth + kpiSpacing;
-pdf.setFillColor(248, 249, 250);
-pdf.rect(ageX, kpiY, kpiWidth, kpiHeight, 'F');
 pdf.setDrawColor(253, 126, 20);
 pdf.setLineWidth(0.5);
 pdf.rect(ageX, kpiY, kpiWidth, kpiHeight, 'S');
@@ -995,8 +987,6 @@ pdf.text(`${overdueCount} overdue (>30d)`, ageX + kpiWidth/2, kpiY + 31, { align
 y = kpiY + kpiHeight + 15;
 
 // Update Age Distribution
-pdf.setFillColor(248, 249, 250);
-pdf.rect(15, y, pageWidth - 30, 40, 'F');
 
 pdf.setFontSize(FONT_SIZES.heading);
 pdf.setFont(undefined, 'bold');
@@ -1038,8 +1028,7 @@ y += 45;
 
 // Deployment Gaps Table
 if (deploymentGaps.length > 0) {
-    pdf.setFillColor(255, 248, 248);
-    pdf.rect(15, y, pageWidth - 30, 8 + (deploymentGaps.length * 7), 'F');
+    
     
     pdf.setFontSize(FONT_SIZES.heading);
     pdf.setFont(undefined, 'bold');
@@ -1079,8 +1068,6 @@ y += 10;
 
 // Risk Assessment
 const riskY = y;
-pdf.setFillColor(248, 249, 250);
-pdf.rect(15, riskY, pageWidth - 30, 25, 'F');
 
 pdf.setFontSize(FONT_SIZES.heading);
 pdf.setFont(undefined, 'bold');
@@ -1124,8 +1111,6 @@ y = riskY + 30;
 
 // Success Metrics
 if (y < pageHeight - 40) {
-    pdf.setFillColor(232, 245, 232);
-    pdf.rect(15, y, pageWidth - 30, 25, 'F');
     
     pdf.setFontSize(FONT_SIZES.heading);
     pdf.setFont(undefined, 'bold');
@@ -1154,8 +1139,6 @@ if (y < pageHeight - 40) {
 
 // Additional notes
 if (config.notes && y < pageHeight - 30) {
-    pdf.setFillColor(255, 243, 224);
-    pdf.rect(15, y, pageWidth - 30, 20, 'F');
     
     pdf.setFontSize(FONT_SIZES.body);
     pdf.setFont(undefined, 'bold');
