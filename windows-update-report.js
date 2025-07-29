@@ -892,11 +892,12 @@ async function generatePDFReport() {
         downloadLink.href = url;
         downloadLink.download = `${reportTitle.replace(/[^a-z0-9]/gi, '_')}_${new Date().toISOString().slice(0, 10)}.pdf`;
         
-        // Show download section
+        // Show download section and bring it into view
         downloadSection.classList.add('show');
         statusSection.classList.remove('show');
-        
-        // Focus download section without forcing scroll
+        downloadSection.scrollIntoView({ behavior: 'smooth' });
+
+        // Focus download section for accessibility
         downloadSection.focus();
         
     } catch (error) {
@@ -1754,66 +1755,67 @@ function addDetailedTable(pdf, FONT_SIZES) {
     });
     
     // Add table with corrected column widths
-    pdf.autoTable({
-        head: [['Update Name', 'Version', 'Severity', 'Date', 'Pending Updates', 'Deployed', 'Status']],
-        body: tableData,
-        startY: 32,
-        theme: 'striped',
-        headStyles: {
-            fillColor: [0, 120, 212],
-            fontSize: FONT_SIZES.caption,
-            fontStyle: 'bold',
-            cellPadding: 2,
-            halign: 'center'
-        },
-        bodyStyles: {
-            fontSize: FONT_SIZES.caption,
-            cellPadding: 1.5
-        },
-        alternateRowStyles: {
-            fillColor: [248, 249, 250]
-        },
-        columnStyles: {
-            0: { 
-                cellWidth: 80,
-                overflow: 'linebreak',
-                halign: 'left'
-            },
-            1: { 
-                cellWidth: 25,
+    if (typeof pdf.autoTable === 'function') {
+        pdf.autoTable({
+            head: [['Update Name', 'Version', 'Severity', 'Date', 'Pending Updates', 'Deployed', 'Status']],
+            body: tableData,
+            startY: 32,
+            theme: 'striped',
+            headStyles: {
+                fillColor: [0, 120, 212],
+                fontSize: FONT_SIZES.caption,
+                fontStyle: 'bold',
+                cellPadding: 2,
                 halign: 'center'
             },
-            2: { 
-                cellWidth: 22,
-                halign: 'center'
+            bodyStyles: {
+                fontSize: FONT_SIZES.caption,
+                cellPadding: 1.5
             },
-            3: { 
-                cellWidth: 22,
-                halign: 'center'
+            alternateRowStyles: {
+                fillColor: [248, 249, 250]
             },
-            4: { 
-                cellWidth: 15, 
-                halign: 'center',
-                fontStyle: 'bold'
+            columnStyles: {
+                0: {
+                    cellWidth: 80,
+                    overflow: 'linebreak',
+                    halign: 'left'
+                },
+                1: {
+                    cellWidth: 25,
+                    halign: 'center'
+                },
+                2: {
+                    cellWidth: 22,
+                    halign: 'center'
+                },
+                3: {
+                    cellWidth: 22,
+                    halign: 'center'
+                },
+                4: {
+                    cellWidth: 15,
+                    halign: 'center',
+                    fontStyle: 'bold'
+                },
+                5: {
+                    cellWidth: 15,
+                    halign: 'center',
+                    fontStyle: 'bold'
+                },
+                6: {
+                    cellWidth: 30,
+                    halign: 'center'
+                }
             },
-            5: {
-                cellWidth: 15,
-                halign: 'center',
-                fontStyle: 'bold'
-            },
-            6: {
-                cellWidth: 30,
-                halign: 'center'
-            }
-        },
-        margin: { top: 20, left: 15, right: 15 },
-        showHead: 'everyPage',
-        tableWidth: 'auto',
-        didDrawPage: function(data) {
-            // Add page header on continuation pages
-            if (data.pageNumber > 1) {
-                pdf.setFillColor(240, 248, 255);
-                pdf.rect(0, 0, pdf.internal.pageSize.getWidth(), 15, 'F');
+            margin: { top: 20, left: 15, right: 15 },
+            showHead: 'everyPage',
+            tableWidth: 'auto',
+            didDrawPage: function(data) {
+                // Add page header on continuation pages
+                if (data.pageNumber > 1) {
+                    pdf.setFillColor(240, 248, 255);
+                    pdf.rect(0, 0, pdf.internal.pageSize.getWidth(), 15, 'F');
                 
                 pdf.setDrawColor(0, 120, 212);
                 pdf.setLineWidth(0.5);
@@ -1876,9 +1878,12 @@ function addDetailedTable(pdf, FONT_SIZES) {
             }
         }
     });
+    } else {
+        console.warn('jsPDF AutoTable plugin not loaded, skipping details table');
+    }
     
     // Add summary at the end of the table
-    const finalY = pdf.lastAutoTable.finalY || pdf.internal.pageSize.getHeight() - 50;
+    const finalY = pdf.lastAutoTable ? (pdf.lastAutoTable.finalY || pdf.internal.pageSize.getHeight() - 50) : pdf.internal.pageSize.getHeight() - 50;
     if (finalY < pdf.internal.pageSize.getHeight() - 30) {
         pdf.setFillColor(248, 249, 250);
         pdf.rect(15, finalY + 10, pdf.internal.pageSize.getWidth() - 30, 18, 'F');
