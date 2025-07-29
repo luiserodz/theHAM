@@ -85,14 +85,14 @@ function setupEventListeners() {
         tab.addEventListener('click', () => {
             document.querySelectorAll('.nav-tab').forEach(t => t.classList.remove('active'));
             tab.classList.add('active');
-            
-            // Simple tab switching logic
+
+            // Simple tab switching logic without automatic scrolling
             if (index === 0) {
-                uploadSection.scrollIntoView({ behavior: 'smooth' });
+                uploadSection.focus();
             } else if (index === 1) {
-                reportOptions.scrollIntoView({ behavior: 'smooth' });
+                reportOptions.focus();
             } else if (index === 2) {
-                chartsPreview.scrollIntoView({ behavior: 'smooth' });
+                chartsPreview.focus();
             }
         });
     });
@@ -213,28 +213,26 @@ function parseCSVLine(line) {
 
 // Calculate overall health score (0-100)
 function calculateHealthScore(csvData) {
-    let score = 100;
-    
-    // Deduct for critical updates
-    const criticalCount = csvData.filter(row => 
-        row['Security Severity']?.toLowerCase().includes('critical')
-    ).length;
-    score -= (criticalCount * 5); // -5 points per critical
-    
-    // Deduct for old updates
-    const oldUpdates = csvData.filter(row => {
-        const daysSinceRelease = calculateDaysOld(row['Release Date']);
-        return daysSinceRelease > 30;
-    }).length;
-    score -= (oldUpdates * 3); // -3 points per old update
-    
-    // Deduct for poor compliance rate
     const stats = generateStatistics();
-    if (stats.complianceRate < 95) {
-        score -= Math.round((95 - stats.complianceRate) * 0.5);
-    }
-    
-    return Math.max(0, Math.min(100, score));
+    // Start from overall compliance rate as base score
+    let score = stats.complianceRate;
+
+    csvData.forEach(row => {
+        const pending = parseInt(row['Updates Missing']?.toString().replace(/\D/g, '') || '0');
+        if (pending > 0) {
+            const severity = row['Security Severity']?.toLowerCase() || '';
+            const age = calculateDaysOld(row['Release Date']);
+
+            if (severity.includes('critical')) score -= 5;
+            else if (severity.includes('important')) score -= 3;
+
+            if (age > 60) score -= 3;
+            else if (age > 30) score -= 2;
+        }
+    });
+
+    // Clamp score between 0 and 100
+    return Math.max(0, Math.min(100, Math.round(score)));
 }
 
 // Calculate days since release
@@ -895,8 +893,8 @@ async function generatePDFReport() {
         downloadSection.classList.add('show');
         statusSection.classList.remove('show');
         
-        // Scroll to download section
-        downloadSection.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        // Focus download section without forcing scroll
+        downloadSection.focus();
         
     } catch (error) {
         console.error('Error generating PDF:', error);
