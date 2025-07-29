@@ -7,7 +7,7 @@ let charts = {};
 // return null so PDF generation can continue without it.
 async function loadLogo() {
     try {
-        const response = await fetch('Primary Branding Asset.png');
+        const response = await fetch('primary-branding-asset.png');
         if (!response.ok) throw new Error('Network response was not ok');
         const blob = await response.blob();
         return new Promise((resolve) => {
