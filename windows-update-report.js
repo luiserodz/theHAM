@@ -857,9 +857,12 @@ async function generatePDFReport() {
     updateProgress(0, 'Initializing report generation...');
     
     try {
-        // Initialize jsPDF
-        const { jsPDF } = window.jspdf;
-        const pdf = new jsPDF('p', 'mm', 'a4');
+        // Initialize jsPDF from global
+        const jsPDFLib = window.jspdf ? window.jspdf.jsPDF : window.jsPDF;
+        if (!jsPDFLib) {
+            throw new Error('jsPDF library failed to load');
+        }
+        const pdf = new jsPDFLib('p', 'mm', 'a4');
         
         updateProgress(10, 'Creating report structure...');
         
