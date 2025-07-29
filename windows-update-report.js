@@ -154,6 +154,12 @@ function parseCSVData(csvText) {
             case 'deployed':
                 headerMap[h] = 'Recently Deployed';
                 break;
+            case 'status':
+            case 'updatestatus':
+            case 'installstatus':
+            case 'updatestatusofinstallation':
+                headerMap[h] = 'Status';
+                break;
             default:
                 headerMap[h] = h.trim();
         }
@@ -267,6 +273,27 @@ function calculateUpdateAges(csvData) {
     return ageGroups;
 }
 
+function getSortedData() {
+    const severityOrder = { 'critical': 0, 'important': 1, 'moderate': 2, 'low': 3 };
+    return csvData.slice().sort((a, b) => {
+        const aSev = severityOrder[a['Security Severity']?.toLowerCase()] ?? 4;
+        const bSev = severityOrder[b['Security Severity']?.toLowerCase()] ?? 4;
+        if (aSev !== bSev) return aSev - bSev;
+        const aMiss = parseInt(a['Updates Missing']?.toString().replace(/\D/g, '') || '0');
+        const bMiss = parseInt(b['Updates Missing']?.toString().replace(/\D/g, '') || '0');
+        return bMiss - aMiss;
+    });
+}
+
+function getStatusWithReboot(row) {
+    let status = row['Status'] || '';
+    const searchSpace = Object.values(row).join(' ').toLowerCase();
+    if (searchSpace.includes('installation has been initiated')) {
+        status = status ? `${status} - Pending Reboot` : 'Pending Reboot';
+    }
+    return status;
+}
+
 // Get top deployment gaps
 function getTopDeploymentGaps(csvData) {
     return csvData
@@ -343,6 +370,26 @@ function calculateSuccessMetrics(csvData) {
     };
 }
 
+function getExecutiveSummaryData() {
+    const stats = generateStatistics();
+    const totalDevices = stats.totalDeployed + stats.totalMissing;
+    const criticalUpdates = csvData.filter(r =>
+        r['Security Severity']?.toLowerCase().includes('critical')
+    ).sort((a, b) => {
+        const aMiss = parseInt(a['Updates Missing']?.toString().replace(/\D/g, '') || '0');
+        const bMiss = parseInt(b['Updates Missing']?.toString().replace(/\D/g, '') || '0');
+        return bMiss - aMiss;
+    }).slice(0, 2);
+
+    const topCritical = criticalUpdates.map(u => `${u['Update Name']} (${u['Updates Missing']})`);
+
+    return {
+        complianceRate: stats.complianceRate,
+        totalDevices,
+        topCritical
+    };
+}
+
 function showDataPreview() {
     if (csvData.length === 0) return;
     
@@ -353,7 +400,8 @@ function showDataPreview() {
     
     // Show first 10 rows in table
     const table = document.getElementById('previewTable');
-    const headers = Object.keys(csvData[0]);
+    const sorted = getSortedData();
+    const headers = Object.keys(sorted[0]);
     
     let tableHTML = '<thead><tr>';
     headers.forEach(h => {
@@ -361,10 +409,17 @@ function showDataPreview() {
     });
     tableHTML += '</tr></thead><tbody>';
     
-    csvData.slice(0, 10).forEach(row => {
-        tableHTML += '<tr>';
+    sorted.slice(0, 10).forEach(row => {
+        const pending = parseInt(row['Updates Missing']?.toString().replace(/\D/g, '') || '0');
+        const daysOld = calculateDaysOld(row['Release Date']);
+        let rowClass = '';
+        if (pending > 10) rowClass = 'row-high-missing';
+        else if (daysOld > 30) rowClass = 'row-old';
+
+        tableHTML += `<tr class="${rowClass}">`;
         headers.forEach(h => {
-            const value = row[h];
+            let value = row[h];
+            if (h === 'Status') value = getStatusWithReboot(row);
             const className = getSeverityClass(value);
             tableHTML += `<td class="${className}">${value}</td>`;
         });
@@ -393,31 +448,13 @@ function updateEnhancedPreview() {
                                 healthScore >= 70 ? '#fd7e14' : '#dc3545';
     }
     
-    // Update age distribution bar if present
-    const ageBar = document.getElementById('updateAgeBar');
-    if (ageBar) {
-        const ages = calculateUpdateAges(csvData);
-        const total = Object.values(ages).reduce((a, b) => a + b, 0);
-        
-        ageBar.innerHTML = '';
-        const ageClasses = {
-            '0-7 days': 'age-fresh',
-            '8-14 days': 'age-recent',
-            '15-30 days': 'age-aging',
-            '31-60 days': 'age-overdue',
-            '>60 days': 'age-critical'
-        };
-        
-        Object.entries(ages).forEach(([range, count]) => {
-            if (count > 0) {
-                const segment = document.createElement('div');
-                segment.className = `age-segment ${ageClasses[range]}`;
-                segment.style.flex = count / total;
-                segment.textContent = count;
-                segment.title = `${range}: ${count} updates`;
-                ageBar.appendChild(segment);
-            }
-        });
+    // Refresh age chart if present
+    if (charts.age) {
+        charts.age.destroy();
+    }
+    const ageCtx = document.getElementById('ageChart');
+    if (ageCtx) {
+        charts.age = generateAgeChart();
     }
 }
 
@@ -500,10 +537,60 @@ function showReportOptions() {
 }
 
 function generateCharts() {
+    generateAgeChart();
     generateSeverityChart();
     generateDeploymentChart();
     generateTrendChart();
     chartsPreview.classList.add('show');
+}
+
+function generateAgeChart() {
+    const ctx = document.getElementById('ageChart').getContext('2d');
+    const ages = calculateUpdateAges(csvData);
+    const labels = Object.keys(ages);
+    const data = Object.values(ages);
+
+    if (charts.age) {
+        charts.age.destroy();
+    }
+
+    charts.age = new Chart(ctx, {
+        type: 'bar',
+        data: {
+            labels: labels,
+            datasets: [{
+                data: data,
+                backgroundColor: ['#28a745','#20c997','#ffc107','#fd7e14','#dc3545']
+            }]
+        },
+        options: {
+            indexAxis: 'y',
+            responsive: true,
+            maintainAspectRatio: false,
+            scales: {
+                x: {
+                    beginAtZero: true,
+                    ticks: {
+                        font: { weight: 'bold' }
+                    }
+                },
+                y: {
+                    ticks: {
+                        font: { weight: 'bold' }
+                    }
+                }
+            },
+            plugins: {
+                legend: { display: false },
+                tooltip: {
+                    callbacks: {
+                        label: ctx => `${ctx.parsed.x} updates`
+                    }
+                }
+            }
+        }
+    });
+    return charts.age;
 }
 
 function generateSeverityChart() {
@@ -877,8 +964,24 @@ if (config.organization) {
 
 pdf.setTextColor(0, 0, 0);
 
+// Executive summary paragraph
+const summaryData = getExecutiveSummaryData();
+let summaryText = `Overall update compliance across ${summaryData.totalDevices} devices is ${summaryData.complianceRate}%.`;
+if (summaryData.topCritical.length > 0) {
+    summaryText += ` Top critical updates requiring attention: ${summaryData.topCritical.join(', ')}.`;
+}
+pdf.setFontSize(FONT_SIZES.body);
+pdf.setFont(undefined, 'normal');
+let summaryY = headerHeight + 10;
+const summaryLines = pdf.splitTextToSize(summaryText, pageWidth - 40);
+summaryLines.forEach(line => {
+    pdf.text(line, 20, summaryY);
+    summaryY += lineHeight;
+});
+summaryY += 4;
+
 // Enhanced Executive Dashboard
-let y = headerHeight + 15;
+let y = summaryY;
 
 // Health Score Section
 
@@ -1626,24 +1729,34 @@ function addDetailedTable(pdf, FONT_SIZES) {
     pdf.setFontSize(FONT_SIZES.small);
     pdf.setFont(undefined, 'normal');
     pdf.text('Complete listing of all Windows updates tracked during this reporting period.', 15, 22);
-    
-    // Prepare table data
-    let tableData = csvData.map(row => {
+    pdf.text('Color coding: Critical (Red), Important (Orange), Moderate (Yellow), Low (Green)', 15, 26);
+
+    const sortedData = getSortedData();
+    const highMissingRows = [];
+    const oldRows = [];
+
+    let tableData = sortedData.map((row, idx) => {
+        const missing = parseInt(row['Updates Missing']?.toString().replace(/\D/g, '') || '0');
+        const daysOld = calculateDaysOld(row['Release Date']);
+        if (missing > 10) highMissingRows.push(idx);
+        if (daysOld > 30) oldRows.push(idx);
+
         return [
             row['Update Name'] || '',
             row['Version'] || '',
             row['Security Severity'] || 'Unspecified',
             row['Release Date'] || '',
             row['Updates Missing'] || '0',
-            row['Recently Deployed'] || '0'
+            row['Recently Deployed'] || '0',
+            getStatusWithReboot(row)
         ];
     });
     
     // Add table with corrected column widths
     pdf.autoTable({
-        head: [['Update Name', 'Version', 'Severity', 'Date', 'Pending Updates', 'Deployed']], 
+        head: [['Update Name', 'Version', 'Severity', 'Date', 'Pending Updates', 'Deployed', 'Status']],
         body: tableData,
-        startY: 28,
+        startY: 32,
         theme: 'striped',
         headStyles: {
             fillColor: [0, 120, 212],
@@ -1682,10 +1795,14 @@ function addDetailedTable(pdf, FONT_SIZES) {
                 halign: 'center',
                 fontStyle: 'bold'
             },
-            5: { 
-                cellWidth: 15, 
+            5: {
+                cellWidth: 15,
                 halign: 'center',
                 fontStyle: 'bold'
+            },
+            6: {
+                cellWidth: 30,
+                halign: 'center'
             }
         },
         margin: { top: 20, left: 15, right: 15 },
@@ -1716,6 +1833,13 @@ function addDetailedTable(pdf, FONT_SIZES) {
             }
         },
         didParseCell: function(data) {
+            if (data.row.section === 'body') {
+                if (highMissingRows.includes(data.row.index)) {
+                    data.row.styles.fillColor = [248, 215, 218];
+                } else if (oldRows.includes(data.row.index)) {
+                    data.row.styles.fillColor = [255, 243, 205];
+                }
+            }
             // Color code severity cells
             if (data.column.index === 2 && data.cell.raw) {
                 const severity = data.cell.raw.toLowerCase();
@@ -1754,15 +1878,14 @@ function addDetailedTable(pdf, FONT_SIZES) {
     
     // Add summary at the end of the table
     const finalY = pdf.lastAutoTable.finalY || pdf.internal.pageSize.getHeight() - 50;
-    if (finalY < pdf.internal.pageSize.getHeight() - 40) {
+    if (finalY < pdf.internal.pageSize.getHeight() - 30) {
         pdf.setFillColor(248, 249, 250);
-        pdf.rect(15, finalY + 10, pdf.internal.pageSize.getWidth() - 30, 25, 'F');
-        
+        pdf.rect(15, finalY + 10, pdf.internal.pageSize.getWidth() - 30, 18, 'F');
+
         pdf.setFontSize(FONT_SIZES.caption);
         pdf.setFont(undefined, 'italic');
-        pdf.text(`Table contains ${csvData.length} total updates. Updates are sorted by original data order.`, 18, finalY + 18);
-        pdf.text('Color coding: Critical (Red), Important (Orange), Moderate (Yellow), Low (Green)', 18, finalY + 25);
-        pdf.text('High missing counts (>10) are highlighted for attention.', 18, finalY + 32);
+        pdf.text(`Table contains ${csvData.length} total updates sorted by severity and pending count.`, 18, finalY + 18);
+        pdf.text('Rows in red exceed 10 pending devices; yellow rows are older than 30 days.', 18, finalY + 25);
     }
 }
 

@@ -390,6 +390,15 @@
         .severity-low { color: #28a745; }
         .severity-none { color: #6c757d; }
 
+        /* Row highlight styles */
+        .row-high-missing {
+            background-color: #f8d7da;
+        }
+
+        .row-old {
+            background-color: #fff3cd;
+        }
+
         /* Intune-style Navigation Tabs */
         .nav-tabs {
             display: flex;
