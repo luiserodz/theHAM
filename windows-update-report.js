@@ -807,9 +807,9 @@ async function createPDFContent(pdf, config) {
     };
     
     // Standard spacing values
-    const lineHeight = 5;
-    const paragraphSpacing = 3;
-    const sectionSpacing = 8;
+    const lineHeight = 6;
+    const paragraphSpacing = 4;
+    const sectionSpacing = 10;
     
     // --- TITLE PAGE ---
     // --- TITLE PAGE ---
@@ -824,7 +824,7 @@ const successMetrics = calculateSuccessMetrics(csvData);
 
 // Header
 pdf.setFillColor(0, 120, 212);
-const headerHeight = 50;
+const headerHeight = 60;
 pdf.rect(0, 0, pageWidth, headerHeight, 'F');
 
 let headerY = 10;
@@ -849,7 +849,7 @@ if (config.organization) {
 pdf.setTextColor(0, 0, 0);
 
 // Enhanced Executive Dashboard
-let y = headerHeight + 10;
+let y = headerHeight + 15;
 
 // Health Score Section
 
