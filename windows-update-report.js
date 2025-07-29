@@ -956,39 +956,37 @@ pdf.setTextColor(0, 0, 0);
 pdf.setFont(undefined, 'normal');
 pdf.text(`${criticalSystems} devices`, criticalX + kpiWidth/2, kpiY + 26, { align: 'center' });
 
-// Update Age Card
-const ageX = criticalX + kpiWidth + kpiSpacing;
+// Pending Updates Card
+const pendingX = criticalX + kpiWidth + kpiSpacing;
 pdf.setDrawColor(253, 126, 20);
 pdf.setFillColor(255, 240, 230);
-pdf.rect(ageX, kpiY, kpiWidth, kpiHeight, 'FD');
+pdf.rect(pendingX, kpiY, kpiWidth, kpiHeight, 'FD');
 
 pdf.setFontSize(FONT_SIZES.body);
 pdf.setFont(undefined, 'bold');
 pdf.setTextColor(0, 0, 0);
-pdf.text('OLDEST UPDATE', ageX + kpiWidth/2, kpiY + 6, { align: 'center' });
+pdf.text('PENDING UPDATES', pendingX + kpiWidth/2, kpiY + 6, { align: 'center' });
 
-// Find oldest update
-let oldestDays = 0;
-csvData.forEach(row => {
-    const days = calculateDaysOld(row['Release Date']);
-    if (days > oldestDays) oldestDays = days;
-});
+// Count pending updates
+const pendingCount = csvData.filter(row =>
+    parseInt(row['Updates Missing']?.toString().replace(/\D/g, '') || '0') > 0
+).length;
 
-const ageColor = oldestDays > 60 ? [220, 53, 69] : 
-                 oldestDays > 30 ? [253, 126, 20] : [40, 167, 69];
+const pendingColor = pendingCount > 20 ? [220, 53, 69] :
+                     pendingCount > 10 ? [253, 126, 20] : [40, 167, 69];
 pdf.setFontSize(20);
-pdf.setTextColor(...ageColor);
-pdf.text(`${oldestDays}`, ageX + kpiWidth/2, kpiY + 18, { align: 'center' });
+pdf.setTextColor(...pendingColor);
+pdf.text(`${pendingCount}`, pendingX + kpiWidth/2, kpiY + 18, { align: 'center' });
 
 pdf.setFontSize(FONT_SIZES.small);
 pdf.setTextColor(0, 0, 0);
 pdf.setFont(undefined, 'normal');
-pdf.text('days old', ageX + kpiWidth/2, kpiY + 26, { align: 'center' });
+pdf.text('updates pending', pendingX + kpiWidth/2, kpiY + 26, { align: 'center' });
 
 const overdueCount = Object.entries(updateAges).reduce((sum, [key, value]) => {
     return key === '31-60 days' || key === '>60 days' ? sum + value : sum;
 }, 0);
-pdf.text(`${overdueCount} overdue`, ageX + kpiWidth/2, kpiY + 32, { align: 'center' });
+pdf.text(`${overdueCount} overdue`, pendingX + kpiWidth/2, kpiY + 32, { align: 'center' });
 
 y = kpiY + kpiHeight + 15;
 
