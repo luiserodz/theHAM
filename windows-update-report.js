@@ -976,9 +976,9 @@ async function createPDFContent(pdf, config) {
 
     // Executive summary paragraph
     const summaryData = getExecutiveSummaryData();
-    let summaryText = `Overall update compliance across ${summaryData.totalDevices} devices is ${summaryData.complianceRate}%.`;
+    let summaryText = `Update compliance is currently at ${summaryData.complianceRate}% across ${summaryData.totalDevices} devices, reflecting our ongoing enforcement of patching standards.`;
     if (summaryData.topCritical.length > 0) {
-        summaryText += ` Top critical updates requiring attention: ${summaryData.topCritical.join(', ')}.`;
+    summaryText += ` This cycle includes several critical updates, such as ${summaryData.topCritical.join(', ')}, all of which are addressed as part of Intune Maintenance Plan.`;
     }
     pdf.setFontSize(FONT_SIZES.body);
     pdf.setFont(undefined, 'normal');
