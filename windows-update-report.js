@@ -929,6 +929,11 @@ async function createPDFContent(pdf, config) {
     if (config.organization) {
         pdf.setFontSize(FONT_SIZES.subtitle);
         pdf.text(config.organization, pageWidth / 2, headerY, { align: 'center' });
+        headerY += 6; // space for optional period line
+    }
+    if (config.period) {
+        pdf.setFontSize(FONT_SIZES.small);
+        pdf.text(`Report Period: ${config.period}`, pageWidth / 2, headerY, { align: 'center' });
     }
 
     pdf.setTextColor(0, 0, 0);
