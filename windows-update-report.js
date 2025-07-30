@@ -992,7 +992,8 @@ async function createPDFContent(pdf, config) {
         y += statHeight + 10; // Space between rows
     });
 
-    y += 10;
+    // Add spacing before the next section
+    y += sectionSpacing;
 
     // Update Age Distribution - keep within margins
     if (y + 35 < pageHeight - 40) {
@@ -1029,7 +1030,8 @@ async function createPDFContent(pdf, config) {
             ageY += 5;
         });
 
-    y = ageY + 5;
+    // Add breathing room after the age analysis section
+    y = ageY + sectionSpacing;
     }
 
     // Deployment Gaps Table - move to first page if space allows
@@ -1063,6 +1065,9 @@ async function createPDFContent(pdf, config) {
 
             y += 6;
         });
+
+        // Give extra space after the deployment gaps section
+        y += sectionSpacing;
     }
 
     // Executive summary paragraph (moved below deployment gaps)
@@ -1079,7 +1084,8 @@ async function createPDFContent(pdf, config) {
         y += lineHeight;
     });
 
-    y += 10;
+    // Add spacing before the next section
+    y += sectionSpacing;
 
     // Security Severity Distribution chart (dedicated page)
     if (document.getElementById('includeSeverityChart').checked && charts.severity) {
