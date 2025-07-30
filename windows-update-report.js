@@ -1154,30 +1154,27 @@ async function createPDFContent(pdf, config) {
 
         y = ageY + 5;
     }
-
-    // Security Severity Distribution chart
+    // Security Severity Distribution chart (dedicated page)
     if (document.getElementById('includeSeverityChart').checked && charts.severity) {
-        if (y > pageHeight - 100) {
-            pdf.addPage();
-            currentPage++;
-            y = 20;
+        pdf.addPage();
+        currentPage++;
+        y = 20;
 
-            pdf.setFillColor(240, 248, 255);
-            pdf.rect(0, 0, pageWidth, 15, 'F');
-            pdf.setDrawColor(0, 120, 212);
-            pdf.setLineWidth(0.5);
-            pdf.line(0, 15, pageWidth, 15);
-            pdf.setFontSize(FONT_SIZES.body);
-            pdf.setFont(undefined, 'bold');
-            pdf.setTextColor(51, 51, 51);
-            pdf.text('Charts & Analysis (continued)', 15, 10);
-            pdf.setFontSize(FONT_SIZES.small);
-            pdf.setFont(undefined, 'normal');
-            pdf.setTextColor(108, 117, 125);
-            pdf.text(`Page ${currentPage}`, pageWidth - pageMargin, 10, { align: 'right' });
-            pdf.setTextColor(0, 0, 0);
-        }
-
+        // Page header
+        pdf.setFillColor(240, 248, 255);
+        pdf.rect(0, 0, pageWidth, 15, 'F');
+        pdf.setDrawColor(0, 120, 212);
+        pdf.setLineWidth(0.5);
+        pdf.line(0, 15, pageWidth, 15);
+        pdf.setFontSize(FONT_SIZES.body);
+        pdf.setFont(undefined, 'bold');
+        pdf.setTextColor(51, 51, 51);
+        pdf.text('Charts & Analysis', 15, 10);
+        pdf.setFontSize(FONT_SIZES.small);
+        pdf.setFont(undefined, 'normal');
+        pdf.setTextColor(108, 117, 125);
+        pdf.text(`Page ${currentPage}`, pageWidth - pageMargin, 10, { align: 'right' });
+        pdf.setTextColor(0, 0, 0);
         pdf.setFontSize(FONT_SIZES.heading);
         pdf.setFont(undefined, 'bold');
         pdf.setTextColor(0, 78, 120);
@@ -1235,30 +1232,27 @@ async function createPDFContent(pdf, config) {
             y += paragraphSpacing;
         });
     }
-
-    // Deployment Summary chart
+    // Deployment Summary chart (dedicated page)
     if (document.getElementById('includeDeploymentChart').checked && charts.deployment) {
-        if (y > pageHeight - 100) {
-            pdf.addPage();
-            currentPage++;
-            y = 20;
+        pdf.addPage();
+        currentPage++;
+        y = 20;
 
-            pdf.setFillColor(240, 248, 255);
-            pdf.rect(0, 0, pageWidth, 15, 'F');
-            pdf.setDrawColor(0, 120, 212);
-            pdf.setLineWidth(0.5);
-            pdf.line(0, 15, pageWidth, 15);
-            pdf.setFontSize(FONT_SIZES.body);
-            pdf.setFont(undefined, 'bold');
-            pdf.setTextColor(51, 51, 51);
-            pdf.text('Charts & Analysis (continued)', 15, 10);
-            pdf.setFontSize(FONT_SIZES.small);
-            pdf.setFont(undefined, 'normal');
-            pdf.setTextColor(108, 117, 125);
-            pdf.text(`Page ${currentPage}`, pageWidth - pageMargin, 10, { align: 'right' });
-            pdf.setTextColor(0, 0, 0);
-        }
-
+        // Page header
+        pdf.setFillColor(240, 248, 255);
+        pdf.rect(0, 0, pageWidth, 15, 'F');
+        pdf.setDrawColor(0, 120, 212);
+        pdf.setLineWidth(0.5);
+        pdf.line(0, 15, pageWidth, 15);
+        pdf.setFontSize(FONT_SIZES.body);
+        pdf.setFont(undefined, 'bold');
+        pdf.setTextColor(51, 51, 51);
+        pdf.text('Charts & Analysis', 15, 10);
+        pdf.setFontSize(FONT_SIZES.small);
+        pdf.setFont(undefined, 'normal');
+        pdf.setTextColor(108, 117, 125);
+        pdf.text(`Page ${currentPage}`, pageWidth - pageMargin, 10, { align: 'right' });
+        pdf.setTextColor(0, 0, 0);
         pdf.setFontSize(FONT_SIZES.heading);
         pdf.setFont(undefined, 'bold');
         pdf.setTextColor(0, 78, 120);
