@@ -950,589 +950,240 @@ async function createPDFContent(pdf, config) {
     const sectionSpacing = 10;
     
     // --- TITLE PAGE ---
-    // --- TITLE PAGE ---
-updateProgress(20, 'Creating title page...');
+    updateProgress(20, 'Creating title page...');
 
-// Calculate enhanced metrics first
-const healthScore = calculateHealthScore(csvData);
-const updateAges = calculateUpdateAges(csvData);
-const deploymentGaps = getTopDeploymentGaps(csvData);
-const riskScores = calculateRiskScores(csvData);
-const successMetrics = calculateSuccessMetrics(csvData);
+    // Calculate enhanced metrics first
+    const healthScore = calculateHealthScore(csvData);
+    const updateAges = calculateUpdateAges(csvData);
+    const deploymentGaps = getTopDeploymentGaps(csvData);
+    const riskScores = calculateRiskScores(csvData);
+    const successMetrics = calculateSuccessMetrics(csvData);
 
-// Header
-pdf.setFillColor(0, 120, 212);
-const headerHeight = 60;
-pdf.rect(0, 0, pageWidth, headerHeight, 'F');
+    // Header
+    pdf.setFillColor(0, 120, 212);
+    const headerHeight = 50; // Reduced from 60
+    pdf.rect(0, 0, pageWidth, headerHeight, 'F');
 
-let headerY = 10;
-if (config.logo) {
-    const props = pdf.getImageProperties(config.logo);
-    const logoWidth = 25;
-    const logoHeight = (props.height / props.width) * logoWidth;
-    const logoX = (pageWidth - logoWidth) / 2;
-    pdf.addImage(config.logo, 'PNG', logoX, headerY, logoWidth, logoHeight);
-    headerY += logoHeight + 6; // extra space below logo
-}
+    let headerY = 8; // Reduced from 10
+    if (config.logo) {
+        const props = pdf.getImageProperties(config.logo);
+        const logoWidth = 20; // Reduced from 25
+        const logoHeight = (props.height / props.width) * logoWidth;
+        const logoX = (pageWidth - logoWidth) / 2;
+        pdf.addImage(config.logo, 'PNG', logoX, headerY, logoWidth, logoHeight);
+        headerY += logoHeight + 4; // Reduced spacing
+    }
 
-pdf.setTextColor(255, 255, 255);
-pdf.setFontSize(FONT_SIZES.title);
-pdf.text(config.title, pageWidth / 2, headerY, { align: 'center' });
-headerY += 10; // more spacing after title
-if (config.organization) {
-    pdf.setFontSize(FONT_SIZES.subtitle);
-    pdf.text(config.organization, pageWidth / 2, headerY, { align: 'center' });
-    headerY += 6; // additional spacing after organization name
-}
+    pdf.setTextColor(255, 255, 255);
+    pdf.setFontSize(FONT_SIZES.title);
+    pdf.text(config.title, pageWidth / 2, headerY, { align: 'center' });
+    headerY += 8; // Reduced from 10
+    if (config.organization) {
+        pdf.setFontSize(FONT_SIZES.subtitle);
+        pdf.text(config.organization, pageWidth / 2, headerY, { align: 'center' });
+    }
 
-pdf.setTextColor(0, 0, 0);
-
-// Executive summary paragraph
-const summaryData = getExecutiveSummaryData();
-let summaryText = `Overall update compliance across ${summaryData.totalDevices} devices is ${summaryData.complianceRate}%.`;
-if (summaryData.topCritical.length > 0) {
-    summaryText += ` Top critical updates requiring attention: ${summaryData.topCritical.join(', ')}.`;
-}
-pdf.setFontSize(FONT_SIZES.body);
-pdf.setFont(undefined, 'normal');
-let summaryY = headerHeight + 10;
-const summaryLines = pdf.splitTextToSize(summaryText, usableWidth);
-summaryLines.forEach(line => {
-    pdf.text(line, pageMargin, summaryY);
-    summaryY += lineHeight;
-});
-summaryY += 4;
-
-// Enhanced Executive Dashboard
-let y = summaryY;
-
-// Health Score Section
-
-// Determine color based on score
-let healthColor = [40, 167, 69];
-if (healthScore < 70) {
-    healthColor = [220, 53, 69];
-} else if (healthScore < 85) {
-    healthColor = [253, 126, 20];
-}
-
-pdf.setFontSize(FONT_SIZES.sectionTitle);
-pdf.setFont(undefined, 'bold');
-pdf.text('OVERALL HEALTH SCORE', pageWidth / 2, y + 8, { align: 'center' });
-
-// Score number
-pdf.setFontSize(26);
-pdf.setTextColor(...healthColor);
-pdf.text(`${healthScore}/100`, pageWidth / 2, y + 24, { align: 'center' });
-
-pdf.setTextColor(0, 0, 0);
-y += 35;
-
-// Enhanced KPI Cards
-const kpiY = y;
-const kpiWidth = 50;
-const kpiHeight = 35;
-const kpiSpacing = 10;
-const totalKpiWidth = (3 * kpiWidth) + (2 * kpiSpacing);
-const kpiStartX = (pageWidth - totalKpiWidth) / 2;
-
-// Compliance Rate Card
-pdf.setDrawColor(0, 120, 212);
-pdf.setFillColor(225, 236, 244);
-pdf.rect(kpiStartX, kpiY, kpiWidth, kpiHeight, 'FD');
-
-pdf.setFontSize(FONT_SIZES.body);
-pdf.setFont(undefined, 'bold');
-pdf.text('COMPLIANCE RATE', kpiStartX + kpiWidth/2, kpiY + 6, { align: 'center' });
-
-const stats = generateStatistics();
-const complianceColor = stats.complianceRate >= 95 ? [40, 167, 69] : 
-                       stats.complianceRate >= 80 ? [253, 126, 20] : [220, 53, 69];
-pdf.setFontSize(20);
-pdf.setTextColor(...complianceColor);
-pdf.text(`${stats.complianceRate}%`, kpiStartX + kpiWidth/2, kpiY + 18, { align: 'center' });
-
-pdf.setFontSize(FONT_SIZES.small);
-pdf.setTextColor(0, 0, 0);
-pdf.setFont(undefined, 'normal');
-pdf.text(`${stats.totalDeployed} of ${stats.totalDeployed + stats.totalMissing}`, kpiStartX + kpiWidth/2, kpiY + 26, { align: 'center' });
-
-// Critical Risk Card
-const criticalX = kpiStartX + kpiWidth + kpiSpacing;
-pdf.setDrawColor(220, 53, 69);
-pdf.setFillColor(253, 232, 234);
-pdf.rect(criticalX, kpiY, kpiWidth, kpiHeight, 'FD');
-
-pdf.setFontSize(FONT_SIZES.body);
-pdf.setFont(undefined, 'bold');
-pdf.setTextColor(0, 0, 0);
-pdf.text('CRITICAL UPDATES', criticalX + kpiWidth/2, kpiY + 6, { align: 'center' });
-
-pdf.setFontSize(20);
-pdf.setTextColor(220, 53, 69);
-pdf.text(`${stats.criticalUpdates}`, criticalX + kpiWidth/2, kpiY + 18, { align: 'center' });
-
-// Calculate affected systems for critical updates
-const criticalSystems = csvData
-    .filter(r => r['Security Severity']?.toLowerCase().includes('critical'))
-    .reduce((sum, r) => sum + parseInt(r['Updates Missing']?.toString().replace(/\D/g, '') || '0'), 0);
-
-pdf.setFontSize(FONT_SIZES.small);
-pdf.setTextColor(0, 0, 0);
-pdf.setFont(undefined, 'normal');
-pdf.text(`${criticalSystems} devices`, criticalX + kpiWidth/2, kpiY + 26, { align: 'center' });
-
-// Pending Updates Card
-const pendingX = criticalX + kpiWidth + kpiSpacing;
-pdf.setDrawColor(253, 126, 20);
-pdf.setFillColor(255, 240, 230);
-pdf.rect(pendingX, kpiY, kpiWidth, kpiHeight, 'FD');
-
-pdf.setFontSize(FONT_SIZES.body);
-pdf.setFont(undefined, 'bold');
-pdf.setTextColor(0, 0, 0);
-pdf.text('PENDING UPDATES', pendingX + kpiWidth/2, kpiY + 6, { align: 'center' });
-
-// Count pending updates
-const pendingCount = csvData.filter(row =>
-    parseInt(row['Updates Missing']?.toString().replace(/\D/g, '') || '0') > 0
-).length;
-
-const pendingColor = pendingCount > 20 ? [220, 53, 69] :
-                     pendingCount > 10 ? [253, 126, 20] : [40, 167, 69];
-pdf.setFontSize(20);
-pdf.setTextColor(...pendingColor);
-pdf.text(`${pendingCount}`, pendingX + kpiWidth/2, kpiY + 18, { align: 'center' });
-
-pdf.setFontSize(FONT_SIZES.small);
-pdf.setTextColor(0, 0, 0);
-pdf.setFont(undefined, 'normal');
-pdf.text('updates pending', pendingX + kpiWidth/2, kpiY + 26, { align: 'center' });
-
-const overdueCount = Object.entries(updateAges).reduce((sum, [key, value]) => {
-    return key === '31-60 days' || key === '>60 days' ? sum + value : sum;
-}, 0);
-pdf.text(`${overdueCount} overdue`, pendingX + kpiWidth/2, kpiY + 32, { align: 'center' });
-
-y = kpiY + kpiHeight + 15;
-
-// Update Age Distribution
-
-pdf.setFontSize(FONT_SIZES.heading);
-pdf.setFont(undefined, 'bold');
-pdf.text('UPDATE AGE ANALYSIS', pageMargin, y + 8);
-
-// Draw age distribution bars
-const ageColors = {
-    '0-7 days': [40, 167, 69],
-    '8-14 days': [32, 201, 151],
-    '15-30 days': [255, 193, 7],
-    '31-60 days': [253, 126, 20],
-    '>60 days': [220, 53, 69]
-};
-
-let ageY = y + 12;
-const ageBarHeight = 4;
-const maxAgeCount = Math.max(...Object.values(updateAges));
-
-Object.entries(updateAges).forEach(([ageRange, count]) => {
-    pdf.setFontSize(FONT_SIZES.small);
-    pdf.setFont(undefined, 'normal');
-    pdf.text(ageRange, pageMargin + 5, ageY + 3);
-    
-    // Bar
-    const barStartX = pageMargin + 50;
-    const maxBarWidth = usableWidth - 60;
-    const barWidth = maxAgeCount > 0 ? (count / maxAgeCount) * maxBarWidth : 0;
-    
-    pdf.setFillColor(...ageColors[ageRange]);
-    pdf.rect(barStartX, ageY, barWidth, ageBarHeight, 'F');
-    
-    // Count
-    pdf.text(`${count} updates`, barStartX + barWidth + 5, ageY + 3);
-    
-    ageY += 6;
-});
-
-y += 45;
-
-// Deployment Gaps Table
-if (deploymentGaps.length > 0) {
-    
-    
-    pdf.setFontSize(FONT_SIZES.heading);
-    pdf.setFont(undefined, 'bold');
-    pdf.text('TOP DEPLOYMENT GAPS - IMMEDIATE ATTENTION REQUIRED', pageMargin, y + 6);
-    
-    y += 10;
-    
-    deploymentGaps.forEach((gap, index) => {
-        const severityColor = gap.severity.toLowerCase().includes('critical') ? [220, 53, 69] :
-                             gap.severity.toLowerCase().includes('important') ? [253, 126, 20] :
-                             [108, 117, 125];
-        
-        pdf.setFontSize(FONT_SIZES.small);
-        pdf.setFont(undefined, 'bold');
-        pdf.text(`${index + 1}.`, pageMargin + 5, y);
-        
-        pdf.setFont(undefined, 'normal');
-        const updateName = gap.updateName.length > 50 ? 
-                          gap.updateName.substring(0, 47) + '...' : 
-                          gap.updateName;
-        pdf.text(updateName, pageMargin + 15, y);
-        
-        pdf.setTextColor(...severityColor);
-        pdf.text(gap.severity.toUpperCase(), pageWidth - (pageMargin + 60), y);
-        
-        pdf.setTextColor(0, 0, 0);
-        pdf.text(`${gap.missing} systems`, pageWidth - pageMargin, y);
-        
-        pdf.setFontSize(FONT_SIZES.caption);
-        pdf.text(`Released ${gap.daysOld} days ago`, pageMargin + 15, y + 4);
-        
-        y += 9; // extra spacing between items
-    });
-}
-
-y += 5;
-
-// Risk Assessment
-const riskY = y;
-
-pdf.setFontSize(FONT_SIZES.heading);
-pdf.setFont(undefined, 'bold');
-pdf.text('RISK ASSESSMENT', pageMargin, riskY + 6);
-
-// Risk bars
-const riskLabels = ['Security Risk', 'Operational Risk', 'Compliance Risk'];
-const riskValues = [riskScores.security, riskScores.operational, riskScores.compliance];
-let riskBarY = riskY + 10;
-
-riskLabels.forEach((label, i) => {
-    pdf.setFontSize(FONT_SIZES.small);
-    pdf.setFont(undefined, 'normal');
-    pdf.text(label, pageMargin + 5, riskBarY + 3);
-    
-    // Risk bar background
-    const barStartX = pageMargin + 80;
-    const maxBarWidth = 60;
-    pdf.setFillColor(230, 230, 230);
-    pdf.rect(barStartX, riskBarY, maxBarWidth, 4, 'F');
-    
-    // Risk bar fill
-    const riskColor = riskValues[i] >= 7 ? [220, 53, 69] :
-                     riskValues[i] >= 4 ? [253, 126, 20] :
-                     [40, 167, 69];
-    pdf.setFillColor(...riskColor);
-    pdf.rect(barStartX, riskBarY, (riskValues[i] / 10) * maxBarWidth, 4, 'F');
-    
-    // Risk level
-    const riskLevel = riskValues[i] >= 7 ? 'HIGH' :
-                     riskValues[i] >= 4 ? 'MEDIUM' :
-                     'LOW';
-    pdf.setTextColor(...riskColor);
-    pdf.text(`${riskLevel} (${riskValues[i]}/10)`, barStartX + maxBarWidth + 5, riskBarY + 3);
     pdf.setTextColor(0, 0, 0);
-    
-    riskBarY += 6;
-});
 
-y = riskY + 30;
-
-// Success Metrics
-if (y < pageHeight - 40) {
-    
-    pdf.setFontSize(FONT_SIZES.heading);
-    pdf.setFont(undefined, 'bold');
-    pdf.setTextColor(40, 167, 69);
-    pdf.text('DEPLOYMENT SUCCESS METRICS', pageMargin, y + 6);
-    
-    pdf.setFontSize(FONT_SIZES.small);
-    pdf.setFont(undefined, 'normal');
-    pdf.setTextColor(0, 0, 0);
-    
-    const successLines = [
-        `✓ ${successMetrics.totalDeployed} updates successfully deployed`,
-        `✓ ${successMetrics.fullyDeployedUpdates} updates with 100% deployment rate`,
-        `✓ ${successMetrics.defenderCompliance}% Defender definition compliance`,
-        `✓ ${successMetrics.perfectDeployments} updates with zero missing deployments`
-    ];
-    
-    let successY = y + 11;
-    successLines.forEach(line => {
-        pdf.text(line, pageMargin + 5, successY);
-        successY += 5;
-    });
-    
-    y += 30;
-}
-
-// Additional notes
-if (config.notes && y < pageHeight - 30) {
-    
+    // Executive summary paragraph
+    const summaryData = getExecutiveSummaryData();
+    let summaryText = `Overall update compliance across ${summaryData.totalDevices} devices is ${summaryData.complianceRate}%.`;
+    if (summaryData.topCritical.length > 0) {
+        summaryText += ` Top critical updates requiring attention: ${summaryData.topCritical.join(', ')}.`;
+    }
     pdf.setFontSize(FONT_SIZES.body);
-    pdf.setFont(undefined, 'bold');
-    pdf.text('Additional Notes:', pageMargin, y + 6);
-    
-    pdf.setFontSize(FONT_SIZES.small);
     pdf.setFont(undefined, 'normal');
-    const noteLines = pdf.splitTextToSize(config.notes, usableWidth);
-    let noteY = y + 11;
-    noteLines.forEach(line => {
-        if (noteY > pageHeight - 20) return;
-        pdf.text(line, pageMargin, noteY);
-        noteY += lineHeight;
+    let summaryY = headerHeight + 8; // Reduced spacing
+    const summaryLines = pdf.splitTextToSize(summaryText, usableWidth);
+    summaryLines.forEach(line => {
+        pdf.text(line, pageMargin, summaryY);
+        summaryY += lineHeight;
     });
-}
-    
-    updateProgress(40, 'Adding charts and analysis...');
-    
-    pdf.addPage();
-    currentPage++;
-    y = 20;
-    
-    // Page header
-    pdf.setFillColor(240, 248, 255);
-    pdf.rect(0, 0, pageWidth, 15, 'F');
-    
+
+    // Enhanced Executive Dashboard
+    let y = summaryY + 8; // Reduced spacing
+
+    // Health Score Section
+    let healthColor = [40, 167, 69];
+    if (healthScore < 70) {
+        healthColor = [220, 53, 69];
+    } else if (healthScore < 85) {
+        healthColor = [253, 126, 20];
+    }
+
+    pdf.setFontSize(FONT_SIZES.sectionTitle);
+    pdf.setFont(undefined, 'bold');
+    pdf.text('OVERALL HEALTH SCORE', pageWidth / 2, y, { align: 'center' });
+
+    // Score number
+    pdf.setFontSize(24); // Reduced from 26
+    pdf.setTextColor(...healthColor);
+    pdf.text(`${healthScore}/100`, pageWidth / 2, y + 12, { align: 'center' });
+
+    pdf.setTextColor(0, 0, 0);
+    y += 25; // Reduced from 35
+
+    // Enhanced KPI Cards with stronger colors
+    const kpiY = y;
+    const kpiWidth = 48; // Slightly reduced from 50
+    const kpiHeight = 32; // Reduced from 35
+    const kpiSpacing = 8; // Reduced from 10
+    const totalKpiWidth = (3 * kpiWidth) + (2 * kpiSpacing);
+    const kpiStartX = (pageWidth - totalKpiWidth) / 2;
+
+    // Compliance Rate Card - Enhanced colors
     pdf.setDrawColor(0, 120, 212);
-    pdf.setLineWidth(0.5);
-    pdf.line(0, 15, pageWidth, 15);
-    
-    pdf.setFontSize(FONT_SIZES.body);
-    pdf.setFont(undefined, 'bold');
-    pdf.setTextColor(51, 51, 51);
-    pdf.text('Charts & Analysis', 15, 10);
-    
+    pdf.setFillColor(0, 120, 212); // Solid blue instead of light blue
+    pdf.rect(kpiStartX, kpiY, kpiWidth, kpiHeight, 'F');
+    pdf.setFillColor(255, 255, 255); // White text background
+    pdf.rect(kpiStartX + 2, kpiY + 2, kpiWidth - 4, kpiHeight - 4, 'F');
+
     pdf.setFontSize(FONT_SIZES.small);
-    pdf.setFont(undefined, 'normal');
+    pdf.setFont(undefined, 'bold');
+    pdf.setTextColor(0, 120, 212);
+    pdf.text('COMPLIANCE RATE', kpiStartX + kpiWidth/2, kpiY + 6, { align: 'center' });
+
+    const stats = generateStatistics();
+    const complianceColor = stats.complianceRate >= 95 ? [40, 167, 69] : 
+                           stats.complianceRate >= 80 ? [253, 126, 20] : [220, 53, 69];
+    pdf.setFontSize(18); // Reduced from 20
+    pdf.setTextColor(...complianceColor);
+    pdf.text(`${stats.complianceRate}%`, kpiStartX + kpiWidth/2, kpiY + 16, { align: 'center' });
+
+    pdf.setFontSize(FONT_SIZES.caption);
     pdf.setTextColor(108, 117, 125);
-    pdf.text(`Page ${currentPage}`, pageWidth - pageMargin, 10, { align: 'right' });
-    
-    pdf.setTextColor(0, 0, 0);
-    
-    // Chart dimensions
-    const chartWidth = pageWidth - pageMargin * 2;
-    const chartHeight = 60;
-    
-    // Security Severity Chart
-    if (document.getElementById('includeSeverityChart').checked && charts.severity) {
-        y = 25;
-        
-        // Chart title
+    pdf.setFont(undefined, 'normal');
+    pdf.text(`${stats.totalDeployed} of ${stats.totalDeployed + stats.totalMissing}`, kpiStartX + kpiWidth/2, kpiY + 24, { align: 'center' });
+
+    // Critical Risk Card - Enhanced colors
+    const criticalX = kpiStartX + kpiWidth + kpiSpacing;
+    pdf.setDrawColor(220, 53, 69);
+    pdf.setFillColor(220, 53, 69); // Solid red
+    pdf.rect(criticalX, kpiY, kpiWidth, kpiHeight, 'F');
+    pdf.setFillColor(255, 255, 255);
+    pdf.rect(criticalX + 2, kpiY + 2, kpiWidth - 4, kpiHeight - 4, 'F');
+
+    pdf.setFontSize(FONT_SIZES.small);
+    pdf.setFont(undefined, 'bold');
+    pdf.setTextColor(220, 53, 69);
+    pdf.text('CRITICAL UPDATES', criticalX + kpiWidth/2, kpiY + 6, { align: 'center' });
+
+    pdf.setFontSize(18);
+    pdf.text(`${stats.criticalUpdates}`, criticalX + kpiWidth/2, kpiY + 16, { align: 'center' });
+
+    const criticalSystems = csvData
+        .filter(r => r['Security Severity']?.toLowerCase().includes('critical'))
+        .reduce((sum, r) => sum + parseInt(r['Updates Missing']?.toString().replace(/\D/g, '') || '0'), 0);
+
+    pdf.setFontSize(FONT_SIZES.caption);
+    pdf.setTextColor(108, 117, 125);
+    pdf.setFont(undefined, 'normal');
+    pdf.text(`${criticalSystems} devices`, criticalX + kpiWidth/2, kpiY + 24, { align: 'center' });
+
+    // Pending Updates Card - Enhanced colors
+    const pendingX = criticalX + kpiWidth + kpiSpacing;
+    pdf.setDrawColor(253, 126, 20);
+    pdf.setFillColor(253, 126, 20); // Solid orange
+    pdf.rect(pendingX, kpiY, kpiWidth, kpiHeight, 'F');
+    pdf.setFillColor(255, 255, 255);
+    pdf.rect(pendingX + 2, kpiY + 2, kpiWidth - 4, kpiHeight - 4, 'F');
+
+    pdf.setFontSize(FONT_SIZES.small);
+    pdf.setFont(undefined, 'bold');
+    pdf.setTextColor(253, 126, 20);
+    pdf.text('PENDING UPDATES', pendingX + kpiWidth/2, kpiY + 6, { align: 'center' });
+
+    const pendingCount = csvData.filter(row =>
+        parseInt(row['Updates Missing']?.toString().replace(/\D/g, '') || '0') > 0
+    ).length;
+
+    const pendingColor = pendingCount > 20 ? [220, 53, 69] :
+                         pendingCount > 10 ? [253, 126, 20] : [40, 167, 69];
+    pdf.setFontSize(18);
+    pdf.setTextColor(...pendingColor);
+    pdf.text(`${pendingCount}`, pendingX + kpiWidth/2, kpiY + 16, { align: 'center' });
+
+    pdf.setFontSize(FONT_SIZES.caption);
+    pdf.setTextColor(108, 117, 125);
+    pdf.setFont(undefined, 'normal');
+    const overdueCount = Object.entries(updateAges).reduce((sum, [key, value]) => {
+        return key === '31-60 days' || key === '>60 days' ? sum + value : sum;
+    }, 0);
+    pdf.text(`${overdueCount} overdue`, pendingX + kpiWidth/2, kpiY + 24, { align: 'center' });
+
+    y = kpiY + kpiHeight + 10; // Reduced spacing
+
+    // Update Age Distribution - keep within margins
+    if (y + 35 < pageHeight - 40) {
         pdf.setFontSize(FONT_SIZES.heading);
         pdf.setFont(undefined, 'bold');
-        pdf.setTextColor(0, 78, 120);
-        pdf.text('Security Severity Distribution – Summary', 20, y);
-        pdf.setTextColor(0, 0, 0);
-        y += sectionSpacing;
-        
-        const chartX = (pageWidth - chartWidth) / 2;
-        await addCompactChartToPDF(pdf, 'severityChart', '', chartX, y, chartWidth, chartHeight);
-        y += chartHeight + sectionSpacing;
-        
-        // Explanation
-        pdf.setFontSize(FONT_SIZES.body);
-        pdf.setFont(undefined, 'normal');
-        
-        const lines1 = pdf.splitTextToSize('This chart shows the distribution of updates by security severity for the current period:', usableWidth);
-        lines1.forEach(line => {
-            pdf.text(line, 20, y);
-            y += lineHeight;
-        });
-        y += paragraphSpacing;
-        
-        // Breakdown
-        pdf.setFont(undefined, 'bold');
-        const criticalCount = stats.criticalUpdates;
-        const criticalPercent = Math.round((criticalCount / stats.totalUpdates) * 100);
-        pdf.setTextColor(220, 53, 69);
-        pdf.text(`• Critical: ${criticalCount} updates (${criticalPercent}%)`, 20, y);
-        y += lineHeight;
-        
-        const importantCount = stats.importantUpdates;
-        const importantPercent = Math.round((importantCount / stats.totalUpdates) * 100);
-        pdf.setTextColor(253, 126, 20);
-        pdf.text(`• Important: ${importantCount} updates (${importantPercent}%)`, 20, y);
-        y += lineHeight;
-        
-        const otherCount = stats.totalUpdates - criticalCount - importantCount;
-        const otherPercent = Math.round((otherCount / stats.totalUpdates) * 100);
-        pdf.setTextColor(108, 117, 125);
-        pdf.text(`• Unspecified or Low: ${otherCount} updates (${otherPercent}%)`, 20, y);
-        y += sectionSpacing;
+        pdf.text('UPDATE AGE ANALYSIS', pageMargin, y);
 
-        pdf.setTextColor(0, 0, 0);
-        pdf.setFont(undefined, 'normal');
-        pdf.setFontSize(FONT_SIZES.small);
-        
-        const cvssExplanation = [
-            'The severity of each update is assessed using the Common Vulnerability Scoring System (CVSS).',
-            '• Critical updates are typically reserved for vulnerabilities that could allow remote code execution without user interaction.',
-            '• Important updates address serious but less severe issues, such as privilege escalation or denial of service.',
-            '• Unspecified or Low refers to updates that either lack a published CVSS score at the time of reporting or are not classified as high-impact. These often include updates related to feature improvements, stability fixes, or pending vendor analysis.',
-            'We continue to monitor and triage these updates as part of your Intune Maintenance plan.'
-        ];
-        
-        cvssExplanation.forEach((text, index) => {
-            if (y > pageHeight - 25) {
-                pdf.addPage();
-                currentPage++;
-                y = 20;
-                
-                // Page header
-                pdf.setFillColor(240, 248, 255);
-                pdf.rect(0, 0, pageWidth, 15, 'F');
-                pdf.setDrawColor(0, 120, 212);
-                pdf.setLineWidth(0.5);
-                pdf.line(0, 15, pageWidth, 15);
-                pdf.setFontSize(FONT_SIZES.body);
-                pdf.setFont(undefined, 'bold');
-                pdf.setTextColor(51, 51, 51);
-                pdf.text('Charts & Analysis (continued)', 15, 10);
-                pdf.setFontSize(FONT_SIZES.small);
-                pdf.setFont(undefined, 'normal');
-                pdf.setTextColor(108, 117, 125);
-                pdf.text(`Page ${currentPage}`, pageWidth - pageMargin, 10, { align: 'right' });
-                pdf.setTextColor(0, 0, 0);
-                pdf.setFontSize(FONT_SIZES.small);
-                pdf.setFont(undefined, 'normal');
-            }
+        const ageColors = {
+            '0-7 days': [40, 167, 69],
+            '8-14 days': [32, 201, 151],
+            '15-30 days': [255, 193, 7],
+            '31-60 days': [253, 126, 20],
+            '>60 days': [220, 53, 69]
+        };
+
+        let ageY = y + 6;
+        const ageBarHeight = 3;
+        const maxAgeCount = Math.max(...Object.values(updateAges));
+
+        Object.entries(updateAges).forEach(([ageRange, count]) => {
+            pdf.setFontSize(FONT_SIZES.caption);
+            pdf.setFont(undefined, 'normal');
+            pdf.text(ageRange, pageMargin, ageY + 2);
             
-            if (index === 0) {
-                pdf.setFont(undefined, 'bold');
-            } else {
-                pdf.setFont(undefined, 'normal');
-            }
+            const barStartX = pageMargin + 40;
+            const maxBarWidth = usableWidth - 50;
+            const barWidth = maxAgeCount > 0 ? (count / maxAgeCount) * maxBarWidth : 0;
             
-            const lines = pdf.splitTextToSize(text, usableWidth);
-            lines.forEach(line => {
-                pdf.text(line, text.startsWith('•') ? 25 : 20, y);
-                y += lineHeight;
-            });
-            y += paragraphSpacing;
+            pdf.setFillColor(...ageColors[ageRange]);
+            pdf.rect(barStartX, ageY, barWidth, ageBarHeight, 'F');
+            
+            pdf.text(`${count}`, barStartX + barWidth + 5, ageY + 2);
+            
+            ageY += 5;
         });
-        y += sectionSpacing;
+
+        y = ageY + 5;
     }
-    
-    // Check if we need a new page
-    if (y > pageHeight - 100) {
-        pdf.addPage();
-        currentPage++;
-        y = 20;
-        
-        // Page header
-        pdf.setFillColor(240, 248, 255);
-        pdf.rect(0, 0, pageWidth, 15, 'F');
-        pdf.setDrawColor(0, 120, 212);
-        pdf.setLineWidth(0.5);
-        pdf.line(0, 15, pageWidth, 15);
-        pdf.setFontSize(FONT_SIZES.body);
-        pdf.setFont(undefined, 'bold');
-        pdf.setTextColor(51, 51, 51);
-        pdf.text('Charts & Analysis (continued)', 15, 10);
-        pdf.setFontSize(FONT_SIZES.small);
-        pdf.setFont(undefined, 'normal');
-        pdf.setTextColor(108, 117, 125);
-        pdf.text(`Page ${currentPage}`, pageWidth - pageMargin, 10, { align: 'right' });
-        pdf.setTextColor(0, 0, 0);
-    }
-    
-    // Deployment Status Chart
-    if (document.getElementById('includeDeploymentChart').checked && charts.deployment) {
-        // Chart title
+
+    // Deployment Gaps Table - check if fits
+    if (deploymentGaps.length > 0 && y + 50 < pageHeight - 30) {
         pdf.setFontSize(FONT_SIZES.heading);
         pdf.setFont(undefined, 'bold');
-        pdf.setTextColor(0, 78, 120);
-        pdf.text('Deployment Summary – Top 10 Updates by Volume', 20, y);
-        pdf.setTextColor(0, 0, 0);
-        y += sectionSpacing;
+        pdf.text('TOP DEPLOYMENT GAPS', pageMargin, y);
         
-        const chartX = (pageWidth - chartWidth) / 2;
-        await addCompactChartToPDF(pdf, 'deploymentChart', '', chartX, y, chartWidth, chartHeight);
-        y += chartHeight + sectionSpacing;
+        y += 6;
         
-        // Explanation
-        pdf.setFontSize(FONT_SIZES.body);
-        pdf.setFont(undefined, 'normal');
-        
-        const deploymentIntro = pdf.splitTextToSize('This chart shows the deployment status of the top 10 updates with the highest number of assigned devices:', usableWidth);
-        deploymentIntro.forEach(line => {
-            pdf.text(line, 20, y);
-            y += lineHeight;
-        });
-        y += paragraphSpacing;
-
-        // Deployment stats
-        pdf.setFont(undefined, 'bold');
-        pdf.text(`• Total missing deployments: ${stats.totalMissing}`, 20, y);
-        y += lineHeight;
-        pdf.text(`• Overall compliance rate: ${stats.complianceRate}%`, 20, y);
-        y += sectionSpacing;
-        
-        pdf.setFont(undefined, 'normal');
-        pdf.setFontSize(FONT_SIZES.small);
-        
-        const topMissingUpdate = csvData
-            .map(row => ({
-                name: row['Update Name'],
-                missing: parseInt(row['Updates Missing']?.toString().replace(/\D/g, '') || '0')
-            }))
-            .sort((a, b) => b.missing - a.missing)[0];
-        
-        const deploymentExplanation = [
-            'This chart shows the updates with the largest number of total targets (both successful and pending). Green bars represent successfully deployed updates, while red bars indicate devices where the update is still pending or failed.',
-            topMissingUpdate && topMissingUpdate.missing > 0 ? 
-                `Large amount of pending updates such as "${topMissingUpdate.name.substring(0, 60)}${topMissingUpdate.name.length > 60 ? '...' : ''}" may require review of deployment assignments, application version conflicts, or device connectivity status.` :
-                'All updates show good deployment coverage with minimal missing installations.',
-            'This data is used to help identify:',
-            '• Trends in common deployment failures',
-            '• Apps with wide install footprints but low coverage',
-            '• Potential priorities for remediation in the next patch cycle'
-        ];
-        
-        deploymentExplanation.forEach((text, index) => {
-            if (y > pageHeight - 25) {
-                pdf.addPage();
-                currentPage++;
-                y = 20;
-                
-                // Page header
-                pdf.setFillColor(240, 248, 255);
-                pdf.rect(0, 0, pageWidth, 15, 'F');
-                pdf.setDrawColor(0, 120, 212);
-                pdf.setLineWidth(0.5);
-                pdf.line(0, 15, pageWidth, 15);
-                pdf.setFontSize(FONT_SIZES.body);
-                pdf.setFont(undefined, 'bold');
-                pdf.setTextColor(51, 51, 51);
-                pdf.text('Charts & Analysis (continued)', 15, 10);
-                pdf.setFontSize(FONT_SIZES.small);
-                pdf.setFont(undefined, 'normal');
-                pdf.setTextColor(108, 117, 125);
-                pdf.text(`Page ${currentPage}`, pageWidth - pageMargin, 10, { align: 'right' });
-                pdf.setTextColor(0, 0, 0);
-                pdf.setFontSize(FONT_SIZES.small);
-                pdf.setFont(undefined, 'normal');
-            }
+        deploymentGaps.slice(0, 3).forEach((gap, index) => { // Limit to 3 items to save space
+            const severityColor = gap.severity.toLowerCase().includes('critical') ? [220, 53, 69] :
+                                 gap.severity.toLowerCase().includes('important') ? [253, 126, 20] :
+                                 [108, 117, 125];
             
-            if (text === 'This data is used to help identify:') {
-                pdf.setFont(undefined, 'bold');
-            } else {
-                pdf.setFont(undefined, 'normal');
-            }
+            pdf.setFontSize(FONT_SIZES.caption);
+            pdf.setFont(undefined, 'bold');
+            pdf.text(`${index + 1}.`, pageMargin, y);
             
-            const lines = pdf.splitTextToSize(text, usableWidth);
-            lines.forEach(line => {
-                pdf.text(line, text.startsWith('•') ? 25 : 20, y);
-                y += lineHeight;
-            });
-            y += paragraphSpacing;
+            pdf.setFont(undefined, 'normal');
+            const updateName = gap.updateName.length > 45 ? 
+                              gap.updateName.substring(0, 42) + '...' : 
+                              gap.updateName;
+            pdf.text(updateName, pageMargin + 10, y);
+            
+            pdf.setTextColor(...severityColor);
+            pdf.text(gap.severity.toUpperCase(), pageWidth - 50, y);
+            
+            pdf.setTextColor(0, 0, 0);
+            pdf.text(`${gap.missing}`, pageWidth - pageMargin, y);
+            
+            y += 6;
         });
-        
-        y += sectionSpacing;
     }
-    
+
     // Check if we need a new page for trend chart
     if (y > pageHeight - 100) {
         pdf.addPage();
