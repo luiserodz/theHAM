@@ -457,51 +457,6 @@
 
 /* ============= ENHANCED EXECUTIVE SUMMARY STYLES ============= */
 
-/* Health Score Visualization */
-.health-score-container {
-    background: linear-gradient(to right, #dc3545 0%, #fd7e14 30%, #ffc107 50%, #28a745 85%);
-    height: 30px;
-    border-radius: 15px;
-    position: relative;
-    margin: 20px auto;
-    max-width: 300px;
-    width: 100%;
-    box-shadow: inset 0 2px 4px rgba(0,0,0,0.1);
-}
-
-.health-score-indicator {
-    position: absolute;
-    width: 6px;
-    height: 40px;
-    background: #333;
-    border: 2px solid white;
-    border-radius: 3px;
-    top: -5px;
-    transition: left 0.5s ease;
-    box-shadow: 0 2px 4px rgba(0,0,0,0.3);
-}
-
-.health-score-indicator::after {
-    content: '';
-    position: absolute;
-    bottom: -8px;
-    left: 50%;
-    transform: translateX(-50%);
-    width: 0;
-    height: 0;
-    border-left: 5px solid transparent;
-    border-right: 5px solid transparent;
-    border-top: 6px solid #333;
-}
-
-#healthScoreText {
-    font-size: 32px;
-    font-weight: bold;
-    text-align: center;
-    margin-top: 10px;
-    transition: color 0.5s ease;
-}
-
 /* Update Age Distribution Bar */
 .update-age-bar {
     display: flex;

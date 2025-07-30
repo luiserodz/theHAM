@@ -197,30 +197,6 @@ function parseCSVLine(line) {
 
 // ============= ENHANCED EXECUTIVE SUMMARY FUNCTIONS =============
 
-// Calculate overall health score (0-100)
-function calculateHealthScore(csvData) {
-    const stats = generateStatistics();
-    // Start from overall compliance rate as base score
-    let score = stats.complianceRate;
-
-    csvData.forEach(row => {
-        const pending = parseInt(row['Updates Missing']?.toString().replace(/\D/g, '') || '0');
-        if (pending > 0) {
-            const severity = row['Security Severity']?.toLowerCase() || '';
-            const age = calculateDaysOld(row['Release Date']);
-
-            if (severity.includes('critical')) score -= 5;
-            else if (severity.includes('important')) score -= 3;
-
-            if (age > 60) score -= 3;
-            else if (age > 30) score -= 2;
-        }
-    });
-
-    // Clamp score between 0 and 100
-    return Math.max(0, Math.min(100, Math.round(score)));
-}
-
 // Calculate days since release
 function calculateDaysOld(releaseDateStr) {
     if (!releaseDateStr) return 0;
@@ -417,21 +393,6 @@ function showDataPreview() {
 }
 
 function updateEnhancedPreview() {
-    // Update health score indicator if present
-    const healthScore = calculateHealthScore(csvData);
-    const healthIndicator = document.getElementById('healthScoreIndicator');
-    const healthText = document.getElementById('healthScoreText');
-    
-    if (healthIndicator) {
-        healthIndicator.style.left = `${healthScore}%`;
-    }
-    
-    if (healthText) {
-        healthText.textContent = `${healthScore}/100`;
-        healthText.style.color = healthScore >= 85 ? '#28a745' : 
-                                healthScore >= 70 ? '#fd7e14' : '#dc3545';
-    }
-    
     // Refresh age chart if present
     if (charts.age) {
         charts.age.destroy();
