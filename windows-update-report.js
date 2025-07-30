@@ -865,6 +865,7 @@ function generateTrendChart() {
 
 async function generatePDFReport() {
     statusSection.classList.add('show');
+    statusSection.scrollIntoView({ behavior: 'smooth' });
     updateProgress(0, 'Initializing report generation...');
     
     try {
