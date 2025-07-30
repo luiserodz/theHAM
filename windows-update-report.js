@@ -1154,7 +1154,6 @@ async function createPDFContent(pdf, config) {
 
         y = ageY + 5;
     }
-
     // Security Severity Distribution chart (dedicated page)
     if (document.getElementById('includeSeverityChart').checked && charts.severity) {
         pdf.addPage();
@@ -1176,7 +1175,6 @@ async function createPDFContent(pdf, config) {
         pdf.setTextColor(108, 117, 125);
         pdf.text(`Page ${currentPage}`, pageWidth - pageMargin, 10, { align: 'right' });
         pdf.setTextColor(0, 0, 0);
-
         pdf.setFontSize(FONT_SIZES.heading);
         pdf.setFont(undefined, 'bold');
         pdf.setTextColor(0, 78, 120);
@@ -1234,7 +1232,6 @@ async function createPDFContent(pdf, config) {
             y += paragraphSpacing;
         });
     }
-
     // Deployment Summary chart (dedicated page)
     if (document.getElementById('includeDeploymentChart').checked && charts.deployment) {
         pdf.addPage();
@@ -1256,7 +1253,6 @@ async function createPDFContent(pdf, config) {
         pdf.setTextColor(108, 117, 125);
         pdf.text(`Page ${currentPage}`, pageWidth - pageMargin, 10, { align: 'right' });
         pdf.setTextColor(0, 0, 0);
-
         pdf.setFontSize(FONT_SIZES.heading);
         pdf.setFont(undefined, 'bold');
         pdf.setTextColor(0, 78, 120);
