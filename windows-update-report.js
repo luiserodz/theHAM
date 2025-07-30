@@ -990,8 +990,7 @@ async function createPDFContent(pdf, config) {
 // Statistics Section (matching web app)
     let y = summaryY + 15;
 
-    // Get statistics
-    const stats = generateStatistics();
+    // Reuse statistics calculated earlier
 
     // Create stats grid similar to web app
     const statWidth = 35;
