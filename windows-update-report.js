@@ -975,7 +975,8 @@ async function createPDFContent(pdf, config) {
         const logoHeight = (props.height / props.width) * logoWidth;
         const logoX = (pageWidth - logoWidth) / 2;
         pdf.addImage(config.logo, 'PNG', logoX, headerY, logoWidth, logoHeight);
-        headerY += logoHeight + 4; // Reduced spacing
+        // Increase spacing below the logo so the title aligns more evenly with the organization name
+        headerY += logoHeight + 8;
     }
 
     pdf.setTextColor(255, 255, 255);
