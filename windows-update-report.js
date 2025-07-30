@@ -1152,8 +1152,42 @@ async function createPDFContent(pdf, config) {
             ageY += 5;
         });
 
-        y = ageY + 5;
+    y = ageY + 5;
     }
+
+    // Deployment Gaps Table - move to first page if space allows
+    if (deploymentGaps.length > 0 && y + 50 < pageHeight - 30) {
+        pdf.setFontSize(FONT_SIZES.heading);
+        pdf.setFont(undefined, 'bold');
+        pdf.text('TOP DEPLOYMENT GAPS', pageMargin, y);
+
+        y += 6;
+
+        deploymentGaps.slice(0, 3).forEach((gap, index) => { // Limit to 3 items to save space
+            const severityColor = gap.severity.toLowerCase().includes('critical') ? [220, 53, 69] :
+                                 gap.severity.toLowerCase().includes('important') ? [253, 126, 20] :
+                                 [108, 117, 125];
+
+            pdf.setFontSize(FONT_SIZES.caption);
+            pdf.setFont(undefined, 'bold');
+            pdf.text(`${index + 1}.`, pageMargin, y);
+
+            pdf.setFont(undefined, 'normal');
+            const updateName = gap.updateName.length > 45 ?
+                              gap.updateName.substring(0, 42) + '...' :
+                              gap.updateName;
+            pdf.text(updateName, pageMargin + 10, y);
+
+            pdf.setTextColor(...severityColor);
+            pdf.text(gap.severity.toUpperCase(), pageWidth - 50, y);
+
+            pdf.setTextColor(0, 0, 0);
+            pdf.text(`${gap.missing}`, pageWidth - pageMargin, y);
+
+            y += 6;
+        });
+    }
+
     // Security Severity Distribution chart (dedicated page)
     if (document.getElementById('includeSeverityChart').checked && charts.severity) {
         pdf.addPage();
@@ -1308,38 +1342,6 @@ async function createPDFContent(pdf, config) {
         });
     }
 
-    // Deployment Gaps Table - check if fits
-    if (deploymentGaps.length > 0 && y + 50 < pageHeight - 30) {
-        pdf.setFontSize(FONT_SIZES.heading);
-        pdf.setFont(undefined, 'bold');
-        pdf.text('TOP DEPLOYMENT GAPS', pageMargin, y);
-
-        y += 6;
-
-        deploymentGaps.slice(0, 3).forEach((gap, index) => { // Limit to 3 items to save space
-            const severityColor = gap.severity.toLowerCase().includes('critical') ? [220, 53, 69] :
-                                 gap.severity.toLowerCase().includes('important') ? [253, 126, 20] :
-                                 [108, 117, 125];
-
-            pdf.setFontSize(FONT_SIZES.caption);
-            pdf.setFont(undefined, 'bold');
-            pdf.text(`${index + 1}.`, pageMargin, y);
-
-            pdf.setFont(undefined, 'normal');
-            const updateName = gap.updateName.length > 45 ?
-                              gap.updateName.substring(0, 42) + '...' :
-                              gap.updateName;
-            pdf.text(updateName, pageMargin + 10, y);
-
-            pdf.setTextColor(...severityColor);
-            pdf.text(gap.severity.toUpperCase(), pageWidth - 50, y);
-
-            pdf.setTextColor(0, 0, 0);
-            pdf.text(`${gap.missing}`, pageWidth - pageMargin, y);
-
-            y += 6;
-        });
-    }
     // Security Severity Distribution chart (dedicated page)
     if (document.getElementById('includeSeverityChart').checked && charts.severity) {
         pdf.addPage();
