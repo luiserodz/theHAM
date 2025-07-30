@@ -535,6 +535,13 @@ function showReportOptions() {
 }
 
 function generateCharts() {
+    if (typeof Chart === 'undefined') {
+        console.warn('Chart.js not loaded; skipping chart generation');
+        showAlert('Charts could not be loaded. PDF will exclude chart visuals.', 'info');
+        chartsPreview.classList.remove('show');
+        return;
+    }
+
     generateAgeChart();
     generateSeverityChart();
     generateDeploymentChart();
@@ -543,6 +550,7 @@ function generateCharts() {
 }
 
 function generateAgeChart() {
+    if (typeof Chart === 'undefined') return;
     const ctx = document.getElementById('ageChart').getContext('2d');
     const ages = calculateUpdateAges(csvData);
     const labels = Object.keys(ages);
@@ -592,6 +600,7 @@ function generateAgeChart() {
 }
 
 function generateSeverityChart() {
+    if (typeof Chart === 'undefined') return;
     const ctx = document.getElementById('severityChart').getContext('2d');
     
     const severityCounts = csvData.reduce((acc, row) => {
@@ -669,6 +678,7 @@ function generateSeverityChart() {
 }
 
 function generateDeploymentChart() {
+    if (typeof Chart === 'undefined') return;
     const ctx = document.getElementById('deploymentChart').getContext('2d');
     
     const deploymentData = csvData.map(row => ({
@@ -765,6 +775,7 @@ function generateDeploymentChart() {
 }
 
 function generateTrendChart() {
+    if (typeof Chart === 'undefined') return;
     const ctx = document.getElementById('trendChart').getContext('2d');
     
     // Group by month from Release Date
@@ -854,6 +865,9 @@ function generateTrendChart() {
 
 async function generatePDFReport() {
     statusSection.classList.add('show');
+    // Hide any previous download section before starting a new run
+    downloadSection.classList.remove('show');
+    statusSection.scrollIntoView({ behavior: 'smooth' });
     updateProgress(0, 'Initializing report generation...');
     
     try {
@@ -895,6 +909,7 @@ async function generatePDFReport() {
         // Show download section and bring it into view
         downloadSection.classList.add('show');
         statusSection.classList.remove('show');
+        downloadLink.style.display = 'inline-block';
         downloadSection.scrollIntoView({ behavior: 'smooth' });
 
         // Focus download section for accessibility
