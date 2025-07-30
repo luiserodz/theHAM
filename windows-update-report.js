@@ -1055,20 +1055,24 @@ async function createPDFContent(pdf, config) {
 
         y += 6;
 
+        const bulletOffset = 8;
+        const dateX = pageWidth - pageMargin;
+        const nameX = pageMargin + bulletOffset;
+        const nameWidth = dateX - nameX - 2; // leave small gap before date column
         topCriticalUpdates.forEach((update, index) => {
             pdf.setFontSize(FONT_SIZES.caption);
             pdf.setFont(undefined, 'bold');
             pdf.text(`${index + 1}.`, pageMargin, y);
 
             pdf.setFont(undefined, 'normal');
-            const name = update.updateName.length > 45 ?
-                         update.updateName.substring(0, 42) + '...' :
-                         update.updateName;
-            pdf.text(name, pageMargin + 10, y);
+            const lines = pdf.splitTextToSize(update.updateName, nameWidth);
+            lines.forEach((line, lineIndex) => {
+                pdf.text(line, nameX, y + lineIndex * lineHeight);
+            });
 
-            pdf.text(update.releaseDate || '', pageWidth - pageMargin, y, { align: 'right' });
+            pdf.text(update.releaseDate || '', dateX, y, { align: 'right' });
 
-            y += 6;
+            y += lines.length * lineHeight;
         });
 
         // Give extra space after the critical updates section
