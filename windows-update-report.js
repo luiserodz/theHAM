@@ -921,7 +921,8 @@ async function createPDFContent(pdf, config) {
 
     // Header
     pdf.setFillColor(0, 120, 212);
-    const headerHeight = 50; // Reduced from 60
+    // Slightly taller header so the report period text has padding
+    const headerHeight = 60; // Increased from 50
     pdf.rect(0, 0, pageWidth, headerHeight, 'F');
 
     let headerY = 8; // Reduced from 10
