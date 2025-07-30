@@ -929,6 +929,8 @@ async function generatePDFReport() {
 async function createPDFContent(pdf, config) {
     const pageWidth = pdf.internal.pageSize.getWidth();
     const pageHeight = pdf.internal.pageSize.getHeight();
+    const pageMargin = 20; // uniform left/right margin
+    const usableWidth = pageWidth - pageMargin * 2;
     let currentPage = 1;
     
     // Standardized font sizes
@@ -994,9 +996,9 @@ if (summaryData.topCritical.length > 0) {
 pdf.setFontSize(FONT_SIZES.body);
 pdf.setFont(undefined, 'normal');
 let summaryY = headerHeight + 10;
-const summaryLines = pdf.splitTextToSize(summaryText, pageWidth - 40);
+const summaryLines = pdf.splitTextToSize(summaryText, usableWidth);
 summaryLines.forEach(line => {
-    pdf.text(line, 20, summaryY);
+    pdf.text(line, pageMargin, summaryY);
     summaryY += lineHeight;
 });
 summaryY += 4;
@@ -1118,7 +1120,7 @@ y = kpiY + kpiHeight + 15;
 
 pdf.setFontSize(FONT_SIZES.heading);
 pdf.setFont(undefined, 'bold');
-pdf.text('UPDATE AGE ANALYSIS', 20, y + 8);
+pdf.text('UPDATE AGE ANALYSIS', pageMargin, y + 8);
 
 // Draw age distribution bars
 const ageColors = {
@@ -1136,11 +1138,11 @@ const maxAgeCount = Math.max(...Object.values(updateAges));
 Object.entries(updateAges).forEach(([ageRange, count]) => {
     pdf.setFontSize(FONT_SIZES.small);
     pdf.setFont(undefined, 'normal');
-    pdf.text(ageRange, 25, ageY + 3);
+    pdf.text(ageRange, pageMargin + 5, ageY + 3);
     
     // Bar
-    const barStartX = 70;
-    const maxBarWidth = pageWidth - 100;
+    const barStartX = pageMargin + 50;
+    const maxBarWidth = usableWidth - 60;
     const barWidth = maxAgeCount > 0 ? (count / maxAgeCount) * maxBarWidth : 0;
     
     pdf.setFillColor(...ageColors[ageRange]);
@@ -1160,7 +1162,7 @@ if (deploymentGaps.length > 0) {
     
     pdf.setFontSize(FONT_SIZES.heading);
     pdf.setFont(undefined, 'bold');
-    pdf.text('TOP DEPLOYMENT GAPS - IMMEDIATE ATTENTION REQUIRED', 20, y + 6);
+    pdf.text('TOP DEPLOYMENT GAPS - IMMEDIATE ATTENTION REQUIRED', pageMargin, y + 6);
     
     y += 10;
     
@@ -1171,22 +1173,22 @@ if (deploymentGaps.length > 0) {
         
         pdf.setFontSize(FONT_SIZES.small);
         pdf.setFont(undefined, 'bold');
-        pdf.text(`${index + 1}.`, 25, y);
+        pdf.text(`${index + 1}.`, pageMargin + 5, y);
         
         pdf.setFont(undefined, 'normal');
         const updateName = gap.updateName.length > 50 ? 
                           gap.updateName.substring(0, 47) + '...' : 
                           gap.updateName;
-        pdf.text(updateName, 35, y);
+        pdf.text(updateName, pageMargin + 15, y);
         
         pdf.setTextColor(...severityColor);
-        pdf.text(gap.severity.toUpperCase(), pageWidth - 80, y);
+        pdf.text(gap.severity.toUpperCase(), pageWidth - (pageMargin + 60), y);
         
         pdf.setTextColor(0, 0, 0);
-        pdf.text(`${gap.missing} systems`, pageWidth - 40, y);
+        pdf.text(`${gap.missing} systems`, pageWidth - pageMargin, y);
         
         pdf.setFontSize(FONT_SIZES.caption);
-        pdf.text(`Released ${gap.daysOld} days ago`, 35, y + 4);
+        pdf.text(`Released ${gap.daysOld} days ago`, pageMargin + 15, y + 4);
         
         y += 9; // extra spacing between items
     });
@@ -1199,7 +1201,7 @@ const riskY = y;
 
 pdf.setFontSize(FONT_SIZES.heading);
 pdf.setFont(undefined, 'bold');
-pdf.text('RISK ASSESSMENT', 20, riskY + 6);
+pdf.text('RISK ASSESSMENT', pageMargin, riskY + 6);
 
 // Risk bars
 const riskLabels = ['Security Risk', 'Operational Risk', 'Compliance Risk'];
@@ -1209,10 +1211,10 @@ let riskBarY = riskY + 10;
 riskLabels.forEach((label, i) => {
     pdf.setFontSize(FONT_SIZES.small);
     pdf.setFont(undefined, 'normal');
-    pdf.text(label, 25, riskBarY + 3);
+    pdf.text(label, pageMargin + 5, riskBarY + 3);
     
     // Risk bar background
-    const barStartX = 100;
+    const barStartX = pageMargin + 80;
     const maxBarWidth = 60;
     pdf.setFillColor(230, 230, 230);
     pdf.rect(barStartX, riskBarY, maxBarWidth, 4, 'F');
@@ -1243,7 +1245,7 @@ if (y < pageHeight - 40) {
     pdf.setFontSize(FONT_SIZES.heading);
     pdf.setFont(undefined, 'bold');
     pdf.setTextColor(40, 167, 69);
-    pdf.text('DEPLOYMENT SUCCESS METRICS', 20, y + 6);
+    pdf.text('DEPLOYMENT SUCCESS METRICS', pageMargin, y + 6);
     
     pdf.setFontSize(FONT_SIZES.small);
     pdf.setFont(undefined, 'normal');
@@ -1258,7 +1260,7 @@ if (y < pageHeight - 40) {
     
     let successY = y + 11;
     successLines.forEach(line => {
-        pdf.text(line, 25, successY);
+        pdf.text(line, pageMargin + 5, successY);
         successY += 5;
     });
     
@@ -1270,15 +1272,15 @@ if (config.notes && y < pageHeight - 30) {
     
     pdf.setFontSize(FONT_SIZES.body);
     pdf.setFont(undefined, 'bold');
-    pdf.text('Additional Notes:', 20, y + 6);
+    pdf.text('Additional Notes:', pageMargin, y + 6);
     
     pdf.setFontSize(FONT_SIZES.small);
     pdf.setFont(undefined, 'normal');
-    const noteLines = pdf.splitTextToSize(config.notes, pageWidth - 40);
+    const noteLines = pdf.splitTextToSize(config.notes, usableWidth);
     let noteY = y + 11;
     noteLines.forEach(line => {
         if (noteY > pageHeight - 20) return;
-        pdf.text(line, 20, noteY);
+        pdf.text(line, pageMargin, noteY);
         noteY += lineHeight;
     });
 }
@@ -1305,12 +1307,12 @@ if (config.notes && y < pageHeight - 30) {
     pdf.setFontSize(FONT_SIZES.small);
     pdf.setFont(undefined, 'normal');
     pdf.setTextColor(108, 117, 125);
-    pdf.text(`Page ${currentPage}`, pageWidth - 20, 10, { align: 'right' });
+    pdf.text(`Page ${currentPage}`, pageWidth - pageMargin, 10, { align: 'right' });
     
     pdf.setTextColor(0, 0, 0);
     
     // Chart dimensions
-    const chartWidth = pageWidth - 40;
+    const chartWidth = pageWidth - pageMargin * 2;
     const chartHeight = 60;
     
     // Security Severity Chart
@@ -1333,7 +1335,7 @@ if (config.notes && y < pageHeight - 30) {
         pdf.setFontSize(FONT_SIZES.body);
         pdf.setFont(undefined, 'normal');
         
-        const lines1 = pdf.splitTextToSize('This chart shows the distribution of updates by security severity for the current period:', pageWidth - 40);
+        const lines1 = pdf.splitTextToSize('This chart shows the distribution of updates by security severity for the current period:', usableWidth);
         lines1.forEach(line => {
             pdf.text(line, 20, y);
             y += lineHeight;
@@ -1391,7 +1393,7 @@ if (config.notes && y < pageHeight - 30) {
                 pdf.setFontSize(FONT_SIZES.small);
                 pdf.setFont(undefined, 'normal');
                 pdf.setTextColor(108, 117, 125);
-                pdf.text(`Page ${currentPage}`, pageWidth - 20, 10, { align: 'right' });
+                pdf.text(`Page ${currentPage}`, pageWidth - pageMargin, 10, { align: 'right' });
                 pdf.setTextColor(0, 0, 0);
                 pdf.setFontSize(FONT_SIZES.small);
                 pdf.setFont(undefined, 'normal');
@@ -1403,7 +1405,7 @@ if (config.notes && y < pageHeight - 30) {
                 pdf.setFont(undefined, 'normal');
             }
             
-            const lines = pdf.splitTextToSize(text, pageWidth - 40);
+            const lines = pdf.splitTextToSize(text, usableWidth);
             lines.forEach(line => {
                 pdf.text(line, text.startsWith('•') ? 25 : 20, y);
                 y += lineHeight;
@@ -1432,7 +1434,7 @@ if (config.notes && y < pageHeight - 30) {
         pdf.setFontSize(FONT_SIZES.small);
         pdf.setFont(undefined, 'normal');
         pdf.setTextColor(108, 117, 125);
-        pdf.text(`Page ${currentPage}`, pageWidth - 20, 10, { align: 'right' });
+        pdf.text(`Page ${currentPage}`, pageWidth - pageMargin, 10, { align: 'right' });
         pdf.setTextColor(0, 0, 0);
     }
     
@@ -1454,7 +1456,7 @@ if (config.notes && y < pageHeight - 30) {
         pdf.setFontSize(FONT_SIZES.body);
         pdf.setFont(undefined, 'normal');
         
-        const deploymentIntro = pdf.splitTextToSize('This chart shows the deployment status of the top 10 updates with the highest number of assigned devices:', pageWidth - 40);
+        const deploymentIntro = pdf.splitTextToSize('This chart shows the deployment status of the top 10 updates with the highest number of assigned devices:', usableWidth);
         deploymentIntro.forEach(line => {
             pdf.text(line, 20, y);
             y += lineHeight;
@@ -1508,7 +1510,7 @@ if (config.notes && y < pageHeight - 30) {
                 pdf.setFontSize(FONT_SIZES.small);
                 pdf.setFont(undefined, 'normal');
                 pdf.setTextColor(108, 117, 125);
-                pdf.text(`Page ${currentPage}`, pageWidth - 20, 10, { align: 'right' });
+                pdf.text(`Page ${currentPage}`, pageWidth - pageMargin, 10, { align: 'right' });
                 pdf.setTextColor(0, 0, 0);
                 pdf.setFontSize(FONT_SIZES.small);
                 pdf.setFont(undefined, 'normal');
@@ -1520,7 +1522,7 @@ if (config.notes && y < pageHeight - 30) {
                 pdf.setFont(undefined, 'normal');
             }
             
-            const lines = pdf.splitTextToSize(text, pageWidth - 40);
+            const lines = pdf.splitTextToSize(text, usableWidth);
             lines.forEach(line => {
                 pdf.text(line, text.startsWith('•') ? 25 : 20, y);
                 y += lineHeight;
@@ -1550,7 +1552,7 @@ if (config.notes && y < pageHeight - 30) {
         pdf.setFontSize(FONT_SIZES.small);
         pdf.setFont(undefined, 'normal');
         pdf.setTextColor(108, 117, 125);
-        pdf.text(`Page ${currentPage}`, pageWidth - 20, 10, { align: 'right' });
+        pdf.text(`Page ${currentPage}`, pageWidth - pageMargin, 10, { align: 'right' });
         pdf.setTextColor(0, 0, 0);
     }
     
@@ -1609,7 +1611,7 @@ if (config.notes && y < pageHeight - 30) {
             }
         }
         
-        const trendIntro = pdf.splitTextToSize('This graph displays the trend of updates released over time, highlighting our ongoing maintenance and security efforts:', pageWidth - 40);
+        const trendIntro = pdf.splitTextToSize('This graph displays the trend of updates released over time, highlighting our ongoing maintenance and security efforts:', usableWidth);
         trendIntro.forEach(line => {
             pdf.text(line, 20, y);
             y += lineHeight;
@@ -1656,7 +1658,7 @@ if (config.notes && y < pageHeight - 30) {
                 pdf.setFontSize(FONT_SIZES.small);
                 pdf.setFont(undefined, 'normal');
                 pdf.setTextColor(108, 117, 125);
-                pdf.text(`Page ${currentPage}`, pageWidth - 20, 10, { align: 'right' });
+                pdf.text(`Page ${currentPage}`, pageWidth - pageMargin, 10, { align: 'right' });
                 pdf.setTextColor(0, 0, 0);
                 pdf.setFontSize(FONT_SIZES.small);
                 pdf.setFont(undefined, 'normal');
@@ -1668,7 +1670,7 @@ if (config.notes && y < pageHeight - 30) {
                 pdf.setFont(undefined, 'normal');
             }
             
-            const lines = pdf.splitTextToSize(text, pageWidth - 40);
+            const lines = pdf.splitTextToSize(text, usableWidth);
             lines.forEach(line => {
                 pdf.text(line, text.startsWith('•') ? 25 : 20, y);
                 y += lineHeight;
