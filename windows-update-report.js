@@ -932,6 +932,10 @@ async function createPDFContent(pdf, config) {
     const pageMargin = 20; // uniform left/right margin
     const usableWidth = pageWidth - pageMargin * 2;
     let currentPage = 1;
+
+    // Dimensions used when embedding chart images
+    const chartWidth = pageWidth - pageMargin * 2;
+    const chartHeight = 60;
     
     // Standardized font sizes
     const FONT_SIZES = {
@@ -1156,33 +1160,190 @@ async function createPDFContent(pdf, config) {
         pdf.setFontSize(FONT_SIZES.heading);
         pdf.setFont(undefined, 'bold');
         pdf.text('TOP DEPLOYMENT GAPS', pageMargin, y);
-        
+
         y += 6;
-        
+
         deploymentGaps.slice(0, 3).forEach((gap, index) => { // Limit to 3 items to save space
             const severityColor = gap.severity.toLowerCase().includes('critical') ? [220, 53, 69] :
                                  gap.severity.toLowerCase().includes('important') ? [253, 126, 20] :
                                  [108, 117, 125];
-            
+
             pdf.setFontSize(FONT_SIZES.caption);
             pdf.setFont(undefined, 'bold');
             pdf.text(`${index + 1}.`, pageMargin, y);
-            
+
             pdf.setFont(undefined, 'normal');
-            const updateName = gap.updateName.length > 45 ? 
-                              gap.updateName.substring(0, 42) + '...' : 
+            const updateName = gap.updateName.length > 45 ?
+                              gap.updateName.substring(0, 42) + '...' :
                               gap.updateName;
             pdf.text(updateName, pageMargin + 10, y);
-            
+
             pdf.setTextColor(...severityColor);
             pdf.text(gap.severity.toUpperCase(), pageWidth - 50, y);
-            
+
             pdf.setTextColor(0, 0, 0);
             pdf.text(`${gap.missing}`, pageWidth - pageMargin, y);
-            
+
             y += 6;
         });
     }
+    // Security Severity Distribution chart (dedicated page)
+    if (document.getElementById('includeSeverityChart').checked && charts.severity) {
+        pdf.addPage();
+        currentPage++;
+        y = 20;
+
+        // Page header
+        pdf.setFillColor(240, 248, 255);
+        pdf.rect(0, 0, pageWidth, 15, 'F');
+        pdf.setDrawColor(0, 120, 212);
+        pdf.setLineWidth(0.5);
+        pdf.line(0, 15, pageWidth, 15);
+        pdf.setFontSize(FONT_SIZES.body);
+        pdf.setFont(undefined, 'bold');
+        pdf.setTextColor(51, 51, 51);
+        pdf.text('Charts & Analysis', 15, 10);
+        pdf.setFontSize(FONT_SIZES.small);
+        pdf.setFont(undefined, 'normal');
+        pdf.setTextColor(108, 117, 125);
+        pdf.text(`Page ${currentPage}`, pageWidth - pageMargin, 10, { align: 'right' });
+        pdf.setTextColor(0, 0, 0);
+
+        pdf.setFontSize(FONT_SIZES.heading);
+        pdf.setFont(undefined, 'bold');
+        pdf.setTextColor(0, 78, 120);
+        pdf.text('Security Severity Distribution – Summary', 20, y);
+        pdf.setTextColor(0, 0, 0);
+        y += sectionSpacing;
+
+        const chartX = (pageWidth - chartWidth) / 2;
+        await addCompactChartToPDF(pdf, 'severityChart', '', chartX, y, chartWidth, chartHeight);
+        y += chartHeight + sectionSpacing;
+
+        pdf.setFontSize(FONT_SIZES.body);
+        pdf.setFont(undefined, 'normal');
+        const lines1 = pdf.splitTextToSize('This chart shows the distribution of updates by security severity for the current period:', usableWidth);
+        lines1.forEach(line => {
+            pdf.text(line, 20, y);
+            y += lineHeight;
+        });
+        y += paragraphSpacing;
+
+        pdf.setFont(undefined, 'bold');
+        const criticalCount = stats.criticalUpdates;
+        const criticalPercent = Math.round((criticalCount / stats.totalUpdates) * 100);
+        pdf.setTextColor(220, 53, 69);
+        pdf.text(`• Critical: ${criticalCount} updates (${criticalPercent}%)`, 20, y);
+        y += lineHeight;
+
+        const importantCount = stats.importantUpdates;
+        const importantPercent = Math.round((importantCount / stats.totalUpdates) * 100);
+        pdf.setTextColor(253, 126, 20);
+        pdf.text(`• Important: ${importantCount} updates (${importantPercent}%)`, 20, y);
+        y += lineHeight;
+
+        const otherCount = stats.totalUpdates - criticalCount - importantCount;
+        const otherPercent = Math.round((otherCount / stats.totalUpdates) * 100);
+        pdf.setTextColor(108, 117, 125);
+        pdf.text(`• Unspecified or Low: ${otherCount} updates (${otherPercent}%)`, 20, y);
+        y += sectionSpacing;
+
+        pdf.setTextColor(0, 0, 0);
+        pdf.setFont(undefined, 'normal');
+        pdf.setFontSize(FONT_SIZES.small);
+        const cvssExplanation = [
+            'The severity of each update is assessed using the Common Vulnerability Scoring System (CVSS).',
+            'Critical updates are typically reserved for vulnerabilities that could allow remote code execution without user interaction.',
+            'Important updates address serious but less severe issues, such as privilege escalation or denial of service.',
+            'Unspecified or Low refers to updates that either lack a published CVSS score or are not classified as high-impact. These often include updates related to feature improvements or pending vendor analysis.'
+        ];
+        cvssExplanation.forEach(text => {
+            const lines = pdf.splitTextToSize(text, usableWidth);
+            lines.forEach(line => {
+                pdf.text(line, 20, y);
+                y += lineHeight;
+            });
+            y += paragraphSpacing;
+        });
+    }
+
+    // Deployment Summary chart (dedicated page)
+    if (document.getElementById('includeDeploymentChart').checked && charts.deployment) {
+        pdf.addPage();
+        currentPage++;
+        y = 20;
+
+        // Page header
+        pdf.setFillColor(240, 248, 255);
+        pdf.rect(0, 0, pageWidth, 15, 'F');
+        pdf.setDrawColor(0, 120, 212);
+        pdf.setLineWidth(0.5);
+        pdf.line(0, 15, pageWidth, 15);
+        pdf.setFontSize(FONT_SIZES.body);
+        pdf.setFont(undefined, 'bold');
+        pdf.setTextColor(51, 51, 51);
+        pdf.text('Charts & Analysis', 15, 10);
+        pdf.setFontSize(FONT_SIZES.small);
+        pdf.setFont(undefined, 'normal');
+        pdf.setTextColor(108, 117, 125);
+        pdf.text(`Page ${currentPage}`, pageWidth - pageMargin, 10, { align: 'right' });
+        pdf.setTextColor(0, 0, 0);
+
+        pdf.setFontSize(FONT_SIZES.heading);
+        pdf.setFont(undefined, 'bold');
+        pdf.setTextColor(0, 78, 120);
+        pdf.text('Deployment Summary – Top 10 Updates by Volume', 20, y);
+        pdf.setTextColor(0, 0, 0);
+        y += sectionSpacing;
+
+        const chartX2 = (pageWidth - chartWidth) / 2;
+        await addCompactChartToPDF(pdf, 'deploymentChart', '', chartX2, y, chartWidth, chartHeight);
+        y += chartHeight + sectionSpacing;
+
+        pdf.setFontSize(FONT_SIZES.body);
+        pdf.setFont(undefined, 'normal');
+        const deploymentIntro = pdf.splitTextToSize('This chart shows the deployment status of the top 10 updates with the highest number of assigned devices:', usableWidth);
+        deploymentIntro.forEach(line => {
+            pdf.text(line, 20, y);
+            y += lineHeight;
+        });
+        y += paragraphSpacing;
+
+        pdf.setFont(undefined, 'bold');
+        pdf.text(`• Total missing deployments: ${stats.totalMissing}`, 20, y);
+        y += lineHeight;
+        pdf.text(`• Overall compliance rate: ${stats.complianceRate}%`, 20, y);
+        y += sectionSpacing;
+
+        pdf.setFont(undefined, 'normal');
+        pdf.setFontSize(FONT_SIZES.small);
+        const topMissingUpdate = csvData
+            .map(row => ({
+                name: row['Update Name'],
+                missing: parseInt(row['Updates Missing']?.toString().replace(/\D/g, '') || '0')
+            }))
+            .sort((a, b) => b.missing - a.missing)[0];
+
+        const deploymentExplanation = [
+            'This chart highlights updates with the largest number of total targets (both successful and pending). Green bars represent successfully deployed updates, while red bars indicate devices where the update is still pending or failed.',
+            topMissingUpdate && topMissingUpdate.missing > 0 ?
+                `High-miss updates such as "${topMissingUpdate.name.substring(0, 60)}${topMissingUpdate.name.length > 60 ? '...' : ''}" may require review of deployment assignments, application version conflicts, or device connectivity status.` :
+                'All updates show good deployment coverage with minimal missing installations.',
+            'This data is used to help identify:',
+            '• Trends in common deployment failures',
+            '• Apps with wide install footprints but low coverage',
+            '• Potential priorities for remediation in the next patch cycle'
+        ];
+        deploymentExplanation.forEach(text => {
+            const lines = pdf.splitTextToSize(text, usableWidth);
+            lines.forEach(line => {
+                pdf.text(line, text.startsWith('•') ? 25 : 20, y);
+                y += lineHeight;
+            });
+            y += paragraphSpacing;
+        });
+    }
+
 
     // Check if we need a new page for trend chart
     if (y > pageHeight - 100) {
