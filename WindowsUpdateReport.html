@@ -40,16 +40,6 @@
                 <button class="btn btn-secondary" id="downloadSample">Download Sample CSV</button>
             </div>
 
-            <!-- Data Preview Section -->
-            <div class="data-preview" id="dataPreview">
-                <div class="preview-header">
-                    <span role="img" aria-label="clipboard">📋</span> Data Preview
-                </div>
-                <div class="preview-content">
-                    <div id="dataStats" class="stats-grid"></div>
-                    <table class="preview-table" id="previewTable"></table>
-                </div>
-            </div>
 
             <!-- Report Options Section -->
             <div class="report-options" id="reportOptions">
@@ -163,11 +153,20 @@
             <div class="charts-preview" id="chartsPreview">
                 <h3>📈 Report Preview</h3>
 
+                <!-- Data Preview as part of report preview -->
+                <div class="data-preview chart-container padded-chart" id="dataPreview">
+                    <div class="chart-title"><span role="img" aria-label="clipboard">📋</span> Data</div>
+                    <div class="preview-content">
+                        <div id="dataStats" class="stats-grid"></div>
+                        <table class="preview-table" id="previewTable"></table>
+                    </div>
+                </div>
+
                 <!-- Enhanced Executive Summary Preview -->
-<div class="chart-container padded-chart" style="height: 250px;">
-    <div class="chart-title">Update Age Distribution</div>
-    <canvas id="ageChart"></canvas>
-</div>
+                <div class="chart-container padded-chart" style="height: 250px;">
+                    <div class="chart-title">Update Age Distribution</div>
+                    <canvas id="ageChart"></canvas>
+                </div>
 
 <div class="deployment-gaps-preview" id="deploymentGapsPreview" style="display: none;">
     <h4>Top Deployment Gaps</h4>
