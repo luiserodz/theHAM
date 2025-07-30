@@ -278,6 +278,19 @@ function getTopDeploymentGaps(csvData) {
         .slice(0, 5);
 }
 
+// Get top critical updates
+function getTopCriticalUpdates(csvData) {
+    return csvData
+        .filter(row => row['Security Severity']?.toLowerCase().includes('critical'))
+        .map(row => ({
+            updateName: row['Update Name'],
+            releaseDate: row['Release Date'],
+            missing: parseInt(row['Updates Missing']?.toString().replace(/\D/g, '') || '0')
+        }))
+        .sort((a, b) => b.missing - a.missing)
+        .slice(0, 5);
+}
+
 // Calculate risk scores
 function calculateRiskScores(csvData) {
     const stats = generateStatistics();
@@ -904,7 +917,7 @@ async function createPDFContent(pdf, config) {
     // Collect overall statistics for the report
     const reportStats = generateStatistics();
     const updateAges = calculateUpdateAges(csvData);
-    const deploymentGaps = getTopDeploymentGaps(csvData);
+    const topCriticalUpdates = getTopCriticalUpdates(csvData);
 
     // Header
     pdf.setFillColor(0, 120, 212);
@@ -1034,43 +1047,40 @@ async function createPDFContent(pdf, config) {
     y = ageY + sectionSpacing;
     }
 
-    // Deployment Gaps Table - move to first page if space allows
-    if (deploymentGaps.length > 0 && y + 50 < pageHeight - 30) {
+    // Top Critical Updates - move to first page if space allows
+    if (topCriticalUpdates.length > 0 && y + 50 < pageHeight - 30) {
         pdf.setFontSize(FONT_SIZES.heading);
         pdf.setFont(undefined, 'bold');
-        pdf.text('TOP DEPLOYMENT GAPS', pageMargin, y);
+        pdf.text('TOP CRITICAL UPDATES', pageMargin, y);
 
         y += 6;
 
-        deploymentGaps.slice(0, 3).forEach((gap, index) => { // Limit to 3 items to save space
-            const severityColor = gap.severity.toLowerCase().includes('critical') ? [220, 53, 69] :
-                                 gap.severity.toLowerCase().includes('important') ? [253, 126, 20] :
-                                 [108, 117, 125];
+        const bulletOffset = 8;
+        const dateX = pageWidth - pageMargin;
+        const nameX = pageMargin + bulletOffset;
+        const nameWidth = dateX - nameX - 2; // leave small gap before date column
 
+        topCriticalUpdates.forEach((update, index) => {
             pdf.setFontSize(FONT_SIZES.caption);
             pdf.setFont(undefined, 'bold');
             pdf.text(`${index + 1}.`, pageMargin, y);
 
             pdf.setFont(undefined, 'normal');
-            const updateName = gap.updateName.length > 45 ?
-                              gap.updateName.substring(0, 42) + '...' :
-                              gap.updateName;
-            pdf.text(updateName, pageMargin + 10, y);
+            const lines = pdf.splitTextToSize(update.updateName, nameWidth);
+            lines.forEach((line, lineIndex) => {
+                pdf.text(line, nameX, y + lineIndex * lineHeight);
+            });
 
-            pdf.setTextColor(...severityColor);
-            pdf.text(gap.severity.toUpperCase(), pageWidth - 50, y);
+            pdf.text(update.releaseDate || '', dateX, y, { align: 'right' });
 
-            pdf.setTextColor(0, 0, 0);
-            pdf.text(`${gap.missing}`, pageWidth - pageMargin, y);
-
-            y += 6;
+            y += lines.length * lineHeight;
         });
 
-        // Give extra space after the deployment gaps section
+        // Give extra space after the critical updates section
         y += sectionSpacing;
     }
 
-    // Executive summary paragraph (moved below deployment gaps)
+    // Executive summary paragraph (moved below critical updates)
     const summaryData = getExecutiveSummaryData();
     let summaryText = `Update compliance is currently at ${summaryData.complianceRate}% across ${summaryData.totalDevices} released updates, reflecting our ongoing enforcement of patching standards.`;
     if (summaryData.topCritical.length > 0) {
