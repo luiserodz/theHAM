@@ -1062,7 +1062,6 @@ async function createPDFContent(pdf, config) {
         const dateX = pageWidth - pageMargin;
         const nameX = bulletX + 4; // space after the number
         const nameWidth = dateX - nameX - 2; // leave small gap before date column
-
         topCriticalUpdates.forEach((update, index) => {
             pdf.setFontSize(FONT_SIZES.caption);
             pdf.setFont(undefined, 'bold');
