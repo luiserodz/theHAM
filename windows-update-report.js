@@ -993,11 +993,9 @@ async function createPDFContent(pdf, config) {
     // Reuse the statistics already gathered
 
     // Create stats grid similar to web app
-    const statWidth = 35;
-    const statHeight = 25;
     const statSpacing = 5;
-    const totalStatsWidth = (5 * statWidth) + (4 * statSpacing);
-    const startX = (pageWidth - totalStatsWidth) / 2;
+    const statHeight = 25;
+    const statWidth = (usableWidth - (2 * statSpacing)) / 3;
 
     // Draw stat cards
     const statData = [
@@ -1008,33 +1006,42 @@ async function createPDFContent(pdf, config) {
         { label: 'Compliance Rate', value: `${reportStats.complianceRate}%`, color: [40, 167, 69] }
     ];
 
-    statData.forEach((stat, index) => {
-        const x = startX + (index * (statWidth + statSpacing));
-        
-        // Draw card background
-        pdf.setFillColor(248, 249, 250);
-        pdf.setDrawColor(222, 226, 230);
-        pdf.rect(x, y, statWidth, statHeight, 'FD');
-        
-        // Draw stat value
-        pdf.setFontSize(16);
-        pdf.setFont(undefined, 'bold');
-        pdf.setTextColor(...stat.color);
-        pdf.text(stat.value.toString(), x + statWidth/2, y + 10, { align: 'center' });
-        
-        // Draw stat label
-        pdf.setFontSize(FONT_SIZES.caption);
-        pdf.setFont(undefined, 'normal');
-        pdf.setTextColor(108, 117, 125);
-        
-        // Split label into lines if needed
-        const labelLines = pdf.splitTextToSize(stat.label, statWidth - 4);
-        labelLines.forEach((line, lineIndex) => {
-            pdf.text(line, x + statWidth/2, y + 16 + (lineIndex * 4), { align: 'center' });
+    const rows = [statData.slice(0, 3), statData.slice(3)];
+
+    rows.forEach((rowStats, rowIndex) => {
+        const rowWidth = rowStats.length * statWidth + (rowStats.length - 1) * statSpacing;
+        const startX = pageMargin + (usableWidth - rowWidth) / 2;
+
+        rowStats.forEach((stat, index) => {
+            const x = startX + (index * (statWidth + statSpacing));
+
+            // Draw card background
+            pdf.setFillColor(248, 249, 250);
+            pdf.setDrawColor(222, 226, 230);
+            pdf.rect(x, y, statWidth, statHeight, 'FD');
+
+            // Draw stat value
+            pdf.setFontSize(16);
+            pdf.setFont(undefined, 'bold');
+            pdf.setTextColor(...stat.color);
+            pdf.text(stat.value.toString(), x + statWidth/2, y + 10, { align: 'center' });
+
+            // Draw stat label
+            pdf.setFontSize(FONT_SIZES.caption);
+            pdf.setFont(undefined, 'normal');
+            pdf.setTextColor(108, 117, 125);
+
+            // Split label into lines if needed
+            const labelLines = pdf.splitTextToSize(stat.label, statWidth - 4);
+            labelLines.forEach((line, lineIndex) => {
+                pdf.text(line, x + statWidth/2, y + 16 + (lineIndex * 4), { align: 'center' });
+            });
         });
+
+        y += statHeight + 10; // Space between rows
     });
 
-    y += statHeight + 20;
+    y += 10;
 
     // Update Age Distribution - keep within margins
     if (y + 35 < pageHeight - 40) {
