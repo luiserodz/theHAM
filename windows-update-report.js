@@ -940,12 +940,10 @@ async function createPDFContent(pdf, config) {
     // --- TITLE PAGE ---
     updateProgress(20, 'Creating title page...');
 
-    // Calculate enhanced metrics first
-    const healthScore = calculateHealthScore(csvData);
+    // Get statistics
+    const stats = generateStatistics();
     const updateAges = calculateUpdateAges(csvData);
     const deploymentGaps = getTopDeploymentGaps(csvData);
-    const riskScores = calculateRiskScores(csvData);
-    const successMetrics = calculateSuccessMetrics(csvData);
 
     // Header
     pdf.setFillColor(0, 120, 212);
@@ -989,118 +987,55 @@ async function createPDFContent(pdf, config) {
         summaryY += lineHeight;
     });
 
-    // Enhanced Executive Dashboard
-    let y = summaryY + 8; // Reduced spacing
+// Statistics Section (matching web app)
+    let y = summaryY + 15;
 
-    // Health Score Section
-    let healthColor = [40, 167, 69];
-    if (healthScore < 70) {
-        healthColor = [220, 53, 69];
-    } else if (healthScore < 85) {
-        healthColor = [253, 126, 20];
-    }
-
-    pdf.setFontSize(FONT_SIZES.sectionTitle);
-    pdf.setFont(undefined, 'bold');
-    pdf.text('OVERALL HEALTH SCORE', pageWidth / 2, y, { align: 'center' });
-
-    // Score number
-    pdf.setFontSize(24); // Reduced from 26
-    pdf.setTextColor(...healthColor);
-    pdf.text(`${healthScore}/100`, pageWidth / 2, y + 12, { align: 'center' });
-
-    pdf.setTextColor(0, 0, 0);
-    y += 25; // Reduced from 35
-
-    // Enhanced KPI Cards with stronger colors
-    const kpiY = y;
-    const kpiWidth = 48; // Slightly reduced from 50
-    const kpiHeight = 32; // Reduced from 35
-    const kpiSpacing = 8; // Reduced from 10
-    const totalKpiWidth = (3 * kpiWidth) + (2 * kpiSpacing);
-    const kpiStartX = (pageWidth - totalKpiWidth) / 2;
-
-    // Compliance Rate Card - Enhanced colors
-    pdf.setDrawColor(0, 120, 212);
-    pdf.setFillColor(0, 120, 212); // Solid blue instead of light blue
-    pdf.rect(kpiStartX, kpiY, kpiWidth, kpiHeight, 'F');
-    pdf.setFillColor(255, 255, 255); // White text background
-    pdf.rect(kpiStartX + 2, kpiY + 2, kpiWidth - 4, kpiHeight - 4, 'F');
-
-    pdf.setFontSize(FONT_SIZES.small);
-    pdf.setFont(undefined, 'bold');
-    pdf.setTextColor(0, 120, 212);
-    pdf.text('COMPLIANCE RATE', kpiStartX + kpiWidth/2, kpiY + 6, { align: 'center' });
-
+    // Get statistics
     const stats = generateStatistics();
-    const complianceColor = stats.complianceRate >= 95 ? [40, 167, 69] : 
-                           stats.complianceRate >= 80 ? [253, 126, 20] : [220, 53, 69];
-    pdf.setFontSize(18); // Reduced from 20
-    pdf.setTextColor(...complianceColor);
-    pdf.text(`${stats.complianceRate}%`, kpiStartX + kpiWidth/2, kpiY + 16, { align: 'center' });
 
-    pdf.setFontSize(FONT_SIZES.caption);
-    pdf.setTextColor(108, 117, 125);
-    pdf.setFont(undefined, 'normal');
-    pdf.text(`${stats.totalDeployed} of ${stats.totalDeployed + stats.totalMissing}`, kpiStartX + kpiWidth/2, kpiY + 24, { align: 'center' });
+    // Create stats grid similar to web app
+    const statWidth = 35;
+    const statHeight = 25;
+    const statSpacing = 5;
+    const totalStatsWidth = (5 * statWidth) + (4 * statSpacing);
+    const startX = (pageWidth - totalStatsWidth) / 2;
 
-    // Critical Risk Card - Enhanced colors
-    const criticalX = kpiStartX + kpiWidth + kpiSpacing;
-    pdf.setDrawColor(220, 53, 69);
-    pdf.setFillColor(220, 53, 69); // Solid red
-    pdf.rect(criticalX, kpiY, kpiWidth, kpiHeight, 'F');
-    pdf.setFillColor(255, 255, 255);
-    pdf.rect(criticalX + 2, kpiY + 2, kpiWidth - 4, kpiHeight - 4, 'F');
+    // Draw stat cards
+    const statData = [
+        { label: 'Total Updates', value: stats.totalUpdates, color: [0, 120, 212] },
+        { label: 'Critical Updates', value: stats.criticalUpdates, color: [220, 53, 69] },
+        { label: 'Important Updates', value: stats.importantUpdates, color: [253, 126, 20] },
+        { label: 'Missing Deployments', value: stats.totalMissing, color: [108, 117, 125] },
+        { label: 'Compliance Rate', value: `${stats.complianceRate}%`, color: [40, 167, 69] }
+    ];
 
-    pdf.setFontSize(FONT_SIZES.small);
-    pdf.setFont(undefined, 'bold');
-    pdf.setTextColor(220, 53, 69);
-    pdf.text('CRITICAL UPDATES', criticalX + kpiWidth/2, kpiY + 6, { align: 'center' });
+    statData.forEach((stat, index) => {
+        const x = startX + (index * (statWidth + statSpacing));
+        
+        // Draw card background
+        pdf.setFillColor(248, 249, 250);
+        pdf.setDrawColor(222, 226, 230);
+        pdf.rect(x, y, statWidth, statHeight, 'FD');
+        
+        // Draw stat value
+        pdf.setFontSize(16);
+        pdf.setFont(undefined, 'bold');
+        pdf.setTextColor(...stat.color);
+        pdf.text(stat.value.toString(), x + statWidth/2, y + 10, { align: 'center' });
+        
+        // Draw stat label
+        pdf.setFontSize(FONT_SIZES.caption);
+        pdf.setFont(undefined, 'normal');
+        pdf.setTextColor(108, 117, 125);
+        
+        // Split label into lines if needed
+        const labelLines = pdf.splitTextToSize(stat.label, statWidth - 4);
+        labelLines.forEach((line, lineIndex) => {
+            pdf.text(line, x + statWidth/2, y + 16 + (lineIndex * 4), { align: 'center' });
+        });
+    });
 
-    pdf.setFontSize(18);
-    pdf.text(`${stats.criticalUpdates}`, criticalX + kpiWidth/2, kpiY + 16, { align: 'center' });
-
-    const criticalSystems = csvData
-        .filter(r => r['Security Severity']?.toLowerCase().includes('critical'))
-        .reduce((sum, r) => sum + parseInt(r['Updates Missing']?.toString().replace(/\D/g, '') || '0'), 0);
-
-    pdf.setFontSize(FONT_SIZES.caption);
-    pdf.setTextColor(108, 117, 125);
-    pdf.setFont(undefined, 'normal');
-    pdf.text(`${criticalSystems} devices`, criticalX + kpiWidth/2, kpiY + 24, { align: 'center' });
-
-    // Pending Updates Card - Enhanced colors
-    const pendingX = criticalX + kpiWidth + kpiSpacing;
-    pdf.setDrawColor(253, 126, 20);
-    pdf.setFillColor(253, 126, 20); // Solid orange
-    pdf.rect(pendingX, kpiY, kpiWidth, kpiHeight, 'F');
-    pdf.setFillColor(255, 255, 255);
-    pdf.rect(pendingX + 2, kpiY + 2, kpiWidth - 4, kpiHeight - 4, 'F');
-
-    pdf.setFontSize(FONT_SIZES.small);
-    pdf.setFont(undefined, 'bold');
-    pdf.setTextColor(253, 126, 20);
-    pdf.text('PENDING UPDATES', pendingX + kpiWidth/2, kpiY + 6, { align: 'center' });
-
-    const pendingCount = csvData.filter(row =>
-        parseInt(row['Updates Missing']?.toString().replace(/\D/g, '') || '0') > 0
-    ).length;
-
-    const pendingColor = pendingCount > 20 ? [220, 53, 69] :
-                         pendingCount > 10 ? [253, 126, 20] : [40, 167, 69];
-    pdf.setFontSize(18);
-    pdf.setTextColor(...pendingColor);
-    pdf.text(`${pendingCount}`, pendingX + kpiWidth/2, kpiY + 16, { align: 'center' });
-
-    pdf.setFontSize(FONT_SIZES.caption);
-    pdf.setTextColor(108, 117, 125);
-    pdf.setFont(undefined, 'normal');
-    const overdueCount = Object.entries(updateAges).reduce((sum, [key, value]) => {
-        return key === '31-60 days' || key === '>60 days' ? sum + value : sum;
-    }, 0);
-    pdf.text(`${overdueCount} overdue`, pendingX + kpiWidth/2, kpiY + 24, { align: 'center' });
-
-    y = kpiY + kpiHeight + 10; // Reduced spacing
+    y += statHeight + 20;
 
     // Update Age Distribution - keep within margins
     if (y + 35 < pageHeight - 40) {
