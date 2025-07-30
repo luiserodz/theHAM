@@ -932,6 +932,10 @@ async function createPDFContent(pdf, config) {
     const pageMargin = 20; // uniform left/right margin
     const usableWidth = pageWidth - pageMargin * 2;
     let currentPage = 1;
+
+    // Dimensions used when embedding chart images
+    const chartWidth = pageWidth - pageMargin * 2;
+    const chartHeight = 60;
     
     // Standardized font sizes
     const FONT_SIZES = {
