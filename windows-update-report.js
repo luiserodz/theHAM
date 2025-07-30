@@ -1023,16 +1023,18 @@ async function createPDFContent(pdf, config) {
         };
 
         let ageY = y + 6;
+        const ageIndent = 8;
         const ageBarHeight = 3;
         const maxAgeCount = Math.max(...Object.values(updateAges));
 
         Object.entries(updateAges).forEach(([ageRange, count]) => {
             pdf.setFontSize(FONT_SIZES.caption);
             pdf.setFont(undefined, 'normal');
-            pdf.text(ageRange, pageMargin, ageY + 2);
-            
-            const barStartX = pageMargin + 40;
-            const maxBarWidth = usableWidth - 50;
+            const labelX = pageMargin + ageIndent;
+            pdf.text(ageRange, labelX, ageY + 2);
+
+            const barStartX = pageMargin + ageIndent + 40;
+            const maxBarWidth = usableWidth - ageIndent - 50;
             const barWidth = maxAgeCount > 0 ? (count / maxAgeCount) * maxBarWidth : 0;
             
             pdf.setFillColor(...ageColors[ageRange]);
@@ -1061,7 +1063,7 @@ async function createPDFContent(pdf, config) {
 
         const dateX = pageWidth - pageMargin;
         const nameX = bulletX + 4; // space after the number
-        const nameWidth = dateX - nameX - 2; // leave small gap before date column
+        const nameWidth = dateX - nameX - 10; // leave ample gap before date column
         topCriticalUpdates.forEach((update, index) => {
             pdf.setFontSize(FONT_SIZES.caption);
             pdf.setFont(undefined, 'bold');
@@ -1073,7 +1075,8 @@ async function createPDFContent(pdf, config) {
                 pdf.text(line, nameX, y + lineIndex * lineHeight);
             });
 
-            pdf.text(update.releaseDate || '', dateX, y, { align: 'right' });
+            const dateY = y + (lines.length - 1) * lineHeight;
+            pdf.text(update.releaseDate || '', dateX, dateY, { align: 'right' });
 
             y += lines.length * lineHeight;
         });
