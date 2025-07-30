@@ -933,23 +933,8 @@ async function createPDFContent(pdf, config) {
 
     pdf.setTextColor(0, 0, 0);
 
-    // Executive summary paragraph
-    const summaryData = getExecutiveSummaryData();
-    let summaryText = `Update compliance is currently at ${summaryData.complianceRate}% across ${summaryData.totalDevices} released updates, reflecting our ongoing enforcement of patching standards.`;
-    if (summaryData.topCritical.length > 0) {
-    summaryText += ` This cycle includes several critical updates, such as ${summaryData.topCritical.join(', ')}, all of which are addressed as part of Intune Maintenance Plan.`;
-    }
-    pdf.setFontSize(FONT_SIZES.body);
-    pdf.setFont(undefined, 'normal');
-    let summaryY = headerHeight + 8; // Reduced spacing
-    const summaryLines = pdf.splitTextToSize(summaryText, usableWidth);
-    summaryLines.forEach(line => {
-        pdf.text(line, pageMargin, summaryY);
-        summaryY += lineHeight;
-    });
-
-// Statistics Section (matching web app)
-    let y = summaryY + 15;
+    // Start Y position after the header
+    let y = headerHeight + 15;
 
     // Reuse the statistics already gathered
 
@@ -1074,6 +1059,22 @@ async function createPDFContent(pdf, config) {
             y += 6;
         });
     }
+
+    // Executive summary paragraph (moved below deployment gaps)
+    const summaryData = getExecutiveSummaryData();
+    let summaryText = `Update compliance is currently at ${summaryData.complianceRate}% across ${summaryData.totalDevices} released updates, reflecting our ongoing enforcement of patching standards.`;
+    if (summaryData.topCritical.length > 0) {
+        summaryText += ` This cycle includes several critical updates, such as ${summaryData.topCritical.join(', ')}, all of which are addressed as part of Intune Maintenance Plan.`;
+    }
+    pdf.setFontSize(FONT_SIZES.body);
+    pdf.setFont(undefined, 'normal');
+    const summaryLines = pdf.splitTextToSize(summaryText, usableWidth);
+    summaryLines.forEach(line => {
+        pdf.text(line, pageMargin, y);
+        y += lineHeight;
+    });
+
+    y += 10;
 
     // Security Severity Distribution chart (dedicated page)
     if (document.getElementById('includeSeverityChart').checked && charts.severity) {
