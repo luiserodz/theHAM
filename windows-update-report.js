@@ -1794,42 +1794,24 @@ function addDetailedTable(pdf, FONT_SIZES) {
             alternateRowStyles: {
                 fillColor: [248, 249, 250]
             },
+            // Adjusted column widths to ensure the table fits within page margins
             columnStyles: {
                 0: {
-                    cellWidth: 80,
+                    cellWidth: 60,
                     overflow: 'linebreak',
                     halign: 'left'
                 },
-                1: {
-                    cellWidth: 25,
-                    halign: 'center'
-                },
-                2: {
-                    cellWidth: 22,
-                    halign: 'center'
-                },
-                3: {
-                    cellWidth: 22,
-                    halign: 'center'
-                },
-                4: {
-                    cellWidth: 15,
-                    halign: 'center',
-                    fontStyle: 'bold'
-                },
-                5: {
-                    cellWidth: 15,
-                    halign: 'center',
-                    fontStyle: 'bold'
-                },
-                6: {
-                    cellWidth: 30,
-                    halign: 'center'
-                }
+                1: { cellWidth: 20, halign: 'center' },
+                2: { cellWidth: 20, halign: 'center' },
+                3: { cellWidth: 20, halign: 'center' },
+                4: { cellWidth: 15, halign: 'center', fontStyle: 'bold' },
+                5: { cellWidth: 15, halign: 'center', fontStyle: 'bold' },
+                6: { cellWidth: 30, halign: 'center' }
             },
             margin: { top: 20, left: 15, right: 15 },
             showHead: 'everyPage',
-            tableWidth: 'auto',
+            // Scale table to available width so columns remain within margins
+            tableWidth: pdf.internal.pageSize.getWidth() - 30,
             didDrawPage: function(data) {
                 // Add page header on continuation pages
                 if (data.pageNumber > 1) {
