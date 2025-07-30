@@ -155,9 +155,14 @@
                     <textarea id="additionalNotes" rows="3" placeholder="Add any custom notes or observations for this report period..."></textarea>
                 </div>
 
-                <button class="btn btn-success" id="generateReport" disabled>
-                    🎯 Generate PDF Report
-                </button>
+                <div class="action-buttons">
+                    <button class="btn btn-success" id="generateReport" disabled>
+                        🎯 Generate PDF Report
+                    </button>
+                    <a href="#" id="downloadLink" class="btn btn-success disabled">
+                        <span role="img" aria-label="download">📥</span> Download PDF Report
+                    </a>
+                </div>
             </div>
 
             <!-- Charts Preview Section -->
@@ -213,9 +218,6 @@
                 <div class="alert alert-success">
                     <span role="img" aria-label="check mark">✅</span> Report generated successfully!
                 </div>
-                <a href="#" id="downloadLink" class="btn btn-success">
-                    <span role="img" aria-label="download">📥</span> Download PDF Report
-                </a>
             </div>
         </main>
     </div>

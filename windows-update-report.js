@@ -31,12 +31,14 @@ const chartsPreview = document.getElementById('chartsPreview');
 const statusSection = document.getElementById('statusSection');
 const downloadSection = document.getElementById('downloadSection');
 const generateReportBtn = document.getElementById('generateReport');
+const downloadLink = document.getElementById('downloadLink');
 
 // Initialize on page load
 document.addEventListener('DOMContentLoaded', function() {
     console.log('Windows Update Report Generator initializing...');
     setupEventListeners();
     loadSavedPreferences();
+    downloadLink.classList.add('disabled');
     console.log('Initialization complete');
 });
 
@@ -867,6 +869,9 @@ async function generatePDFReport() {
     statusSection.classList.add('show');
     // Hide any previous download section before starting a new run
     downloadSection.classList.remove('show');
+    downloadLink.classList.add('disabled');
+    downloadLink.removeAttribute('href');
+    downloadLink.removeAttribute('download');
     statusSection.scrollIntoView({ behavior: 'smooth' });
     updateProgress(0, 'Initializing report generation...');
     
@@ -902,18 +907,17 @@ async function generatePDFReport() {
         // Create download link
         const pdfBlob = pdf.output('blob');
         const url = URL.createObjectURL(pdfBlob);
-        const downloadLink = document.getElementById('downloadLink');
         downloadLink.href = url;
         downloadLink.download = `${reportTitle.replace(/[^a-z0-9]/gi, '_')}_${new Date().toISOString().slice(0, 10)}.pdf`;
-        
+        downloadLink.classList.remove('disabled');
+
         // Show download section and bring it into view
         downloadSection.classList.add('show');
         statusSection.classList.remove('show');
-        downloadLink.style.display = 'inline-block';
-        downloadSection.scrollIntoView({ behavior: 'smooth' });
+        downloadLink.scrollIntoView({ behavior: 'smooth' });
 
-        // Focus download section for accessibility
-        downloadSection.focus();
+        // Focus download link for accessibility
+        downloadLink.focus();
         
     } catch (error) {
         console.error('Error generating PDF:', error);
