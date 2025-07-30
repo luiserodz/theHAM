@@ -115,6 +115,12 @@
             transform: none;
         }
 
+        .btn.disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            pointer-events: none;
+        }
+
         .data-preview {
             background: white;
             border: 1px solid #dee2e6;
@@ -218,6 +224,12 @@
             outline: none;
             border-color: #0078d4;
             box-shadow: 0 0 0 3px rgba(0, 120, 212, 0.1);
+        }
+
+        .action-buttons {
+            display: flex;
+            gap: 10px;
+            align-items: center;
         }
 
         .checkbox-group {
