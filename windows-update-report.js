@@ -1775,6 +1775,7 @@ function addDetailedTable(pdf, FONT_SIZES) {
     
     // Add table with corrected column widths
     if (typeof pdf.autoTable === 'function') {
+        const sideMargin = 15;
         pdf.autoTable({
             head: [['Update Name', 'Version', 'Severity', 'Date', 'Pending Updates', 'Deployed', 'Status']],
             body: tableData,
@@ -1784,7 +1785,7 @@ function addDetailedTable(pdf, FONT_SIZES) {
                 fillColor: [0, 120, 212],
                 fontSize: FONT_SIZES.caption,
                 fontStyle: 'bold',
-                cellPadding: 2,
+                cellPadding: 1.5,
                 halign: 'center'
             },
             bodyStyles: {
@@ -1794,42 +1795,25 @@ function addDetailedTable(pdf, FONT_SIZES) {
             alternateRowStyles: {
                 fillColor: [248, 249, 250]
             },
-            columnStyles: {
-                0: {
-                    cellWidth: 80,
-                    overflow: 'linebreak',
-                    halign: 'left'
-                },
-                1: {
-                    cellWidth: 25,
-                    halign: 'center'
-                },
-                2: {
-                    cellWidth: 22,
-                    halign: 'center'
-                },
-                3: {
-                    cellWidth: 22,
-                    halign: 'center'
-                },
-                4: {
-                    cellWidth: 15,
-                    halign: 'center',
-                    fontStyle: 'bold'
-                },
-                5: {
-                    cellWidth: 15,
-                    halign: 'center',
-                    fontStyle: 'bold'
-                },
-                6: {
-                    cellWidth: 30,
-                    halign: 'center'
-                }
-            },
-            margin: { top: 20, left: 15, right: 15 },
+            // Dynamically calculate column widths so the table spans the
+            // printable area without exceeding the left/right margins.
+            columnStyles: (function () {
+                const pageWidth = pdf.internal.pageSize.getWidth();
+                const tableWidth = pageWidth - sideMargin * 2;
+                const ratios = [0.333, 0.113, 0.113, 0.113, 0.082, 0.082, 0.164];
+                return ratios.reduce((styles, ratio, idx) => {
+                    styles[idx] = {
+                        cellWidth: tableWidth * ratio,
+                        halign: idx === 0 ? 'left' : 'center'
+                    };
+                    if (idx === 0 || idx === 6) styles[idx].overflow = 'linebreak';
+                    if (idx === 4 || idx === 5) styles[idx].fontStyle = 'bold';
+                    return styles;
+                }, {});
+            })(),
+            margin: { top: 20, left: sideMargin, right: sideMargin },
             showHead: 'everyPage',
-            tableWidth: 'auto',
+            tableWidth: pdf.internal.pageSize.getWidth() - sideMargin * 2,
             didDrawPage: function(data) {
                 // Add page header on continuation pages
                 if (data.pageNumber > 1) {
