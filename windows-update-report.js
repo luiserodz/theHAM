@@ -1192,7 +1192,7 @@ async function createPDFContent(pdf, config) {
     if (document.getElementById('includeSeverityChart').checked && charts.severity) {
         pdf.addPage();
         currentPage++;
-        y = 20;
+        y = 25; // increased top margin for clearer spacing
 
         // Page header
         pdf.setFillColor(240, 248, 255);
@@ -1270,7 +1270,7 @@ async function createPDFContent(pdf, config) {
     if (document.getElementById('includeDeploymentChart').checked && charts.deployment) {
         pdf.addPage();
         currentPage++;
-        y = 20;
+        y = 25; // increased top margin for clearer spacing
 
         // Page header
         pdf.setFillColor(240, 248, 255);
@@ -1348,7 +1348,7 @@ async function createPDFContent(pdf, config) {
     if (y > pageHeight - 100) {
         pdf.addPage();
         currentPage++;
-        y = 20;
+        y = 25; // increased top margin for clearer spacing
         
         // Page header
         pdf.setFillColor(240, 248, 255);
@@ -1454,7 +1454,7 @@ async function createPDFContent(pdf, config) {
             if (y > pageHeight - 25) {
                 pdf.addPage();
                 currentPage++;
-                y = 20;
+                y = 25; // increased top margin for clearer spacing
                 
                 // Page header
                 pdf.setFillColor(240, 248, 255);
