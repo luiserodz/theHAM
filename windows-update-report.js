@@ -82,22 +82,6 @@ function setupEventListeners() {
         element.addEventListener('change', saveFormData);
     });
 
-    // Tab navigation
-    document.querySelectorAll('.nav-tab').forEach((tab, index) => {
-        tab.addEventListener('click', () => {
-            document.querySelectorAll('.nav-tab').forEach(t => t.classList.remove('active'));
-            tab.classList.add('active');
-
-            // Simple tab switching logic without automatic scrolling
-            if (index === 0) {
-                uploadSection.focus();
-            } else if (index === 1) {
-                reportOptions.focus();
-            } else if (index === 2) {
-                chartsPreview.focus();
-            }
-        });
-    });
 }
 
 function handleFileUpload() {
