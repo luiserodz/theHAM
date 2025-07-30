@@ -1857,9 +1857,9 @@ function addDetailedTable(pdf, FONT_SIZES) {
         didParseCell: function(data) {
             if (data.row.section === 'body') {
                 if (highMissingRows.includes(data.row.index)) {
-                    data.row.styles.fillColor = [248, 215, 218];
+                    data.cell.styles.fillColor = [248, 215, 218];
                 } else if (oldRows.includes(data.row.index)) {
-                    data.row.styles.fillColor = [255, 243, 205];
+                    data.cell.styles.fillColor = [255, 243, 205];
                 }
             }
             // Color code severity cells
