@@ -1055,14 +1055,17 @@ async function createPDFContent(pdf, config) {
 
         y += 6;
 
-        const bulletOffset = 8;
+        // Indent the entire list slightly from the left margin
+        const bulletIndent = 8;
+        const bulletX = pageMargin + bulletIndent;
+
         const dateX = pageWidth - pageMargin;
-        const nameX = pageMargin + bulletOffset;
+        const nameX = bulletX + 4; // space after the number
         const nameWidth = dateX - nameX - 2; // leave small gap before date column
         topCriticalUpdates.forEach((update, index) => {
             pdf.setFontSize(FONT_SIZES.caption);
             pdf.setFont(undefined, 'bold');
-            pdf.text(`${index + 1}.`, pageMargin, y);
+            pdf.text(`${index + 1}.`, bulletX, y);
 
             pdf.setFont(undefined, 'normal');
             const lines = pdf.splitTextToSize(update.updateName, nameWidth);
