@@ -940,8 +940,8 @@ async function createPDFContent(pdf, config) {
     // --- TITLE PAGE ---
     updateProgress(20, 'Creating title page...');
 
-    // Get statistics
-    const stats = generateStatistics();
+    // Collect overall statistics for the report
+    const reportStats = generateStatistics();
     const updateAges = calculateUpdateAges(csvData);
     const deploymentGaps = getTopDeploymentGaps(csvData);
 
@@ -990,52 +990,58 @@ async function createPDFContent(pdf, config) {
 // Statistics Section (matching web app)
     let y = summaryY + 15;
 
-    // Get statistics
-    const stats = generateStatistics();
+    // Reuse the statistics already gathered
 
     // Create stats grid similar to web app
-    const statWidth = 35;
-    const statHeight = 25;
     const statSpacing = 5;
-    const totalStatsWidth = (5 * statWidth) + (4 * statSpacing);
-    const startX = (pageWidth - totalStatsWidth) / 2;
+    const statHeight = 25;
+    const statWidth = (usableWidth - (2 * statSpacing)) / 3;
 
     // Draw stat cards
     const statData = [
-        { label: 'Total Updates', value: stats.totalUpdates, color: [0, 120, 212] },
-        { label: 'Critical Updates', value: stats.criticalUpdates, color: [220, 53, 69] },
-        { label: 'Important Updates', value: stats.importantUpdates, color: [253, 126, 20] },
-        { label: 'Missing Deployments', value: stats.totalMissing, color: [108, 117, 125] },
-        { label: 'Compliance Rate', value: `${stats.complianceRate}%`, color: [40, 167, 69] }
+        { label: 'Total Updates', value: reportStats.totalUpdates, color: [0, 120, 212] },
+        { label: 'Critical Updates', value: reportStats.criticalUpdates, color: [220, 53, 69] },
+        { label: 'Important Updates', value: reportStats.importantUpdates, color: [253, 126, 20] },
+        { label: 'Missing Deployments', value: reportStats.totalMissing, color: [108, 117, 125] },
+        { label: 'Compliance Rate', value: `${reportStats.complianceRate}%`, color: [40, 167, 69] }
     ];
 
-    statData.forEach((stat, index) => {
-        const x = startX + (index * (statWidth + statSpacing));
-        
-        // Draw card background
-        pdf.setFillColor(248, 249, 250);
-        pdf.setDrawColor(222, 226, 230);
-        pdf.rect(x, y, statWidth, statHeight, 'FD');
-        
-        // Draw stat value
-        pdf.setFontSize(16);
-        pdf.setFont(undefined, 'bold');
-        pdf.setTextColor(...stat.color);
-        pdf.text(stat.value.toString(), x + statWidth/2, y + 10, { align: 'center' });
-        
-        // Draw stat label
-        pdf.setFontSize(FONT_SIZES.caption);
-        pdf.setFont(undefined, 'normal');
-        pdf.setTextColor(108, 117, 125);
-        
-        // Split label into lines if needed
-        const labelLines = pdf.splitTextToSize(stat.label, statWidth - 4);
-        labelLines.forEach((line, lineIndex) => {
-            pdf.text(line, x + statWidth/2, y + 16 + (lineIndex * 4), { align: 'center' });
+    const rows = [statData.slice(0, 3), statData.slice(3)];
+
+    rows.forEach((rowStats, rowIndex) => {
+        const rowWidth = rowStats.length * statWidth + (rowStats.length - 1) * statSpacing;
+        const startX = pageMargin + (usableWidth - rowWidth) / 2;
+
+        rowStats.forEach((stat, index) => {
+            const x = startX + (index * (statWidth + statSpacing));
+
+            // Draw card background
+            pdf.setFillColor(248, 249, 250);
+            pdf.setDrawColor(222, 226, 230);
+            pdf.rect(x, y, statWidth, statHeight, 'FD');
+
+            // Draw stat value
+            pdf.setFontSize(16);
+            pdf.setFont(undefined, 'bold');
+            pdf.setTextColor(...stat.color);
+            pdf.text(stat.value.toString(), x + statWidth/2, y + 10, { align: 'center' });
+
+            // Draw stat label
+            pdf.setFontSize(FONT_SIZES.caption);
+            pdf.setFont(undefined, 'normal');
+            pdf.setTextColor(108, 117, 125);
+
+            // Split label into lines if needed
+            const labelLines = pdf.splitTextToSize(stat.label, statWidth - 4);
+            labelLines.forEach((line, lineIndex) => {
+                pdf.text(line, x + statWidth/2, y + 16 + (lineIndex * 4), { align: 'center' });
+            });
         });
+
+        y += statHeight + 10; // Space between rows
     });
 
-    y += statHeight + 20;
+    y += 10;
 
     // Update Age Distribution - keep within margins
     if (y + 35 < pageHeight - 40) {
@@ -1150,20 +1156,20 @@ async function createPDFContent(pdf, config) {
         y += paragraphSpacing;
 
         pdf.setFont(undefined, 'bold');
-        const criticalCount = stats.criticalUpdates;
-        const criticalPercent = Math.round((criticalCount / stats.totalUpdates) * 100);
+        const criticalCount = reportStats.criticalUpdates;
+        const criticalPercent = Math.round((criticalCount / reportStats.totalUpdates) * 100);
         pdf.setTextColor(220, 53, 69);
         pdf.text(`• Critical: ${criticalCount} updates (${criticalPercent}%)`, 20, y);
         y += lineHeight;
 
-        const importantCount = stats.importantUpdates;
-        const importantPercent = Math.round((importantCount / stats.totalUpdates) * 100);
+        const importantCount = reportStats.importantUpdates;
+        const importantPercent = Math.round((importantCount / reportStats.totalUpdates) * 100);
         pdf.setTextColor(253, 126, 20);
         pdf.text(`• Important: ${importantCount} updates (${importantPercent}%)`, 20, y);
         y += lineHeight;
 
-        const otherCount = stats.totalUpdates - criticalCount - importantCount;
-        const otherPercent = Math.round((otherCount / stats.totalUpdates) * 100);
+        const otherCount = reportStats.totalUpdates - criticalCount - importantCount;
+        const otherPercent = Math.round((otherCount / reportStats.totalUpdates) * 100);
         pdf.setTextColor(108, 117, 125);
         pdf.text(`• Unspecified or Low: ${otherCount} updates (${otherPercent}%)`, 20, y);
         y += sectionSpacing;
@@ -1228,9 +1234,9 @@ async function createPDFContent(pdf, config) {
         y += paragraphSpacing;
 
         pdf.setFont(undefined, 'bold');
-        pdf.text(`• Total missing deployments: ${stats.totalMissing}`, 20, y);
+        pdf.text(`• Total missing deployments: ${reportStats.totalMissing}`, 20, y);
         y += lineHeight;
-        pdf.text(`• Overall compliance rate: ${stats.complianceRate}%`, 20, y);
+        pdf.text(`• Overall compliance rate: ${reportStats.complianceRate}%`, 20, y);
         y += sectionSpacing;
 
         pdf.setFont(undefined, 'normal');
