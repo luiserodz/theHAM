@@ -865,6 +865,8 @@ function generateTrendChart() {
 
 async function generatePDFReport() {
     statusSection.classList.add('show');
+    // Hide any previous download section before starting a new run
+    downloadSection.classList.remove('show');
     statusSection.scrollIntoView({ behavior: 'smooth' });
     updateProgress(0, 'Initializing report generation...');
     
@@ -907,6 +909,7 @@ async function generatePDFReport() {
         // Show download section and bring it into view
         downloadSection.classList.add('show');
         statusSection.classList.remove('show');
+        downloadLink.style.display = 'inline-block';
         downloadSection.scrollIntoView({ behavior: 'smooth' });
 
         // Focus download section for accessibility
