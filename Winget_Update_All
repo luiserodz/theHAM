@@ -1,6 +1,7 @@
 # WinGet Smart Update Manager - Enhanced Version
 # This script updates applications using WinGet while respecting user workflows
 
+[CmdletBinding()]
 param(
     [Parameter()]
     [int]$WaitTimeMinutes = 5,
