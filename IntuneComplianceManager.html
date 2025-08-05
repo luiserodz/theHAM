@@ -1470,7 +1470,7 @@
 
             while (attempts < maxAttempts && !authorized) {
                 const password = prompt(
-                    `🔒 Intune Policy Manager - Secure Access\n\n` +
+                    `🔒 Intune Compliance Manager - Secure Access\n\n` +
                     `Enter password (${maxAttempts - attempts} attempt${attempts === 2 ? '' : 's'} remaining):`
                 );
 
@@ -1536,7 +1536,7 @@
                             
                             <div style="margin-top: 35px; padding-top: 25px; border-top: 1px solid #eee;">
                                 <p style="color: #999; font-size: 15px;">Please contact support for access credentials.</p>
-                                <p style="color: #bbb; font-size: 13px; margin-top: 15px;">Intune Policy Manager</p>
+                                <p style="color: #bbb; font-size: 13px; margin-top: 15px;">Intune Compliance Manager</p>
                             </div>
                         </div>
                     </div>
@@ -1580,8 +1580,8 @@
             }, INACTIVITY_TIMEOUT);
         }
 
-        // Execute when the DOM is fully loaded
-        document.addEventListener('DOMContentLoaded', async function() {
+        // Execute immediately since the script is loaded after the DOM
+        (async function() {
     // Check for authentication first
     if (!checkSessionExpiry() && sessionStorage.getItem('intunePolicyManagerAuth')) {
         // If already authenticated in this session, show the app immediately
@@ -1659,7 +1659,7 @@
     //     // Ensure the clientId input is enabled if no saved ID
     //     document.getElementById('clientId').disabled = false;
     // }
-});
+})();
 
 // Notification system
         function showNotification(message, type = 'info', duration = 5000) {
