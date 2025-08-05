@@ -993,7 +993,7 @@ if ($updates.Count -eq 0) {
 $msg = "Found $($updates.Count) available update(s)"
 Write-Log -LogLevel 'INFO' -Message $msg
 if (-not $script:SilentMode) {
-    Write-Host "`n$msg:" -ForegroundColor Cyan
+    Write-Host "`n${msg}:" -ForegroundColor Cyan
     foreach ($update in $updates) {
         Write-Host "  - $($update.Name) ($($update.CurrentVersion) -> $($update.AvailableVersion))" -ForegroundColor White
     }
