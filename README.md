@@ -1,133 +1,207 @@
-# the HAM
+# Microsoft 365 Management Tools Collection
 
-Hosted Administration & Management: A unified approach to managing Microsoft 365 services including Exchange Online, SharePoint, OneDrive, and Intune through web-based tools.
+A comprehensive suite of web-based tools for Microsoft 365 administrators to manage, monitor, and report on various aspects of their environment, including Intune policies, application deployment, compliance monitoring, and Windows Update reporting.
 
-## Tools
+---
+
+## 🚀 Tools Included
+
+### 1. Intune App Repository
+**Files**:  
+`intune-app-repository.html`, `intune-app-repository.css`, `intune-app-repository.js`, `intune-app-repository-data.js`  
+A searchable catalog of common enterprise applications with direct download links for MSI/EXE packages, optimized for Intune deployment.
+
+**Features**:
+- 100+ pre-configured applications with download URLs
+- ARM64 support indicators
+- Filter by category, publisher, or search
+- Direct MSI download links for enterprise deployment
+- Copy URL functionality for easy sharing
+
+---
+
+### 2. Intune Compliance Manager
+**File**: `IntuneComplianceManager.html`  
+Real-time monitoring and management of device compliance status across your Intune-managed environment.
+
+**Features**:
+- Live device compliance monitoring
+- Policy assignment tracking
+- Compliance trend analysis
+- Export capabilities (CSV/JSON)
+- Interactive dashboards with Chart.js visualizations
+
+---
+
+### 3. Intune Policy Manager
+**File**: `IntunePolicyManager.html`  
+Upload, manage, and bulk-modify Intune configuration policies with advanced assignment capabilities.
+
+**Features**:
+- Bulk policy upload from JSON
+- Policy duplication and modification
+- Group-based assignment management
+- Policy deletion with safety confirmations
+- Export existing policies for backup
+
+---
+
+### 4. Microsoft 365 Policy Downloader
+**File**: `Microsoft365PolicyDownloader.html`  
+Export and backup policies from all Microsoft 365 admin portals including Intune, Exchange, SharePoint, Teams, Azure AD, and Compliance centers.
+
+**Features**:
+- Multi-service policy extraction
+- Comprehensive backup capabilities
+- Individual or bulk export options
+- Support for all major M365 services
+
+---
+
+### 5. Windows Update Report Generator
+**Files**:  
+`WindowsUpdateReport.html`, `windows-update-report.css`, `windows-update-report.js`  
+Generate professional PDF reports from Windows Update CSV data with charts and compliance analytics.
+
+**Features**:
+- CSV data import and parsing
+- Interactive Chart.js visualizations
+- Professional PDF report generation
+- Compliance rate calculations
+- Security severity analysis
+
+---
+
+## 🔒 Security Features
+All tools include:
+- Password protection with SHA-256 hashing
+- Session timeout after 30 minutes of inactivity
+- 2-hour session expiry
+- No data storage (all processing is client-side)
+- OAuth 2.0 authentication via Microsoft Entra ID
+
+---
+
+## 🛠️ Setup Instructions
+
+### Prerequisites
+- Modern web browser (Chrome, Edge, Firefox, Safari)
+- Microsoft 365 Global Administrator or equivalent permissions
+- Entra ID App Registration (for tools requiring authentication)
+
+### Quick Start
+1. Download the required files from this repository
+2. Host the files on a web server or run them locally
+3. Register an Entra ID application (for authenticated tools)
+4. Configure permissions as specified in each tool
+5. Access the tool and enter your Client ID
+
+---
+
+## 🔑 Entra ID App Registration
+
+For tools requiring Microsoft Graph access:
+
+1. Go to [Microsoft Entra Portal](https://entra.microsoft.com)
+2. Navigate to: **Applications → App registrations**
+3. Click **New registration**
+4. Configure the following:
+   - **Name**: Your tool name
+   - **Supported account types**: Single or multi-tenant
+   - **Redirect URI**: Single-page application (SPA) — your hosted URL
+5. Add the required API permissions (see below)
+6. Grant admin consent for the permissions
+
+---
+
+## ✅ Required Permissions by Tool
+
+### Intune Compliance Manager
+- `DeviceManagementManagedDevices.Read.All`
+- `DeviceManagementApps.Read.All`
+- `DeviceManagementConfiguration.Read.All`
+- `Group.Read.All`
+- `User.Read`
 
 ### Intune Policy Manager
-
-Deploy CIS compliance workflows and security baselines to Microsoft Intune with bulk upload capabilities.
-
-**Access:** https://luiserodz.github.io/theHAM/IntunePolicyManager.html
-
-### Microsoft 365 Policy Downloader
-
-Export and backup Intune configurations, compliance policies, and device configurations for documentation or migration.
-
-**Access:** https://luiserodz.github.io/theHAM/Microsoft365PolicyDownloader.html
-
-### Intune App Repository
-
-Browse and download common application installers for deployment through Intune.
-
-**Access:** https://luiserodz.github.io/theHAM/IntuneAppRepository.html
-
-## Usage
-
-### Intune Policy Manager
-
-1. Visit https://luiserodz.github.io/theHAM/IntunePolicyManager.html
-2. Enter your Azure AD Client ID (or use the pre-configured one)
-3. Sign in with your Microsoft work account
-4. Select JSON workflow files to upload
-5. Configure assignment options (All Users, All Devices, or specific groups)
-6. Click Upload to deploy policies to Intune
-
-### Microsoft 365 Policy Downloader
-
-1. Visit https://luiserodz.github.io/theHAM/Microsoft365PolicyDownloader.html
-2. Enter your Azure AD Client ID (or use the pre-configured one)
-3. Sign in with your Microsoft work account
-4. Select policy types to export (Configuration, Compliance, Apps)
-5. Choose individual policies or bulk download
-6. Download policies as JSON files
-
-### Intune App Repository
-
-1. Visit https://luiserodz.github.io/theHAM/IntuneAppRepository.html
-2. Use the search box or filters to find an application
-3. Click the **x86/x64** or **ARM64** button to download the installer
-4. Use the copy icon to copy download links to the clipboard
-5. Check **ARM64 Only** to filter for applications with ARM packages
-
-## Prerequisites
-
-- Microsoft 365 Global Administrator or Intune Administrator role
-- Valid Intune licenses
-- Modern web browser (Chrome, Edge, Firefox)
-- JSON workflow files (for Policy Manager)
-- Azure AD app registration with appropriate permissions
-
-## Authentication Setup
-
-1. Register an application in Azure AD
-2. Add required API permissions:
-
 - `DeviceManagementConfiguration.ReadWrite.All`
 - `DeviceManagementApps.ReadWrite.All`
+- `DeviceManagementServiceConfig.ReadWrite.All`
 - `Group.Read.All`
-
-3. Configure redirect URI: `https://luiserodz.github.io/theHAM/[ToolName].html`
-4. Grant admin consent for permissions
-5. Copy the Application (Client) ID
-
-## Features
-
-### Intune Policy Manager
-
-- Bulk upload multiple policies simultaneously
-- Automatic policy naming with custom prefixes
-- Group-based assignment targeting
-- Real-time upload progress tracking
-- Detailed results with CSV export
-- Support for all Intune configuration policy types
+- `User.Read`
 
 ### Microsoft 365 Policy Downloader
+- `DeviceManagementConfiguration.Read.All`
+- `Policy.Read.All`
+- `Directory.Read.All`
+- `Group.Read.All`
+- `Sites.Read.All`
+- `User.Read`
 
-- Export all policy types (Configuration, Compliance, Application)
-- Individual or bulk download options
-- JSON format for easy reimport
-- Policy metadata preservation
-- Filtered search and selection
-- Backup scheduling recommendations
+---
 
-## Troubleshooting
+## 📊 Browser Compatibility
 
-### Authentication Issues
+| Browser  | Minimum Version | Notes         |
+|----------|------------------|----------------|
+| Chrome   | 80+              | Recommended    |
+| Edge     | 80+              | Recommended    |
+| Firefox  | 75+              | Fully supported |
+| Safari   | 13.1+            | Fully supported |
 
-- Enable popups for GitHub Pages domain
-- Verify admin consent is granted in Azure AD
-- Check redirect URI matches exactly
-- Clear browser cache and cookies
-- Try incognito/private browsing mode
+---
 
-### API Errors
+## 🎯 Use Cases
 
-- **403 Forbidden**: Missing permissions - grant admin consent
-- **401 Unauthorized**: Token expired - sign in again
-- **429 Too Many Requests**: Rate limiting - reduce batch size
-- **400 Bad Request**: Invalid JSON format - verify workflow files
+- **MSPs**: Manage multiple client environments efficiently  
+- **IT Departments**: Streamline policy management and compliance monitoring  
+- **Security Teams**: Generate compliance reports and track security updates  
+- **Consultants**: Quickly assess and document client environments  
 
-### Browser Issues
+---
 
-- Disable ad blockers and privacy extensions
-- Update to latest browser version
-- Check browser console (F12) for detailed errors
-- Ensure JavaScript is enabled
+## ⚠️ Important Notes
 
-## Security
+- **Authentication**: Each tool requires a valid Entra ID app registration with proper permissions  
+- **Data Privacy**: All processing occurs client-side — no data is sent to external servers  
+- **Browser Storage**: Tools use `sessionStorage` for temporary data (cleared on browser close)  
+- **Rate Limiting**: Microsoft Graph API limits apply; retry logic is included  
+- **Password**: Default password should be changed in production deployments  
 
-- Authentication handled directly with Microsoft
-- No credentials stored locally or transmitted to third parties
-- All operations performed client-side in browser
-- Review JSON content before production deployment
-- Use separate app registrations for test/production
+---
 
-## Support
+## 🤝 Contributing
 
-Report issues or request features through GitHub Issues. Include:
+We welcome issues, feature requests, and pull requests. When contributing:
+- Maintain the existing code style
+- Test thoroughly across browsers
+- Update documentation as needed
+- Follow security best practices
 
-- Browser and version
-- Error messages from console
-- Steps to reproduce
-- Expected vs actual behavior
+---
+
+## 📝 License
+
+These tools are provided *as-is* for educational and administrative purposes. Ensure compliance with your organization’s policies before use.
+
+---
+
+## 🆘 Support
+
+For issues or questions:
+- Use the built-in help section in each tool
+- Review browser console logs for error messages
+- Confirm all prerequisites are met
+- Verify that API permissions are correctly configured
+
+---
+
+## 🔄 Updates
+
+- Regular updates for new Intune features
+- Application repository updates quarterly
+- Security patches as needed
+- Feature requests reviewed monthly
+
+> **Note**: These tools require Microsoft 365 administrative privileges. Always test in a non-production environment first.
+```
