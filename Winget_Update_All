@@ -1,0 +1,1140 @@
+# WinGet Smart Update Manager - Enhanced Version
+# This script updates applications using WinGet while respecting user workflows
+
+param(
+    [Parameter()]
+    [int]$WaitTimeMinutes = 5,
+    [Parameter()]
+    [switch]$ForceUpdate,
+    [Parameter()]
+    [switch]$SilentMode,
+    [Parameter()]
+    [switch]$AutoRun,
+    [Parameter()]
+    [string]$ConfigPath = "$env:ProgramData\WinGetUpdater\config.json"
+)
+
+# Set script-scoped variable for silent mode
+$script:SilentMode = $SilentMode
+$script:Config = $null
+
+#region Functions
+
+function Get-Configuration {
+    [CmdletBinding()]
+    param(
+        [string]$Path = $ConfigPath
+    )
+    
+    $configDir = Split-Path -Path $Path -Parent
+    if (-not (Test-Path $configDir)) {
+        New-Item -ItemType Directory -Path $configDir -Force | Out-Null
+    }
+    
+    $defaultConfig = @{
+        ExcludedApps = @()
+        UpdateSchedule = @{
+            Enabled = $true
+            Time = "02:00"
+            DaysOfWeek = @("Tuesday", "Thursday")
+        }
+        NotificationSettings = @{
+            ShowToast = $true
+            EmailNotification = $false
+        }
+        UpdateBehavior = @{
+            AutoCloseBrowsers = $false
+            MaxWaitMinutes = 10
+            RetryAttempts = 3
+            ParallelUpdates = $true
+            ThrottleLimit = 3
+        }
+        NetworkSettings = @{
+            SkipOnMetered = $true
+            MinBandwidthMbps = 1
+            TestUrl = "https://www.microsoft.com/favicon.ico"
+        }
+    }
+    
+    if (Test-Path $Path) {
+        try {
+            $config = Get-Content $Path -Raw | ConvertFrom-Json
+            Write-Log -LogLevel 'INFO' -Message "Configuration loaded from $Path"
+            
+            # Merge with defaults to ensure all keys exist
+            foreach ($key in $defaultConfig.Keys) {
+                if (-not $config.PSObject.Properties[$key]) {
+                    $config | Add-Member -NotePropertyName $key -NotePropertyValue $defaultConfig[$key]
+                }
+            }
+            
+            return $config
+        }
+        catch {
+            Write-Log -LogLevel 'WARNING' -Message "Failed to load config, using defaults: $($_.Exception.Message)"
+        }
+    }
+    
+    # Create default config if doesn't exist
+    $defaultConfig | ConvertTo-Json -Depth 3 | Set-Content $Path
+    Write-Log -LogLevel 'INFO' -Message "Default configuration created at $Path"
+    return $defaultConfig
+}
+
+function Save-UpdateHistory {
+    [CmdletBinding()]
+    param (
+        [hashtable]$UpdateResult
+    )
+    
+    try {
+        $historyDir = Join-Path -Path $env:ProgramData -ChildPath 'WinGetUpdater'
+        if (-not (Test-Path $historyDir)) {
+            New-Item -ItemType Directory -Path $historyDir -Force | Out-Null
+        }
+        
+        $historyPath = Join-Path -Path $historyDir -ChildPath 'update_history.json'
+        $history = @()
+        
+        if (Test-Path $historyPath) {
+            $existingContent = Get-Content $historyPath -Raw
+            if ($existingContent) {
+                $history = $existingContent | ConvertFrom-Json
+            }
+        }
+        
+        $entry = @{
+            Timestamp = (Get-Date).ToString('yyyy-MM-dd HH:mm:ss')
+            App = $UpdateResult.Name
+            AppId = $UpdateResult.Id
+            FromVersion = $UpdateResult.CurrentVersion
+            ToVersion = $UpdateResult.AvailableVersion
+            Success = $UpdateResult.Success
+            ErrorMessage = $UpdateResult.ErrorMessage
+            ErrorCode = $UpdateResult.ErrorCode
+            Duration = $UpdateResult.Duration
+        }
+        
+        $history += $entry
+        
+        # Keep only last 1000 entries
+        if ($history.Count -gt 1000) {
+            $history = $history | Select-Object -Last 1000
+        }
+        
+        $history | ConvertTo-Json -Depth 3 | Set-Content $historyPath
+        Write-Log -LogLevel 'INFO' -Message "Update history saved for $($UpdateResult.Name)"
+    }
+    catch {
+        Write-Log -LogLevel 'ERROR' -Message "Failed to save update history: $($_.Exception.Message)"
+    }
+}
+
+function Get-UpdateReport {
+    [CmdletBinding()]
+    param (
+        [int]$LastDays = 30
+    )
+    
+    try {
+        $historyPath = Join-Path -Path $env:ProgramData -ChildPath 'WinGetUpdater\update_history.json'
+        if (-not (Test-Path $historyPath)) {
+            return @{
+                Message = "No update history available"
+                TotalUpdates = 0
+                Successful = 0
+                Failed = 0
+            }
+        }
+        
+        $history = Get-Content $historyPath -Raw | ConvertFrom-Json
+        $cutoffDate = (Get-Date).AddDays(-$LastDays)
+        
+        $recent = $history | Where-Object { 
+            [DateTime]::Parse($_.Timestamp) -gt $cutoffDate 
+        }
+        
+        $report = @{
+            TotalUpdates = $recent.Count
+            Successful = ($recent | Where-Object { $_.Success }).Count
+            Failed = ($recent | Where-Object { -not $_.Success }).Count
+            TopUpdatedApps = $recent | Group-Object App | 
+                Sort-Object Count -Descending | 
+                Select-Object -First 10 Name, Count
+            AverageUpdateTime = if ($recent.Count -gt 0) {
+                ($recent | Where-Object { $_.Duration } | Measure-Object -Property Duration -Average).Average
+            } else { 0 }
+            LastUpdateDate = if ($recent.Count -gt 0) { $recent[-1].Timestamp } else { "Never" }
+        }
+        
+        return $report
+    }
+    catch {
+        Write-Log -LogLevel 'ERROR' -Message "Failed to generate update report: $($_.Exception.Message)"
+        return @{
+            Message = "Error generating report"
+            Error = $_.Exception.Message
+        }
+    }
+}
+
+function Test-NetworkConditions {
+    [CmdletBinding()]
+    param()
+    
+    try {
+        $config = Get-Configuration
+        $result = @{
+            CanUpdate = $true
+            SkipLargeUpdates = $false
+            SlowNetwork = $false
+            MeteredConnection = $false
+        }
+        
+        # Check if on metered connection using WMI
+        try {
+            $networkCostInfo = Get-CimInstance -ClassName Win32_NetworkAdapter | 
+                Where-Object { $_.NetConnectionStatus -eq 2 } | 
+                Select-Object -First 1
+            
+            # Additional check for metered connection via registry
+            $registryPath = "HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion\NetworkList\DefaultMediaCost"
+            if (Test-Path $registryPath) {
+                $defaultCost = Get-ItemProperty -Path $registryPath -ErrorAction SilentlyContinue
+                if ($defaultCost.WiFi -eq 2 -or $defaultCost.Ethernet -eq 2) {
+                    $result.MeteredConnection = $true
+                    if ($config.NetworkSettings.SkipOnMetered) {
+                        Write-Log -LogLevel 'WARNING' -Message "On metered connection, skipping large updates"
+                        $result.SkipLargeUpdates = $true
+                    }
+                }
+            }
+        }
+        catch {
+            Write-Log -LogLevel 'WARNING' -Message "Could not determine if connection is metered"
+        }
+        
+        # Test bandwidth
+        if ($config.NetworkSettings.TestUrl) {
+            try {
+                $testUrl = $config.NetworkSettings.TestUrl
+                $timer = [System.Diagnostics.Stopwatch]::StartNew()
+                $response = Invoke-WebRequest -Uri $testUrl -UseBasicParsing -TimeoutSec 5
+                $timer.Stop()
+                
+                if ($timer.ElapsedMilliseconds -gt 3000) {
+                    Write-Log -LogLevel 'WARNING' -Message "Slow network detected (${timer.ElapsedMilliseconds}ms response time)"
+                    $result.SlowNetwork = $true
+                }
+                
+                # Estimate bandwidth (rough calculation)
+                if ($response.Content.Length -gt 0) {
+                    $mbps = ($response.Content.Length * 8) / ($timer.ElapsedMilliseconds * 1000)
+                    if ($mbps -lt $config.NetworkSettings.MinBandwidthMbps) {
+                        Write-Log -LogLevel 'WARNING' -Message "Low bandwidth detected: ${mbps} Mbps"
+                        $result.SlowNetwork = $true
+                    }
+                }
+            }
+            catch {
+                Write-Log -LogLevel 'ERROR' -Message "Network test failed: $($_.Exception.Message)"
+                if ($_.Exception.Message -like "*timeout*" -or $_.Exception.Message -like "*connection*") {
+                    $result.CanUpdate = $false
+                    $result.Error = $_.Exception.Message
+                }
+            }
+        }
+        
+        return $result
+    }
+    catch {
+        Write-Log -LogLevel 'ERROR' -Message "Failed to test network conditions: $($_.Exception.Message)"
+        return @{
+            CanUpdate = $true
+            Warning = "Could not test network conditions"
+        }
+    }
+}
+
+function Get-AppInstallPath {
+    [CmdletBinding()]
+    param (
+        [string]$AppId,
+        [string]$AppName
+    )
+    
+    $paths = @(
+        "HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall",
+        "HKLM:\SOFTWARE\WOW6432Node\Microsoft\Windows\CurrentVersion\Uninstall",
+        "HKCU:\SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall"
+    )
+    
+    foreach ($path in $paths) {
+        if (Test-Path $path) {
+            $apps = Get-ChildItem $path -ErrorAction SilentlyContinue | 
+                ForEach-Object { Get-ItemProperty $_.PSPath -ErrorAction SilentlyContinue } | 
+                Where-Object { 
+                    ($_.DisplayName -like "*$AppName*") -or 
+                    ($_.DisplayName -like "*$AppId*") -or
+                    ($_.PSObject.Properties.Name -contains 'DisplayName' -and $_.DisplayName -eq $AppId)
+                }
+            
+            foreach ($app in $apps) {
+                if ($app.InstallLocation -and (Test-Path $app.InstallLocation)) {
+                    return $app.InstallLocation
+                }
+                if ($app.UninstallString) {
+                    $uninstallPath = $app.UninstallString -replace '"', ''
+                    if ($uninstallPath -match '^(.+)\\[^\\]+\.exe') {
+                        $installDir = $Matches[1]
+                        if (Test-Path $installDir) {
+                            return $installDir
+                        }
+                    }
+                }
+            }
+        }
+    }
+    
+    return $null
+}
+
+function Get-ProcessForApp {
+    [CmdletBinding()]
+    param (
+        [Parameter(Mandatory)]
+        [string]$AppName,
+        [string]$AppId = ""
+    )
+
+    $runningProcesses = @()
+    
+    # Try to get install location from registry first
+    if ($AppId) {
+        $installPath = Get-AppInstallPath -AppId $AppId -AppName $AppName
+        if ($installPath) {
+            Write-Log -LogLevel 'DEBUG' -Message "Found install path for $AppName : $installPath"
+            
+            # Get processes running from this path
+            $processes = Get-CimInstance Win32_Process -ErrorAction SilentlyContinue | Where-Object {
+                $_.ExecutablePath -and $_.ExecutablePath -like "$installPath*"
+            }
+            
+            if ($processes) {
+                $runningProcesses += Get-Process -Id $processes.ProcessId -ErrorAction SilentlyContinue
+            }
+        }
+    }
+    
+    # Common process name mappings
+    $processMap = @{
+        'Microsoft Edge' = @('msedge', 'MicrosoftEdge', 'MicrosoftEdgeCP')
+        'Google Chrome' = @('chrome', 'GoogleCrashHandler')
+        'Mozilla Firefox' = @('firefox')
+        'Microsoft Teams' = @('Teams', 'ms-teams')
+        'Slack' = @('slack')
+        'Discord' = @('Discord')
+        'Spotify' = @('Spotify')
+        'Visual Studio Code' = @('Code')
+        'Notepad++' = @('notepad++')
+        'Adobe Acrobat' = @('Acrobat', 'AcroRd32')
+        'Zoom' = @('Zoom', 'ZoomWebviewHost')
+        'Skype' = @('Skype')
+        'OneNote' = @('ONENOTE')
+        'Outlook' = @('OUTLOOK')
+        'Word' = @('WINWORD')
+        'Excel' = @('EXCEL')
+        'PowerPoint' = @('POWERPNT')
+    }
+
+    # Check if we have a known mapping
+    $mappedProcesses = $processMap.Keys | Where-Object { $AppName -like "*$_*" }
+    if ($null -ne $mappedProcesses) {
+        foreach ($mapped in $mappedProcesses) {
+            $runningProcesses += $processMap[$mapped] | ForEach-Object {
+                Get-Process -Name $_ -ErrorAction SilentlyContinue
+            }
+        }
+    }
+
+    # Also check for processes matching the app name
+    $cleanName = $AppName -replace '\s+', '' -replace '[^\w]', ''
+    $possibleNames = @(
+        $AppName,
+        $cleanName,
+        $AppName.Split(' ')[0],
+        $AppName -replace '\s+', '-'
+    )
+
+    foreach ($name in $possibleNames) {
+        $runningProcesses += Get-Process -Name "*$name*" -ErrorAction SilentlyContinue
+    }
+
+    return $runningProcesses | Select-Object -Unique
+}
+
+function Update-SingleApp {
+    [CmdletBinding()]
+    param (
+        [Parameter(Mandatory)]
+        [hashtable]$App,
+        [int]$MaxRetries = 3
+    )
+
+    $config = Get-Configuration
+    if ($config.UpdateBehavior.RetryAttempts) {
+        $MaxRetries = $config.UpdateBehavior.RetryAttempts
+    }
+    
+    $retryCount = 0
+    $updateResult = @{
+        Name = $App.Name
+        Id = $App.Id
+        CurrentVersion = $App.CurrentVersion
+        AvailableVersion = $App.AvailableVersion
+        Success = $false
+        ErrorMessage = ""
+        ErrorCode = 0
+        Duration = 0
+    }
+    
+    $timer = [System.Diagnostics.Stopwatch]::StartNew()
+    
+    while ($retryCount -lt $MaxRetries) {
+        try {
+            $wingetFile = Get-WinGetExecutable
+            if (-not $wingetFile) {
+                $updateResult.ErrorMessage = "WinGet executable not found"
+                break
+            }
+
+            $arguments = "upgrade --silent --exact --source winget --accept-package-agreements --accept-source-agreements --id ""$($App.Id)"""
+
+            Write-Log -LogLevel 'INFO' -Message "Updating $($App.Name) from $($App.CurrentVersion) to $($App.AvailableVersion) (Attempt $($retryCount + 1)/$MaxRetries)"
+
+            $psi = New-Object System.Diagnostics.ProcessStartInfo -Property @{
+                RedirectStandardOutput = $true
+                RedirectStandardError  = $true
+                UseShellExecute        = $false
+                WindowStyle            = 'Hidden'
+                CreateNoWindow         = $true
+                FileName               = $wingetFile.FullName
+                Arguments              = $arguments
+            }
+            $p = New-Object System.Diagnostics.Process
+            $p.StartInfo = $psi
+            $p.Start() | Out-Null
+            $output = $p.StandardOutput.ReadToEnd()
+            $errorOutput = $p.StandardError.ReadToEnd()
+            $p.WaitForExit()
+
+            $updateResult.ErrorCode = $p.ExitCode
+
+            if ($p.ExitCode -eq 0) {
+                Write-Log -LogLevel 'INFO' -Message "Successfully updated $($App.Name)"
+                $updateResult.Success = $true
+                $timer.Stop()
+                $updateResult.Duration = $timer.ElapsedMilliseconds / 1000
+                Save-UpdateHistory -UpdateResult $updateResult
+                return $true
+            }
+            
+            # Handle specific error codes
+            switch ($p.ExitCode) {
+                0x8A150011 { # Package in use
+                    Write-Log -LogLevel 'INFO' -Message "$($App.Name) is in use, will retry later"
+                    $updateResult.ErrorMessage = "Application in use"
+                    $timer.Stop()
+                    $updateResult.Duration = $timer.ElapsedMilliseconds / 1000
+                    Save-UpdateHistory -UpdateResult $updateResult
+                    return $false
+                }
+                0x8A15002B { # Network error
+                    $retryCount++
+                    Write-Log -LogLevel 'WARNING' -Message "Network error updating $($App.Name), retry $retryCount/$MaxRetries"
+                    $updateResult.ErrorMessage = "Network error"
+                    if ($retryCount -lt $MaxRetries) {
+                        Start-Sleep -Seconds (5 * $retryCount)
+                    }
+                }
+                0x80070005 { # Access denied
+                    Write-Log -LogLevel 'ERROR' -Message "Access denied updating $($App.Name)"
+                    $updateResult.ErrorMessage = "Access denied"
+                    $timer.Stop()
+                    $updateResult.Duration = $timer.ElapsedMilliseconds / 1000
+                    Save-UpdateHistory -UpdateResult $updateResult
+                    return $false
+                }
+                0x80070652 { # Another installation in progress
+                    $retryCount++
+                    Write-Log -LogLevel 'WARNING' -Message "Another installation in progress, retry $retryCount/$MaxRetries"
+                    $updateResult.ErrorMessage = "Another installation in progress"
+                    if ($retryCount -lt $MaxRetries) {
+                        Start-Sleep -Seconds 30
+                    }
+                }
+                default {
+                    Write-Log -LogLevel 'ERROR' -Message "Failed with code: 0x$($p.ExitCode.ToString('X8')). Output: $output. Error: $errorOutput"
+                    $updateResult.ErrorMessage = "Error code: 0x$($p.ExitCode.ToString('X8'))"
+                    $retryCount = $MaxRetries # Don't retry unknown errors
+                }
+            }
+        }
+        catch {
+            $retryCount++
+            $updateResult.ErrorMessage = $_.Exception.Message
+            Write-Log -LogLevel 'ERROR' -Message "Exception updating $($App.Name): $($_.Exception.Message)"
+            if ($retryCount -ge $MaxRetries) {
+                Write-Log -LogLevel 'ERROR' -Message "Max retries reached for $($App.Name)"
+            }
+            else {
+                Start-Sleep -Seconds (5 * $retryCount)
+            }
+        }
+    }
+    
+    $timer.Stop()
+    $updateResult.Duration = $timer.ElapsedMilliseconds / 1000
+    Save-UpdateHistory -UpdateResult $updateResult
+    return $false
+}
+
+function Update-ClosedAppsParallel {
+    [CmdletBinding()]
+    param (
+        [array]$Apps,
+        [int]$ThrottleLimit = 3
+    )
+    
+    $config = Get-Configuration
+    if ($config.UpdateBehavior.ThrottleLimit) {
+        $ThrottleLimit = $config.UpdateBehavior.ThrottleLimit
+    }
+    
+    if (-not $config.UpdateBehavior.ParallelUpdates) {
+        # Fall back to sequential updates
+        $results = @()
+        foreach ($app in $Apps) {
+            $results += Update-SingleApp -App $app
+        }
+        return $results
+    }
+    
+    Write-Log -LogLevel 'INFO' -Message "Starting parallel updates with throttle limit of $ThrottleLimit"
+    
+    # Create a runspace pool for parallel execution
+    $runspacePool = [runspacefactory]::CreateRunspacePool(1, $ThrottleLimit)
+    $runspacePool.Open()
+    
+    $jobs = @()
+    $results = @()
+    
+    foreach ($app in $Apps) {
+        $powershell = [powershell]::Create()
+        $powershell.RunspacePool = $runspacePool
+        
+        # Add the script and parameters
+        [void]$powershell.AddScript({
+            param($App, $ScriptPath, $LogPath, $ConfigPath)
+            
+            # Load required functions in the runspace
+            . $ScriptPath
+            $global:logPath = $LogPath
+            
+            # Run the update
+            Update-SingleApp -App $App
+        })
+        
+        [void]$powershell.AddArgument($app)
+        [void]$powershell.AddArgument($PSCommandPath)
+        [void]$powershell.AddArgument($global:logPath)
+        [void]$powershell.AddArgument($ConfigPath)
+        
+        # Start the job
+        $handle = $powershell.BeginInvoke()
+        $jobs += @{
+            PowerShell = $powershell
+            Handle = $handle
+            App = $app
+        }
+    }
+    
+    # Wait for all jobs to complete
+    foreach ($job in $jobs) {
+        try {
+            $result = $job.PowerShell.EndInvoke($job.Handle)
+            $results += $result
+            
+            if (-not $script:SilentMode) {
+                $Host.UI.WriteLine("Completed update for: $($job.App.Name)")
+            }
+        }
+        catch {
+            Write-Log -LogLevel 'ERROR' -Message "Parallel update failed for $($job.App.Name): $($_.Exception.Message)"
+        }
+        finally {
+            $job.PowerShell.Dispose()
+        }
+    }
+    
+    $runspacePool.Close()
+    $runspacePool.Dispose()
+    
+    return $results
+}
+
+function Get-WinGetExecutable {
+    $winget = Get-AppxPackage -AllUsers -ErrorAction SilentlyContinue | Where-Object { $_.Name -eq 'Microsoft.DesktopAppInstaller' } -ErrorAction SilentlyContinue
+
+    if ($null -ne $winget) {
+        $wingetFilePath = Join-Path -Path $($winget.InstallLocation) -ChildPath 'winget.exe'
+        $wingetFile = Get-Item -Path $wingetFilePath -ErrorAction SilentlyContinue
+        if ($null -ne $wingetFile) {
+            return $wingetFile
+        } else {
+            $Host.UI.WriteLine('WinGet package is installed, but binary is missing.')
+            Write-Log -LogLevel 'WARNING' -Message 'WinGet package is installed, but binary is missing.'
+            return $false
+        }
+    }
+
+    $Host.UI.WriteLine('WinGet not detected. Attempting to install...')
+    Write-Log -LogLevel 'WARNING' -Message 'WinGet not detected. Attempting to install...'
+
+    if (Install-WinGet) {
+        # Try to find WinGet again after installation
+        $winget = Get-AppxPackage -AllUsers -ErrorAction SilentlyContinue | Where-Object { $_.Name -eq 'Microsoft.DesktopAppInstaller' } -ErrorAction SilentlyContinue
+        if ($null -ne $winget) {
+            $wingetFilePath = Join-Path -Path $($winget.InstallLocation) -ChildPath 'winget.exe'
+            $wingetFile = Get-Item -Path $wingetFilePath -ErrorAction SilentlyContinue
+            if ($null -ne $wingetFile) {
+                return $wingetFile
+            }
+        }
+    }
+
+    $Host.UI.WriteLine('Failed to install WinGet. Please install manually from Microsoft Store.')
+    Write-Log -LogLevel 'ERROR' -Message 'Failed to install WinGet.'
+    return $false
+}
+
+function Install-WinGet {
+    try {
+        $Host.UI.WriteLine("Installing WinGet and dependencies...")
+        Write-Log -LogLevel 'INFO' -Message "Installing WinGet and dependencies..."
+
+        # Create temp directory
+        $tempDir = Join-Path -Path $env:TEMP -ChildPath "WinGetInstall"
+        if (-not (Test-Path $tempDir)) {
+            New-Item -ItemType Directory -Path $tempDir -Force | Out-Null
+        }
+
+        # Install VCLibs (dependency)
+        $vcLibsUrl = "https://aka.ms/Microsoft.VCLibs.x64.14.00.Desktop.appx"
+        $vcLibsPath = Join-Path -Path $tempDir -ChildPath "VCLibs.appx"
+
+        $Host.UI.WriteLine("Downloading VCLibs dependency...")
+        Invoke-WebRequest -Uri $vcLibsUrl -OutFile $vcLibsPath -UseBasicParsing
+        Add-AppxPackage -Path $vcLibsPath -ErrorAction SilentlyContinue
+
+        # Install UI.Xaml (dependency)
+        $xamlUrl = "https://github.com/microsoft/microsoft-ui-xaml/releases/download/v2.8.6/Microsoft.UI.Xaml.2.8.x64.appx"
+        $xamlPath = Join-Path -Path $tempDir -ChildPath "UI.Xaml.appx"
+
+        $Host.UI.WriteLine("Downloading UI.Xaml dependency...")
+        Invoke-WebRequest -Uri $xamlUrl -OutFile $xamlPath -UseBasicParsing
+        Add-AppxPackage -Path $xamlPath -ErrorAction SilentlyContinue
+
+        # Get latest WinGet release info from GitHub
+        $latestRelease = Invoke-RestMethod -Uri "https://api.github.com/repos/microsoft/winget-cli/releases/latest" -UseBasicParsing
+        $msixBundleAsset = $latestRelease.assets | Where-Object { $_.name -like "*.msixbundle" }
+
+        if ($null -ne $msixBundleAsset) {
+            $downloadUrl = $msixBundleAsset.browser_download_url
+            $msixPath = Join-Path -Path $tempDir -ChildPath $msixBundleAsset.name
+
+            $Host.UI.WriteLine("Downloading WinGet installer...")
+            Invoke-WebRequest -Uri $downloadUrl -OutFile $msixPath -UseBasicParsing
+
+            $Host.UI.WriteLine("Installing WinGet...")
+            Add-AppxPackage -Path $msixPath -ErrorAction Stop
+
+            # Cleanup
+            Remove-Item -Path $tempDir -Recurse -Force -ErrorAction SilentlyContinue
+
+            $Host.UI.WriteLine("WinGet installed successfully!")
+            Write-Log -LogLevel 'INFO' -Message "WinGet installed successfully!"
+
+            # Wait a moment for installation to complete
+            Start-Sleep -Seconds 3
+
+            return $true
+        }
+        else {
+            throw "Could not find WinGet installer in latest release"
+        }
+    }
+    catch {
+        $Host.UI.WriteLine("Failed to install WinGet: $($_.Exception.Message)")
+        Write-Log -LogLevel 'ERROR' -Message "Failed to install WinGet: $($_.Exception.Message)"
+        return $false
+    }
+}
+
+function Set-GlobalVariable {
+    # Use a standard location for logs
+    $logFolder = Join-Path -Path $env:ProgramData -ChildPath 'WinGetUpdater'
+    if (-not (Test-Path $logFolder)) {
+        New-Item -ItemType Directory -Path $logFolder -Force | Out-Null
+    }
+    $global:logPath = Join-Path -Path $logFolder -ChildPath 'winget_update.log'
+    if (-not $script:SilentMode) {
+        Write-Host "Log file: $logPath"
+    }
+}
+
+function Start-LogRetention {
+    try {
+        if (Test-Path -Path $logPath) {
+            $logSize = (Get-Item -Path $logPath -ErrorAction Stop).Length
+            if ($logSize -ge 5MB) {
+                # Archive old log
+                $archivePath = $logPath -replace '\.log$', "_$(Get-Date -Format 'yyyyMMdd_HHmmss').log"
+                Move-Item -Path $logPath -Destination $archivePath -Force
+                
+                # Keep only last 5 archived logs
+                $archives = Get-ChildItem -Path (Split-Path $logPath) -Filter "winget_update_*.log" | 
+                    Sort-Object CreationTime -Descending | 
+                    Select-Object -Skip 5
+                
+                foreach ($archive in $archives) {
+                    Remove-Item -Path $archive.FullName -Force
+                }
+                
+                Out-File -FilePath $logPath -Encoding utf8 -ErrorAction Stop
+                Write-Log -LogLevel 'INFO' -Message 'The log file exceeded the 5 MB limit and was archived.'
+            }
+        }
+    } catch {
+        $exceptionMessage = $_.Exception.Message
+        $exceptionLine = $_.InvocationInfo.ScriptLineNumber
+        Write-Log -LogLevel 'ERROR' -Message "The log retention failed, caught exception: $exceptionMessage at line $exceptionLine."
+    }
+}
+
+function Write-Log {
+    [CmdletBinding()]
+    param (
+        [Parameter(Mandatory)]
+        [string]$LogLevel,
+        [Parameter(Mandatory)]
+        [string]$Message
+    )
+    try {
+        $timestamp = ([datetime]::Now).ToString('yyyyMMdd HH:mm:sszzz')
+        $logMessage = "$timestamp - $LogLevel - $Message"
+        Add-Content -Path $logPath -Value $logMessage -Encoding UTF8 -ErrorAction Stop
+    }
+    catch {
+        if (-not $script:SilentMode) {
+            $Host.UI.WriteLine("Failed to write the log, caught the exception: $($_.Exception.Message).")
+        }
+    }
+}
+
+function Show-ToastNotification {
+    [CmdletBinding()]
+    param (
+        [Parameter(Mandatory)]
+        [string]$Title,
+        [Parameter(Mandatory)]
+        [string]$Message,
+        [Parameter()]
+        [ValidateSet('Info', 'Warning', 'Error')]
+        [string]$Type = 'Info',
+        [Parameter()]
+        [string[]]$Actions = @(),
+        [Parameter()]
+        [switch]$ForceShow
+    )
+
+    $config = Get-Configuration
+    
+    # Skip notifications if disabled in config or silent mode
+    if (-not $config.NotificationSettings.ShowToast -and -not $ForceShow) {
+        Write-Log -LogLevel 'INFO' -Message "Notification suppressed (disabled in config): $Title - $Message"
+        return
+    }
+    
+    # Skip notifications in silent mode unless forced
+    if ($script:SilentMode -and -not $ForceShow) {
+        Write-Log -LogLevel 'INFO' -Message "Notification suppressed (silent mode): $Title - $Message"
+        return
+    }
+
+    try {
+        # Check if we're running as SYSTEM
+        $currentUser = [System.Security.Principal.WindowsIdentity]::GetCurrent().Name
+        if ($currentUser -eq "NT AUTHORITY\SYSTEM") {
+            # Running as SYSTEM - use msg.exe to notify logged-in users
+            $sessions = @(query user 2>$null | Select-Object -Skip 1 | ForEach-Object {
+                $parts = $_ -split '\s+'
+                @{
+                    Username = $parts[0]
+                    SessionId = $parts[2]
+                    State = $parts[3]
+                }
+            } | Where-Object { $_.State -eq "Active" })
+
+            if ($sessions.Count -gt 0) {
+                foreach ($session in $sessions) {
+                    # Use msg.exe for simple notifications
+                    $simpleMessage = "${Title}: ${Message}" -replace "`n", " "
+                    & msg.exe $session.SessionId /TIME:30 $simpleMessage 2>$null
+                }
+            }
+            Write-Log -LogLevel 'INFO' -Message "System notification sent: $Title - $Message"
+            return
+        }
+
+        # Regular user context - show toast notification
+        [Windows.UI.Notifications.ToastNotificationManager, Windows.UI.Notifications, ContentType = WindowsRuntime] | Out-Null
+        [Windows.Data.Xml.Dom.XmlDocument, Windows.Data.Xml.Dom.XmlDocument, ContentType = WindowsRuntime] | Out-Null
+
+        $template = @"
+<toast scenario="reminder" activationType="protocol">
+    <visual>
+        <binding template="ToastGeneric">
+            <text>$Title</text>
+            <text>$Message</text>
+        </binding>
+    </visual>
+"@
+
+        if ($Actions.Count -gt 0) {
+            $template += "<actions>"
+            foreach ($action in $Actions) {
+                $template += "<action content='$action' arguments='action=$action' activationType='protocol'/>"
+            }
+            $template += "</actions>"
+        }
+
+        $template += "</toast>"
+
+        $xml = New-Object Windows.Data.Xml.Dom.XmlDocument
+        $xml.LoadXml($template)
+
+        $toast = New-Object Windows.UI.Notifications.ToastNotification $xml
+        $notifier = [Windows.UI.Notifications.ToastNotificationManager]::CreateToastNotifier("WinGet Update Manager")
+        $notifier.Show($toast)
+
+        Write-Log -LogLevel 'INFO' -Message "Toast notification shown: $Title - $Message"
+    }
+    catch {
+        # Fallback to Windows Forms balloon tip
+        try {
+            Add-Type -AssemblyName System.Windows.Forms
+            $balloon = New-Object System.Windows.Forms.NotifyIcon
+            $balloon.Icon = [System.Drawing.SystemIcons]::Information
+            $balloon.BalloonTipIcon = $Type
+            $balloon.BalloonTipTitle = $Title
+            $balloon.BalloonTipText = $Message
+            $balloon.Visible = $true
+            $balloon.ShowBalloonTip(30000)
+            Start-Sleep -Seconds 5
+            $balloon.Dispose()
+        }
+        catch {
+            Write-Log -LogLevel 'WARNING' -Message "Failed to show notification: $($_.Exception.Message)"
+        }
+    }
+}
+
+#endregion
+
+#region Main Script
+
+# Initialize global variables
+Set-GlobalVariable
+Start-LogRetention
+
+# Load configuration
+$script:Config = Get-Configuration
+
+Write-Log -LogLevel 'INFO' -Message "=== WinGet Update Manager Started ==="
+Write-Log -LogLevel 'INFO' -Message "Parameters: WaitTime=$WaitTimeMinutes, Force=$ForceUpdate, Silent=$SilentMode, Auto=$AutoRun"
+
+if (-not $script:SilentMode) {
+    Write-Host "WinGet Smart Update Manager - Enhanced Version" -ForegroundColor Cyan
+    Write-Host "=============================================" -ForegroundColor Cyan
+    Write-Host ""
+}
+
+# Check for admin privileges
+$isAdmin = ([Security.Principal.WindowsPrincipal] [Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole] "Administrator")
+if (-not $isAdmin) {
+    $errorMsg = "This script requires administrator privileges. Please run as administrator."
+    Write-Log -LogLevel 'ERROR' -Message $errorMsg
+    if (-not $script:SilentMode) {
+        Write-Host $errorMsg -ForegroundColor Red
+    }
+    Show-ToastNotification -Title "WinGet Update Manager" -Message $errorMsg -Type Error -ForceShow
+    exit 1
+}
+
+# Test network conditions
+$networkStatus = Test-NetworkConditions
+if (-not $networkStatus.CanUpdate) {
+    $errorMsg = "Cannot update due to network issues: $($networkStatus.Error)"
+    Write-Log -LogLevel 'ERROR' -Message $errorMsg
+    if (-not $script:SilentMode) {
+        Write-Host $errorMsg -ForegroundColor Red
+    }
+    Show-ToastNotification -Title "Network Error" -Message $errorMsg -Type Error
+    exit 1
+}
+
+if ($networkStatus.MeteredConnection) {
+    Write-Log -LogLevel 'WARNING' -Message "On metered connection"
+    if (-not $script:SilentMode) {
+        Write-Host "Warning: On metered connection. Large updates may be skipped." -ForegroundColor Yellow
+    }
+}
+
+# Get WinGet executable
+$wingetFile = Get-WinGetExecutable
+if (-not $wingetFile) {
+    exit 1
+}
+
+# Check for available updates
+Write-Log -LogLevel 'INFO' -Message "Checking for available updates..."
+if (-not $script:SilentMode) {
+    Write-Host "Checking for available updates..." -ForegroundColor Yellow
+}
+
+try {
+    $arguments = "upgrade --source winget"
+    $psi = New-Object System.Diagnostics.ProcessStartInfo -Property @{
+        RedirectStandardOutput = $true
+        RedirectStandardError  = $true
+        UseShellExecute        = $false
+        WindowStyle            = 'Hidden'
+        CreateNoWindow         = $true
+        FileName               = $wingetFile.FullName
+        Arguments              = $arguments
+    }
+    $p = New-Object System.Diagnostics.Process
+    $p.StartInfo = $psi
+    $p.Start() | Out-Null
+    $output = $p.StandardOutput.ReadToEnd()
+    $p.WaitForExit()
+}
+catch {
+    $errorMsg = "Failed to check for updates: $($_.Exception.Message)"
+    Write-Log -LogLevel 'ERROR' -Message $errorMsg
+    if (-not $script:SilentMode) {
+        Write-Host $errorMsg -ForegroundColor Red
+    }
+    exit 1
+}
+
+# Parse available updates
+$lines = $output -split "`r`n" | Where-Object { $_ -match '\S' }
+$updates = @()
+$startParsing = $false
+
+foreach ($line in $lines) {
+    if ($line -like "*Name*Id*Version*Available*") {
+        $startParsing = $true
+        continue
+    }
+    if ($line -like "*---*") {
+        continue
+    }
+    if ($startParsing -and $line -match '\S') {
+        # Skip the summary line at the end
+        if ($line -match '^\d+ upgrades? available') {
+            break
+        }
+        
+        # Parse update information - handle various formats
+        $parts = $line -split '\s{2,}' | Where-Object { $_ -ne '' }
+        if ($parts.Count -ge 4) {
+            $appInfo = @{
+                Name = $parts[0].Trim()
+                Id = $parts[1].Trim()
+                CurrentVersion = $parts[2].Trim()
+                AvailableVersion = $parts[3].Trim()
+            }
+            
+            # Check if app is excluded
+            if ($script:Config.ExcludedApps -contains $appInfo.Id -or $script:Config.ExcludedApps -contains $appInfo.Name) {
+                Write-Log -LogLevel 'INFO' -Message "Skipping excluded app: $($appInfo.Name)"
+                continue
+            }
+            
+            $updates += $appInfo
+        }
+    }
+}
+
+if ($updates.Count -eq 0) {
+    $msg = "No updates available."
+    Write-Log -LogLevel 'INFO' -Message $msg
+    if (-not $script:SilentMode) {
+        Write-Host $msg -ForegroundColor Green
+    }
+    Show-ToastNotification -Title "WinGet Update Manager" -Message $msg -Type Info
+    exit 0
+}
+
+# Display available updates
+$msg = "Found $($updates.Count) available update(s)"
+Write-Log -LogLevel 'INFO' -Message $msg
+if (-not $script:SilentMode) {
+    Write-Host "`n$msg:" -ForegroundColor Cyan
+    foreach ($update in $updates) {
+        Write-Host "  - $($update.Name) ($($update.CurrentVersion) -> $($update.AvailableVersion))" -ForegroundColor White
+    }
+    Write-Host ""
+}
+
+# Categorize apps
+$closedApps = @()
+$openApps = @()
+
+foreach ($update in $updates) {
+    $processes = Get-ProcessForApp -AppName $update.Name -AppId $update.Id
+    if ($processes.Count -gt 0) {
+        $update.Processes = $processes
+        $openApps += $update
+        Write-Log -LogLevel 'INFO' -Message "$($update.Name) is currently running ($(($processes | Select-Object -ExpandProperty Name) -join ', '))"
+    }
+    else {
+        $closedApps += $update
+        Write-Log -LogLevel 'INFO' -Message "$($update.Name) is not running"
+    }
+}
+
+# Update closed applications
+if ($closedApps.Count -gt 0) {
+    $msg = "Updating $($closedApps.Count) closed application(s)..."
+    Write-Log -LogLevel 'INFO' -Message $msg
+    if (-not $script:SilentMode) {
+        Write-Host $msg -ForegroundColor Green
+    }
+    
+    Show-ToastNotification -Title "Starting Updates" -Message "Updating $($closedApps.Count) application(s) that are not currently running." -Type Info
+    
+    # Update apps in parallel if configured
+    $results = Update-ClosedAppsParallel -Apps $closedApps -ThrottleLimit $script:Config.UpdateBehavior.ThrottleLimit
+    
+    $successCount = ($results | Where-Object { $_ -eq $true }).Count
+    $failCount = $closedApps.Count - $successCount
+    
+    if ($successCount -gt 0) {
+        Write-Log -LogLevel 'INFO' -Message "Successfully updated $successCount application(s)"
+    }
+    if ($failCount -gt 0) {
+        Write-Log -LogLevel 'WARNING' -Message "Failed to update $failCount application(s)"
+    }
+}
+
+# Handle open applications
+if ($openApps.Count -gt 0) {
+    $msg = "$($openApps.Count) application(s) are currently running"
+    Write-Log -LogLevel 'INFO' -Message $msg
+    
+    if ($ForceUpdate -or $script:Config.UpdateBehavior.AutoCloseBrowsers) {
+        # Force close and update
+        Write-Log -LogLevel 'WARNING' -Message "Force update enabled - closing running applications"
+        if (-not $script:SilentMode) {
+            Write-Host "Force update: Closing running applications..." -ForegroundColor Yellow
+        }
+        
+        Show-ToastNotification -Title "Closing Applications" -Message "Some applications need to be closed for updates. They will restart after updating." -Type Warning
+        
+        foreach ($app in $openApps) {
+            foreach ($process in $app.Processes) {
+                try {
+                    Write-Log -LogLevel 'INFO' -Message "Closing $($process.Name) (PID: $($process.Id))"
+                    $process | Stop-Process -Force -ErrorAction Stop
+                }
+                catch {
+                    Write-Log -LogLevel 'ERROR' -Message "Failed to close $($process.Name): $($_.Exception.Message)"
+                }
+            }
+            Start-Sleep -Seconds 2
+            Update-SingleApp -App $app
+        }
+    }
+    else {
+        # Wait for apps to close
+        $waitMinutes = if ($script:Config.UpdateBehavior.MaxWaitMinutes) { 
+            $script:Config.UpdateBehavior.MaxWaitMinutes 
+        } else { 
+            $WaitTimeMinutes 
+        }
+        
+        $msg = "Waiting up to $waitMinutes minutes for applications to close..."
+        Write-Log -LogLevel 'INFO' -Message $msg
+        if (-not $script:SilentMode) {
+            Write-Host $msg -ForegroundColor Yellow
+        }
+        
+        $openAppNames = ($openApps | ForEach-Object { $_.Name }) -join ", "
+        Show-ToastNotification -Title "Updates Pending" -Message "Please close these apps for updates: $openAppNames" -Type Warning -Actions @("Close Apps", "Skip")
+        
+        $endTime = (Get-Date).AddMinutes($waitMinutes)
+        $updatedApps = @()
+        
+        while ((Get-Date) -lt $endTime -and $openApps.Count -gt $updatedApps.Count) {
+            foreach ($app in $openApps) {
+                if ($updatedApps -contains $app.Id) { continue }
+                
+                $processes = Get-ProcessForApp -AppName $app.Name -AppId $app.Id
+                if ($processes.Count -eq 0) {
+                    Write-Log -LogLevel 'INFO' -Message "$($app.Name) has been closed - updating now"
+                    if (Update-SingleApp -App $app) {
+                        $updatedApps += $app.Id
+                        Show-ToastNotification -Title "Update Complete" -Message "$($app.Name) has been updated successfully" -Type Info
+                    }
+                }
+            }
+            
+            if ($openApps.Count -gt $updatedApps.Count) {
+                Start-Sleep -Seconds 30
+            }
+        }
+        
+        $remainingCount = $openApps.Count - $updatedApps.Count
+        if ($remainingCount -gt 0) {
+            $remainingApps = $openApps | Where-Object { $updatedApps -notcontains $_.Id }
+            $remainingNames = ($remainingApps | ForEach-Object { $_.Name }) -join ", "
+            $msg = "$remainingCount application(s) still running after wait period: $remainingNames"
+            Write-Log -LogLevel 'WARNING' -Message $msg
+            if (-not $script:SilentMode) {
+                Write-Host $msg -ForegroundColor Yellow
+            }
+            Show-ToastNotification -Title "Updates Incomplete" -Message "Could not update: $remainingNames (still running)" -Type Warning
+        }
+    }
+}
+
+# Generate summary report
+$report = Get-UpdateReport -LastDays 1
+$summaryMsg = "Update session complete. Today: $($report.TotalUpdates) updates, $($report.Successful) successful, $($report.Failed) failed"
+Write-Log -LogLevel 'INFO' -Message $summaryMsg
+
+if (-not $script:SilentMode) {
+    Write-Host "`n=== Update Summary ===" -ForegroundColor Cyan
+    Write-Host $summaryMsg -ForegroundColor White
+    Write-Host ""
+}
+
+Show-ToastNotification -Title "Update Complete" -Message $summaryMsg -Type Info
+
+Write-Log -LogLevel 'INFO' -Message "=== WinGet Update Manager Finished ==="
+
+#endregion
