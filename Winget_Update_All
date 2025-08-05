@@ -3,13 +3,13 @@
 
 param(
     [Parameter()]
-    [int]$WaitTimeMinutes = 5,
+    [int]$WaitTimeMinutes = 5
     [Parameter()]
-    [switch]$ForceUpdate,
+    [switch]$ForceUpdate
     [Parameter()]
-    [switch]$SilentMode,
+    [switch]$SilentMode
     [Parameter()]
-    [switch]$AutoRun,
+    [switch]$AutoRun
     [Parameter()]
     [string]$ConfigPath = "$env:ProgramData\WinGetUpdater\config.json"
 )
