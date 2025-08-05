@@ -1457,6 +1457,7 @@
     </div>
 
     <script src="https://alcdn.msauth.net/browser/2.30.0/js/msal-browser.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.1.1/crypto-js.min.js"></script>
 
     <script>
         // ADD THE PASSWORD SECURITY CODE HERE - BEFORE ANYTHING ELSE
@@ -1503,13 +1504,18 @@
             }
         }
 
-        // SHA-256 hashing function
+        // SHA-256 hashing function with CryptoJS fallback
         async function hashPassword(password) {
-            const msgUint8 = new TextEncoder().encode(password);
-            const hashBuffer = await crypto.subtle.digest('SHA-256', msgUint8);
-            const hashArray = Array.from(new Uint8Array(hashBuffer));
-            const hashHex = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
-            return hashHex;
+            if (window.crypto && window.crypto.subtle) {
+                const msgUint8 = new TextEncoder().encode(password);
+                const hashBuffer = await crypto.subtle.digest('SHA-256', msgUint8);
+                const hashArray = Array.from(new Uint8Array(hashBuffer));
+                return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+            }
+            if (window.CryptoJS) {
+                return CryptoJS.SHA256(password).toString(CryptoJS.enc.Hex);
+            }
+            throw new Error('Secure hashing not supported in this environment');
         }
 
         function showAccessDenied(message) {
@@ -1593,7 +1599,7 @@
             showMainApplication();
         } catch (error) {
             console.error("Authentication failed:", error.message);
-            // showAccessDenied() handles displaying the appropriate screen
+            showAccessDenied(`Authentication error: ${error.message}`);
             return; // Stop further script execution if authentication failed
         }
     }
