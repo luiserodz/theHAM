@@ -1457,6 +1457,7 @@
     </div>
 
     <script src="https://alcdn.msauth.net/browser/2.30.0/js/msal-browser.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.1.1/crypto-js.min.js"></script>
 
     <script>
         // ADD THE PASSWORD SECURITY CODE HERE - BEFORE ANYTHING ELSE
@@ -1470,7 +1471,7 @@
 
             while (attempts < maxAttempts && !authorized) {
                 const password = prompt(
-                    `🔒 Intune Policy Manager - Secure Access\n\n` +
+                    `🔒 Intune Compliance Manager - Secure Access\n\n` +
                     `Enter password (${maxAttempts - attempts} attempt${attempts === 2 ? '' : 's'} remaining):`
                 );
 
@@ -1503,13 +1504,18 @@
             }
         }
 
-        // SHA-256 hashing function
+        // SHA-256 hashing function with CryptoJS fallback
         async function hashPassword(password) {
-            const msgUint8 = new TextEncoder().encode(password);
-            const hashBuffer = await crypto.subtle.digest('SHA-256', msgUint8);
-            const hashArray = Array.from(new Uint8Array(hashBuffer));
-            const hashHex = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
-            return hashHex;
+            if (window.crypto && window.crypto.subtle) {
+                const msgUint8 = new TextEncoder().encode(password);
+                const hashBuffer = await crypto.subtle.digest('SHA-256', msgUint8);
+                const hashArray = Array.from(new Uint8Array(hashBuffer));
+                return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+            }
+            if (window.CryptoJS) {
+                return CryptoJS.SHA256(password).toString(CryptoJS.enc.Hex);
+            }
+            throw new Error('Secure hashing not supported in this environment');
         }
 
         function showAccessDenied(message) {
@@ -1536,7 +1542,7 @@
                             
                             <div style="margin-top: 35px; padding-top: 25px; border-top: 1px solid #eee;">
                                 <p style="color: #999; font-size: 15px;">Please contact support for access credentials.</p>
-                                <p style="color: #bbb; font-size: 13px; margin-top: 15px;">Intune Policy Manager</p>
+                                <p style="color: #bbb; font-size: 13px; margin-top: 15px;">Intune Compliance Manager</p>
                             </div>
                         </div>
                     </div>
@@ -1580,8 +1586,8 @@
             }, INACTIVITY_TIMEOUT);
         }
 
-        // Execute when the DOM is fully loaded
-        document.addEventListener('DOMContentLoaded', async function() {
+        // Execute immediately since the script is loaded after the DOM
+        (async function() {
     // Check for authentication first
     if (!checkSessionExpiry() && sessionStorage.getItem('intunePolicyManagerAuth')) {
         // If already authenticated in this session, show the app immediately
@@ -1593,7 +1599,7 @@
             showMainApplication();
         } catch (error) {
             console.error("Authentication failed:", error.message);
-            // showAccessDenied() handles displaying the appropriate screen
+            showAccessDenied(`Authentication error: ${error.message}`);
             return; // Stop further script execution if authentication failed
         }
     }
@@ -1659,7 +1665,7 @@
     //     // Ensure the clientId input is enabled if no saved ID
     //     document.getElementById('clientId').disabled = false;
     // }
-});
+})();
 
 // Notification system
         function showNotification(message, type = 'info', duration = 5000) {
@@ -2786,45 +2792,7 @@ try {
     console.error(`Error checking policy ${policy.name}:`, error);
 }
 
-                if (statusResponse.ok) {
-                    const statusData = await statusResponse.json();
-                    const deviceStatuses = statusData.value || [];
-                    
-                    let compliant = 0, noncompliant = 0, pending = 0, error = 0;
-                    
-                    deviceStatuses.forEach(status => {
-                        switch(status.state?.toLowerCase()) {
-                            case 'compliant':
-                            case 'succeeded':
-                                compliant++;
-                                break;
-                            case 'noncompliant':
-                            case 'error':
-                            case 'conflict':
-                                noncompliant++;
-                                break;
-                            case 'pending':
-                            case 'notassigned':
-                            default:
-                                pending++;
-                                break;
-                        }
-                    });
-
-                    policyDeviceStates[policy.id] = [{
-                        state: 'summary',
-                        total: deviceStatuses.length || 'No devices',
-                        compliant: compliant,
-                        noncompliant: noncompliant,
-                        pending: pending
-                    }];
-                    return;
-                }
-            } catch (err) {
-                console.debug(`Device status endpoint not available for ${policy.name}, trying assignments...`);
-            }
-
-            // If device status doesn't work, check assignments at least
+            // If device status endpoint isn't accessible, check assignments instead
             try {
                 const assignResponse = await fetch(
                     `https://graph.microsoft.com/beta/deviceManagement/configurationPolicies/${policy.id}/assignments`,
@@ -2885,66 +2853,6 @@ try {
         pending: overview.numberOfPendingDevices || 0
     }];
 }
-
-            if (!response.ok) {
-                // Try the summary endpoint as fallback
-                const summaryResponse = await fetch(
-                    `https://graph.microsoft.com/beta/deviceManagement/deviceConfigurations/${policy.id}/deviceStatusOverview`,
-                    {
-                        headers: { 'Authorization': `Bearer ${accessToken}` }
-                    }
-                );
-
-                if (summaryResponse.ok) {
-                    const summary = await summaryResponse.json();
-                    policyDeviceStates[policy.id] = [{
-                        state: 'summary',
-                        total: summary.configurationVersion || 0,
-                        compliant: summary.compliantDeviceCount || 0,
-                        noncompliant: summary.errorDeviceCount || 0,
-                        pending: summary.pendingDeviceCount || 0
-                    }];
-                    return;
-                }
-
-                console.error(`Failed to fetch status for policy '${policy.name}': ${response.status}`);
-                policyDeviceStates[policy.id] = [{ state: 'summary', total: 'Error', compliant: 0, noncompliant: 0, pending: 0 }];
-                return;
-            }
-
-            const deviceStatuses = await response.json();
-            const statuses = deviceStatuses.value || [];
-
-            // Calculate summary for regular policies
-            let compliant = 0, noncompliant = 0, pending = 0;
-            
-            statuses.forEach(status => {
-                switch(status.status) {
-                    case 'compliant':
-                    case 'succeeded':
-                        compliant++;
-                        break;
-                    case 'nonCompliant':
-                    case 'error':
-                    case 'conflict':
-                        noncompliant++;
-                        break;
-                    case 'pending':
-                    case 'notApplicable':
-                    default:
-                        pending++;
-                        break;
-                }
-            });
-
-            policyDeviceStates[policy.id] = [{
-                state: 'summary',
-                total: statuses.length,
-                compliant: compliant,
-                noncompliant: noncompliant,
-                pending: pending
-            }];
-        }
 
     } catch (error) {
         console.error(`Error processing policy ${policy.name}:`, error);
