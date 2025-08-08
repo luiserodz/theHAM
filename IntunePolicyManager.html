@@ -1891,17 +1891,10 @@
                 return;
             }
             
-            // Load saved client ID if available
-            const savedClientId = localStorage.getItem('intuneManagerClientId');
-            if (savedClientId) {
-                clientIdInput.value = savedClientId;
-                clientIdInput.dispatchEvent(new Event('input'));
-            }
-            
             clientIdInput.addEventListener('input', (e) => {
                 const clientId = e.target.value.trim();
                 const guidPattern = /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/;
-                
+
                 if (guidPattern.test(clientId)) {
                     loginBtn.disabled = false;
                     clientIdInput.style.borderColor = '#28a745';
@@ -1912,7 +1905,14 @@
                     clientIdInput.style.borderColor = clientId ? '#dc3545' : '#ddd';
                 }
             });
-            
+
+            // Load saved client ID if available
+            const savedClientId = localStorage.getItem('intuneManagerClientId');
+            if (savedClientId) {
+                clientIdInput.value = savedClientId;
+                clientIdInput.dispatchEvent(new Event('input'));
+            }
+
             loginBtn.addEventListener('click', signIn);
             
             const signOutBtn = document.getElementById('signOutBtn');
