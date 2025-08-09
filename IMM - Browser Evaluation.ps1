@@ -348,31 +348,38 @@ function Test-BrowserCompliance {
         Write-DetectionLog -Message "Checking $($browser.Name) (Required: $isRequired)..."
 
         $installedVersion = Get-InstalledBrowserVersion -BrowserName $browserKey -RegistryPaths $browser.RegistryPaths -ExecutablePaths $browser.ExecutablePaths
+        $browserProcess   = Get-Process -Name $browser.ProcessName -ErrorAction SilentlyContinue
+        $isRunning        = $browserProcess -ne $null
 
         if (-not $installedVersion) {
             if ($isRequired) {
                 Write-DetectionLog -Message "$($browser.Name) is REQUIRED but not installed" -Level "ERROR"
                 $results += @{
-                    Browser = $browser.Name
-                    Status = "Not Installed"
-                    Action = "Install"
+                    Browser  = $browser.Name
+                    Status   = "Not Installed"
+                    Action   = "Install"
                     Priority = "Critical"
+                    Running  = $isRunning
                 }
                 $needsRemediation = $true
                 $criticalIssues += "$($browser.Name) not installed (required)"
             } else {
                 Write-DetectionLog -Message "$($browser.Name) is not installed (optional)"
                 $results += @{
-                    Browser = $browser.Name
-                    Status = "Not Installed"
-                    Action = "Skip"
+                    Browser  = $browser.Name
+                    Status   = "Not Installed"
+                    Action   = "Skip"
                     Priority = "Optional"
+                    Running  = $isRunning
                 }
             }
             continue
         }
 
         Write-DetectionLog -Message "$($browser.Name) installed version: $installedVersion"
+        if ($isRunning) {
+            Write-DetectionLog -Message "$($browser.Name) is currently running" -Level "WARNING"
+        }
 
         $latestVersion = Get-LatestBrowserVersion -BrowserName $browserKey -VersionAPI $browser.VersionAPI -UseCache
 
@@ -383,23 +390,25 @@ function Test-BrowserCompliance {
                 $priority = if ($comparison.Reason -like "*Below minimum*") { "Critical" } elseif ($isRequired) { "High" } else { "Normal" }
                 Write-DetectionLog -Message "$($browser.Name) needs update: $($comparison.Reason)" -Level "WARNING"
                 $results += @{
-                    Browser = $browser.Name
-                    Status = "Outdated"
-                    Current = $comparison.Current
-                    Latest = $comparison.Latest
-                    Action = "Update"
-                    Reason = $comparison.Reason
+                    Browser  = $browser.Name
+                    Status   = "Outdated"
+                    Current  = $comparison.Current
+                    Latest   = $comparison.Latest
+                    Action   = "Update"
+                    Reason   = $comparison.Reason
                     Priority = $priority
+                    Running  = $isRunning
                 }
                 $needsRemediation = $true
                 if ($priority -eq "Critical") { $criticalIssues += "$($browser.Name) $($comparison.Reason)" }
             } else {
                 Write-DetectionLog -Message "$($browser.Name) is up to date"
                 $results += @{
-                    Browser = $browser.Name
-                    Status = "Compliant"
-                    Version = $installedVersion
-                    Latest = $latestVersion
+                    Browser  = $browser.Name
+                    Status   = "Compliant"
+                    Version  = $installedVersion
+                    Latest   = $latestVersion
+                    Running  = $isRunning
                 }
             }
         } else {
@@ -407,21 +416,23 @@ function Test-BrowserCompliance {
             $comparison = Compare-Versions -CurrentVersion $installedVersion -LatestVersion $null -MinimumVersion $browser.MinVersion -MaxVersionsBehind $MaxVersionsBehind
             if ($comparison.NeedsUpdate) {
                 $results += @{
-                    Browser = $browser.Name
-                    Status = "Below Minimum"
-                    Current = $installedVersion
-                    Minimum = $browser.MinVersion
-                    Action = "Update"
+                    Browser  = $browser.Name
+                    Status   = "Below Minimum"
+                    Current  = $installedVersion
+                    Minimum  = $browser.MinVersion
+                    Action   = "Update"
                     Priority = "Critical"
+                    Running  = $isRunning
                 }
                 $needsRemediation = $true
                 $criticalIssues += "$($browser.Name) below minimum version"
             } else {
                 $results += @{
                     Browser = $browser.Name
-                    Status = "Version Check Failed"
+                    Status  = "Version Check Failed"
                     Version = $installedVersion
-                    Note = "Unable to verify latest version"
+                    Note    = "Unable to verify latest version"
+                    Running = $isRunning
                 }
             }
         }
