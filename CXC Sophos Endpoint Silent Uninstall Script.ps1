@@ -1,72 +1,102 @@
-# Sophos Endpoint Silent Uninstall Script
-# For deployment via Action1 and Microsoft Intune
+<#
+    Sophos Endpoint Silent Uninstall Script
+    This script attempts to remove all Sophos components silently so it can be
+    deployed through Microsoft Intune.  The original version only targeted a
+    single installation path.  The improved version searches for known
+    uninstallers and falls back to the registry to remove any remaining Sophos
+    products.  Exit codes are returned so Intune can detect success (0) or
+    reboot required (3010).
+#>
 
-# Set error action preference
 $ErrorActionPreference = "Stop"
 
-# Define Sophos installation path
-$sophosPath = "C:\Program Files\Sophos\Sophos Endpoint Agent"
-$uninstallerPath = Join-Path $sophosPath "SophosUninstall.exe"
-
-# Logging function
 function Write-Log {
     param([string]$Message)
-    $timestamp = Get-Date -Format "yyyy-MM-dd HH:mm:ss"
+    $timestamp  = Get-Date -Format "yyyy-MM-dd HH:mm:ss"
     $logMessage = "$timestamp - $Message"
     Write-Output $logMessage
-    # Optional: Write to file for tracking
     # Add-Content -Path "C:\Windows\Temp\SophosUninstall.log" -Value $logMessage
 }
 
-try {
-    Write-Log "Starting Sophos Endpoint uninstallation process"
-    
-    # Check if Sophos is installed
-    if (Test-Path $uninstallerPath) {
-        Write-Log "Sophos uninstaller found at: $uninstallerPath"
-        
-        # Check if Sophos services are running
-        $sophosServices = Get-Service -Name "Sophos*" -ErrorAction SilentlyContinue
-        if ($sophosServices) {
-            Write-Log "Found $($sophosServices.Count) Sophos services"
+function Invoke-Uninstall {
+    param(
+        [string]$FilePath,
+        [string]$Arguments = "",
+        [switch]$UseCmd
+    )
+
+    try {
+        if ($UseCmd) {
+            $Arguments = "/c `"$FilePath $Arguments`""
+            $FilePath  = "$env:SystemRoot\System32\cmd.exe"
         }
-        
-        # Execute silent uninstall
-        Write-Log "Executing silent uninstall"
-        $uninstallProcess = Start-Process -FilePath $uninstallerPath -ArgumentList "--quiet" -Wait -PassThru -NoNewWindow
-        
-        # Check exit code
-        if ($uninstallProcess.ExitCode -eq 0) {
-            Write-Log "Sophos uninstalled successfully"
-            exit 0
-        }
-        elseif ($uninstallProcess.ExitCode -eq 3010) {
-            Write-Log "Sophos uninstalled successfully - Reboot required"
-            exit 3010
-        }
-        else {
-            Write-Log "Uninstall completed with exit code: $($uninstallProcess.ExitCode)"
-            exit $uninstallProcess.ExitCode
-        }
+
+        Write-Log "Running: $FilePath $Arguments"
+        $proc = Start-Process -FilePath $FilePath -ArgumentList $Arguments -NoNewWindow -Wait -PassThru
+        Write-Log "Exit code: $($proc.ExitCode)"
+        return $proc.ExitCode
     }
-    else {
-        Write-Log "Sophos uninstaller not found at expected location"
-        
-        # Alternative: Check if Sophos is installed via registry
-        $sophosRegistry = Get-ItemProperty "HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\*" | 
-                         Where-Object { $_.DisplayName -like "*Sophos*Endpoint*" }
-        
-        if ($sophosRegistry) {
-            Write-Log "Sophos found in registry but uninstaller missing"
-            exit 1
-        }
-        else {
-            Write-Log "Sophos Endpoint not detected on this system"
-            exit 0
+    catch {
+        Write-Log "Failed to run $FilePath : $_"
+        return 1
+    }
+}
+
+Write-Log "Starting Sophos Endpoint uninstallation process"
+
+Get-Service -Name "Sophos*" -ErrorAction SilentlyContinue | Stop-Service -Force -ErrorAction SilentlyContinue
+Get-Process -Name "Sophos*" -ErrorAction SilentlyContinue | Stop-Process -Force -ErrorAction SilentlyContinue
+
+$rebootNeeded = $false
+
+# Known uninstall executables
+$uninstallers = @(
+    @{ Path = "C:\Program Files\Sophos\Sophos Endpoint Agent\SophosUninstall.exe"; Args = "--quiet" },
+    @{ Path = "C:\Program Files (x86)\Sophos\Sophos Endpoint Agent\SophosUninstall.exe"; Args = "--quiet" },
+    @{ Path = "C:\Program Files\Sophos\Endpoint Defense\uninstallcli.exe"; Args = "--quiet" },
+    @{ Path = "C:\Program Files (x86)\Sophos\Endpoint Defense\uninstallcli.exe"; Args = "--quiet" }
+)
+
+foreach ($u in $uninstallers) {
+    if (Test-Path $u.Path) {
+        $exit = Invoke-Uninstall -FilePath $u.Path -Arguments $u.Args
+        if ($exit -eq 3010) { $rebootNeeded = $true }
+    }
+}
+
+# Registry-based uninstall fall-back
+$regPaths = @(
+    "HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall",
+    "HKLM:\SOFTWARE\WOW6432Node\Microsoft\Windows\CurrentVersion\Uninstall"
+)
+
+foreach ($regPath in $regPaths) {
+    Get-ChildItem $regPath -ErrorAction SilentlyContinue | ForEach-Object {
+        $item = Get-ItemProperty $_.PSPath
+        if ($item.DisplayName -like "*Sophos*") {
+            Write-Log "Found registry entry for $($item.DisplayName)"
+            $cmd = $item.UninstallString
+            if ([string]::IsNullOrWhiteSpace($cmd)) { return }
+
+            if ($cmd -match "msiexec") {
+                $args = $cmd.Substring($cmd.IndexOf("msiexec") + 8).Trim()
+                if ($args -notmatch "/qn") { $args = "$args /qn /norestart" }
+                $exit = Invoke-Uninstall -FilePath "$env:SystemRoot\System32\msiexec.exe" -Arguments $args
+            }
+            else {
+                $exit = Invoke-Uninstall -FilePath $cmd -Arguments "/quiet"
+            }
+
+            if ($exit -eq 3010) { $rebootNeeded = $true }
         }
     }
 }
-catch {
-    Write-Log "Error during uninstallation: $_"
-    exit 1
+
+if ($rebootNeeded) {
+    Write-Log "Uninstallation complete - reboot required"
+    exit 3010
+}
+else {
+    Write-Log "Uninstallation complete"
+    exit 0
 }
