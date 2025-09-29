@@ -1832,6 +1832,41 @@
             }
         }
 
+        // Fetch all paginated results from Microsoft Graph
+        async function fetchAllGraphResults(initialUrl, options = {}) {
+            let allItems = [];
+            let nextUrl = initialUrl;
+
+            while (nextUrl) {
+                const response = await makeApiRequest(nextUrl, options);
+
+                if (!response.ok) {
+                    throw new Error(`Request failed with status ${response.status}`);
+                }
+
+                const data = await response.json();
+
+                if (data.value && Array.isArray(data.value)) {
+                    allItems = allItems.concat(data.value);
+                }
+
+                const nextLink = data['@odata.nextLink'];
+                if (nextLink) {
+                    if (nextLink.startsWith('https://')) {
+                        nextUrl = nextLink;
+                    } else {
+                        const baseUrl = 'https://graph.microsoft.com';
+                        const separator = nextLink.startsWith('/') ? '' : '/';
+                        nextUrl = `${baseUrl}${separator}${nextLink}`;
+                    }
+                } else {
+                    nextUrl = null;
+                }
+            }
+
+            return allItems;
+        }
+
         // Initialize the application
         document.addEventListener('DOMContentLoaded', function() {
             console.log('DOM loaded, initializing...');
@@ -2602,34 +2637,28 @@
                 // Fetch all policy types
                 for (const [type, endpoints] of Object.entries(policyEndpoints)) {
                     try {
-                        const response = await makeApiRequest(`https://graph.microsoft.com/beta${endpoints.list}`);
-                        const data = await response.json();
-                        
-                        if (data.value) {
-                            data.value.forEach(policy => {
-                                policy._type = type;
-                                allPolicies.push(policy);
-                            });
-                        }
+                        const policies = await fetchAllGraphResults(`https://graph.microsoft.com/beta${endpoints.list}`);
+
+                        policies.forEach(policy => {
+                            policy._type = type;
+                            allPolicies.push(policy);
+                        });
                     } catch (error) {
                         console.error(`Error fetching ${type}:`, error);
                     }
                 }
-                
+
                 // Fetch assignments for each policy
                 for (const policy of allPolicies) {
                     const endpoint = policyEndpoints[policy._type];
                     if (!endpoint || !endpoint.assignments) continue;
-                    
+
                     try {
                         const url = `https://graph.microsoft.com/beta${endpoint.assignments.replace('{id}', policy.id)}`;
-                        const response = await makeApiRequest(url);
-                        
-                        if (response.ok) {
-                            const data = await response.json();
-                            if (data.value && data.value.length > 0) {
-                                policy._assignments = data.value;
-                            }
+                        const assignments = await fetchAllGraphResults(url);
+
+                        if (assignments.length > 0) {
+                            policy._assignments = assignments;
                         }
                     } catch (error) {
                         console.error(`Error fetching assignments for ${policy.displayName}:`, error);
