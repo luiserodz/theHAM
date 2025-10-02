@@ -1750,6 +1750,31 @@
             }
         };
 
+        function getAssignmentOdataType(policyType) {
+            switch (policyType) {
+                case 'configurationPolicies':
+                    return '#microsoft.graph.deviceManagementConfigurationPolicyAssignment';
+                case 'deviceConfigurations':
+                    return '#microsoft.graph.deviceConfigurationAssignment';
+                case 'compliancePolicies':
+                    return '#microsoft.graph.deviceCompliancePolicyAssignment';
+                case 'groupPolicyConfigurations':
+                    return '#microsoft.graph.groupPolicyConfigurationAssignment';
+                case 'intentPolicies':
+                    return '#microsoft.graph.deviceManagementIntentAssignment';
+                default:
+                    return null;
+            }
+        }
+
+        function buildAssignment(target, assignmentType) {
+            const assignment = { target };
+            if (assignmentType) {
+                assignment['@odata.type'] = assignmentType;
+            }
+            return assignment;
+        }
+
         // Tab switching
         function switchTab(tabName) {
             // Hide all tab contents
@@ -2936,11 +2961,13 @@
                     }
                     
                     let endpoint = '/deviceManagement/deviceConfigurations';
+                    let policyTypeKey = 'deviceConfigurations';
                     const odataType = uploadPolicy['@odata.type'] || '';
-                    
+
                     if (odataType && typeof odataType === 'string') {
                         if (odataType.includes('deviceManagementConfigurationPolicy') || odataType.includes('configurationPolicy')) {
                             endpoint = '/deviceManagement/configurationPolicies';
+                            policyTypeKey = 'configurationPolicies';
                             // Ensure required fields for configuration policies
                             if (!uploadPolicy.platforms) {
                                 uploadPolicy.platforms = 'windows10';
@@ -2953,10 +2980,13 @@
                             }
                         } else if (odataType.includes('deviceCompliancePolicy') || odataType.includes('compliancePolicy')) {
                             endpoint = '/deviceManagement/deviceCompliancePolicies';
+                            policyTypeKey = 'compliancePolicies';
                         } else if (odataType.includes('groupPolicyConfiguration')) {
                             endpoint = '/deviceManagement/groupPolicyConfigurations';
+                            policyTypeKey = 'groupPolicyConfigurations';
                         } else if (odataType.includes('deviceManagementIntent') || odataType.includes('intent')) {
                             endpoint = '/deviceManagement/intents';
+                            policyTypeKey = 'intentPolicies';
                         }
                     }
                     
@@ -2979,8 +3009,7 @@
                             progressDetails.textContent = `Assigning ${policy.displayName || policy.name || 'policy'}...`;
                             
                             try {
-                                await assignPolicyDuringUpload(createdPolicy, endpoint, assignmentTarget);
-
+                                await assignPolicyDuringUpload(createdPolicy, endpoint, assignmentTarget, policyTypeKey);
                                 const exclusionInfo = selectedExclusionGroups.length > 0
                                     ? ` with ${selectedExclusionGroups.length} exclusion${selectedExclusionGroups.length === 1 ? '' : 's'}`
                                     : '';
@@ -3057,9 +3086,9 @@
         }
 
         // Assign policy during upload
-        async function assignPolicyDuringUpload(policy, endpoint, assignmentTarget) {
+        async function assignPolicyDuringUpload(policy, endpoint, assignmentTarget, policyTypeKey) {
             let assignEndpoint = '';
-            
+
             if (endpoint.includes('configurationPolicies')) {
                 assignEndpoint = `/deviceManagement/configurationPolicies/${policy.id}/assign`;
             } else if (endpoint.includes('deviceConfigurations')) {
@@ -3073,40 +3102,36 @@
             if (!assignEndpoint) {
                 throw new Error('Cannot determine assignment endpoint for this policy type');
             }
-            
+
             const assignments = [];
-            const exclusions = selectedExclusionGroups.map(group => ({
-                target: {
-                    '@odata.type': '#microsoft.graph.exclusionGroupAssignmentTarget',
-                    groupId: group.id
-                }
-            }));
-            
+            const assignmentType = getAssignmentOdataType(policyTypeKey);
+
+            const addAssignmentTarget = (target) => {
+                assignments.push(buildAssignment(target, assignmentType));
+            };
             if (assignmentTarget === 'allDevices') {
-                assignments.push({
-                    target: {
-                        '@odata.type': '#microsoft.graph.allDevicesAssignmentTarget'
-                    }
+                addAssignmentTarget({
+                    '@odata.type': '#microsoft.graph.allDevicesAssignmentTarget'
                 });
             } else if (assignmentTarget === 'allUsers') {
-                assignments.push({
-                    target: {
-                        '@odata.type': '#microsoft.graph.allLicensedUsersAssignmentTarget'
-                    }
+                addAssignmentTarget({
+                    '@odata.type': '#microsoft.graph.allLicensedUsersAssignmentTarget'
                 });
             } else if (assignmentTarget === 'group' && selectedGroupId) {
-                assignments.push({
-                    target: {
-                        '@odata.type': '#microsoft.graph.groupAssignmentTarget',
-                        groupId: selectedGroupId
-                    }
+                addAssignmentTarget({
+                    '@odata.type': '#microsoft.graph.groupAssignmentTarget',
+                    groupId: selectedGroupId
                 });
             }
-            
+
+            selectedExclusionGroups.forEach(group => {
+                addAssignmentTarget({
+                    '@odata.type': '#microsoft.graph.exclusionGroupAssignmentTarget',
+                    groupId: group.id
+                });
+            });
+
             const payload = { assignments };
-            if (exclusions.length > 0) {
-                payload.exclusions = exclusions;
-            }
 
             const response = await makeApiRequest(
                 `https://graph.microsoft.com/beta${assignEndpoint}`,
@@ -3337,39 +3362,34 @@
                 try {
                     // Build assignment object
                     const assignments = [];
-                    const exclusions = manageSelectedExclusionGroups.map(group => ({
-                        target: {
-                            '@odata.type': '#microsoft.graph.exclusionGroupAssignmentTarget',
-                            groupId: group.id
-                        }
-                    }));
+                    const assignmentType = getAssignmentOdataType(policy._type);
+                    const addAssignmentTarget = (target) => {
+                        assignments.push(buildAssignment(target, assignmentType));
+                    };
 
                     if (assignmentTarget === 'allDevices') {
-                        assignments.push({
-                            target: {
-                                '@odata.type': '#microsoft.graph.allDevicesAssignmentTarget'
-                            }
+                        addAssignmentTarget({
+                            '@odata.type': '#microsoft.graph.allDevicesAssignmentTarget'
                         });
                     } else if (assignmentTarget === 'allUsers') {
-                        assignments.push({
-                            target: {
-                                '@odata.type': '#microsoft.graph.allLicensedUsersAssignmentTarget'
-                            }
+                        addAssignmentTarget({
+                            '@odata.type': '#microsoft.graph.allLicensedUsersAssignmentTarget'
                         });
                     } else if (assignmentTarget === 'group' && manageSelectedGroupId) {
-                        assignments.push({
-                            target: {
-                                '@odata.type': '#microsoft.graph.groupAssignmentTarget',
-                                groupId: manageSelectedGroupId
-                            }
+                        addAssignmentTarget({
+                            '@odata.type': '#microsoft.graph.groupAssignmentTarget',
+                            groupId: manageSelectedGroupId
                         });
                     }
+                    manageSelectedExclusionGroups.forEach(group => {
+                        addAssignmentTarget({
+                            '@odata.type': '#microsoft.graph.exclusionGroupAssignmentTarget',
+                            groupId: group.id
+                        });
+                    });
 
                     const url = `https://graph.microsoft.com/beta${endpoint.assign.replace('{id}', policy.id)}`;
                     const payload = { assignments };
-                    if (exclusions.length > 0) {
-                        payload.exclusions = exclusions;
-                    }
                     const response = await makeApiRequest(url, {
                         method: 'POST',
                         body: JSON.stringify(payload)
