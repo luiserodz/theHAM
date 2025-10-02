@@ -1272,7 +1272,20 @@
                             <strong>Selected Group:</strong> <span id="selectedGroupName"></span>
                         </div>
                     </div>
-                    
+
+                    <div class="form-group" id="exclusionSelectionContainer" style="display: none;">
+                        <label for="exclusionGroupSearch">Exclude Groups (optional):</label>
+                        <div style="display: flex; gap: 10px;">
+                            <input type="text" id="exclusionGroupSearch" placeholder="Enter group name...">
+                            <button class="btn btn-info" onclick="searchExclusionGroups()">Search</button>
+                        </div>
+                        <select id="exclusionGroupSelect" style="margin-top: 10px; display: none;">
+                            <option value="">Select a group...</option>
+                        </select>
+                        <button class="btn btn-secondary" id="addExclusionGroupBtn" style="margin-top: 10px; display: none;" onclick="addExclusionGroup('upload')">Add Exclusion</button>
+                        <div id="selectedExclusionsList" style="margin-top: 10px; display: none;"></div>
+                    </div>
+
                     <div style="display: flex; gap: 10px; flex-wrap: wrap; margin-top: 20px;">
                         <button class="btn btn-secondary" onclick="selectAllUpload()">Select All</button>
                         <button class="btn btn-secondary" onclick="deselectAllUpload()">Deselect All</button>
@@ -1491,7 +1504,20 @@
                         <strong>Selected Group:</strong> <span id="manageSelectedGroupName"></span>
                     </div>
                 </div>
-                
+
+                <div class="form-group" id="manageExclusionSelectionContainer" style="margin-top: 20px; display: block;">
+                    <label for="manageExclusionGroupSearch">Exclude Groups (optional):</label>
+                    <div style="display: flex; gap: 10px;">
+                        <input type="text" id="manageExclusionGroupSearch" placeholder="Enter group name..." style="flex: 1;">
+                        <button class="btn btn-info" onclick="searchManageExclusionGroups()">Search</button>
+                    </div>
+                    <select id="manageExclusionGroupSelect" style="margin-top: 10px; display: none; width: 100%;">
+                        <option value="">Select a group...</option>
+                    </select>
+                    <button class="btn btn-secondary" id="addManageExclusionGroupBtn" style="margin-top: 10px; display: none;" onclick="addExclusionGroup('manage')">Add Exclusion</button>
+                    <div id="manageSelectedExclusionsList" style="margin-top: 10px; display: none;"></div>
+                </div>
+
                 <div class="alert alert-info" style="margin-top: 20px;">
                     <svg width="20" height="20" fill="currentColor" viewBox="0 0 16 16">
                         <path d="M8 16A8 8 0 1 0 8 0a8 8 0 0 0 0 16zm.93-9.412-1 4.705c-.07.34.029.533.304.533.194 0 .487-.07.686-.246l-.088.416c-.287.346-.92.598-1.465.598-.703 0-1.002-.422-.808-1.319l.738-3.468c.064-.293.006-.399-.287-.47l-.451-.081.082-.381 2.29-.287zM8 5.5a1 1 0 1 1 0-2 1 1 0 0 1 0 2z"/>
@@ -1687,6 +1713,8 @@
         let selectedGroupName = null;
         let manageSelectedGroupId = null;
         let manageSelectedGroupName = null;
+        let selectedExclusionGroups = [];
+        let manageSelectedExclusionGroups = [];
 
         // Policy type endpoints mapping
         const policyEndpoints = {
@@ -2245,6 +2273,7 @@
             document.querySelectorAll('input[name="assignmentTarget"]').forEach(radio => {
                 radio.addEventListener('change', (e) => {
                     const groupContainer = document.getElementById('groupSelectionContainer');
+                    const exclusionContainer = document.getElementById('exclusionSelectionContainer');
                     if (groupContainer) {
                         if (e.target.value === 'group') {
                             groupContainer.style.display = 'block';
@@ -2252,6 +2281,24 @@
                             groupContainer.style.display = 'none';
                             selectedGroupId = null;
                             selectedGroupName = null;
+                        }
+                    }
+                    if (exclusionContainer) {
+                        if (e.target.value === 'none') {
+                            exclusionContainer.style.display = 'none';
+                            selectedExclusionGroups = [];
+                            renderExclusionList('upload');
+                            const exclusionSelect = document.getElementById('exclusionGroupSelect');
+                            const addButton = document.getElementById('addExclusionGroupBtn');
+                            if (exclusionSelect) {
+                                exclusionSelect.style.display = 'none';
+                                exclusionSelect.value = '';
+                            }
+                            if (addButton) {
+                                addButton.style.display = 'none';
+                            }
+                        } else {
+                            exclusionContainer.style.display = 'block';
                         }
                     }
                 });
@@ -2284,6 +2331,9 @@
                     }
                 });
             }
+
+            renderExclusionList('upload');
+            renderExclusionList('manage');
             
             // Manage search and filter inputs
             const manageSearchInput = document.getElementById('manageSearchInput');
@@ -2415,20 +2465,22 @@
                 const assignmentList = document.createElement('div');
                 assignmentList.className = 'assignment-list';
                 assignmentList.style.marginTop = '8px';
-                
+
                 policy._assignments.forEach(assignment => {
                     const assignItem = document.createElement('div');
                     assignItem.className = 'assignment-item';
-                    
+
                     let targetName = 'Unknown';
                     if (assignment.target['@odata.type'].includes('allDevices')) {
                         targetName = '🌐 All Devices';
                     } else if (assignment.target['@odata.type'].includes('allUsers')) {
                         targetName = '👥 All Users';
+                    } else if (assignment.target['@odata.type'].includes('exclusionGroupAssignmentTarget')) {
+                        targetName = `🚫 Excluded Group: ${assignment.target.groupId || 'Unknown'}`;
                     } else if (assignment.target.groupId) {
                         targetName = `👥 Group: ${assignment.target.groupId}`;
                     }
-                    
+
                     assignItem.textContent = targetName;
                     assignmentList.appendChild(assignItem);
                 });
@@ -2524,30 +2576,108 @@
             document.getElementById('uploadCount').textContent = policiesForUpload.length;
         }
 
+        function renderExclusionList(context) {
+            const containerId = context === 'upload' ? 'selectedExclusionsList' : 'manageSelectedExclusionsList';
+            const container = document.getElementById(containerId);
+            if (!container) return;
+
+            const groups = context === 'upload' ? selectedExclusionGroups : manageSelectedExclusionGroups;
+
+            if (!groups || groups.length === 0) {
+                container.style.display = 'none';
+                container.innerHTML = '';
+                return;
+            }
+
+            const listItems = groups.map(group => `
+                <li style="display: flex; align-items: center; justify-content: space-between; background: #f3f4f6; border-radius: 5px; padding: 8px 12px; gap: 10px;">
+                    <span>🚫 ${group.name}</span>
+                    <button type="button" class="btn btn-link" style="color: #dc2626; padding: 4px 8px;" onclick="removeExclusionGroup('${context}', '${group.id}')">Remove</button>
+                </li>
+            `).join('');
+
+            container.innerHTML = `
+                <ul style="list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 8px;">
+                    ${listItems}
+                </ul>
+            `;
+            container.style.display = 'block';
+        }
+
+        function addExclusionGroup(context) {
+            const selectId = context === 'upload' ? 'exclusionGroupSelect' : 'manageExclusionGroupSelect';
+            const select = document.getElementById(selectId);
+            if (!select) return;
+
+            const groupId = select.value;
+            if (!groupId) {
+                showToast('Please select a group to exclude', 'warning');
+                return;
+            }
+
+            const groupName = select.options[select.selectedIndex].textContent;
+            const list = context === 'upload' ? selectedExclusionGroups : manageSelectedExclusionGroups;
+
+            if (list.some(group => group.id === groupId)) {
+                showToast('Group already added to exclusions', 'info');
+                return;
+            }
+
+            list.push({ id: groupId, name: groupName });
+            renderExclusionList(context);
+            select.value = '';
+        }
+
+        function removeExclusionGroup(context, groupId) {
+            if (!groupId) return;
+
+            if (context === 'upload') {
+                selectedExclusionGroups = selectedExclusionGroups.filter(group => group.id !== groupId);
+            } else {
+                manageSelectedExclusionGroups = manageSelectedExclusionGroups.filter(group => group.id !== groupId);
+            }
+
+            renderExclusionList(context);
+        }
+
         // Search for groups
         async function searchGroups() {
+            await searchGroupsByIds('groupSearch', 'groupSelect');
+        }
+
+        async function searchExclusionGroups() {
+            await searchGroupsByIds('exclusionGroupSearch', 'exclusionGroupSelect', 'addExclusionGroupBtn');
+        }
+
+        async function searchGroupsByIds(searchInputId, selectId, addButtonId) {
             if (!accessToken) {
                 showToast('Please sign in first', 'error');
                 return;
             }
-            
-            const searchTerm = document.getElementById('groupSearch').value.trim();
+
+            const searchInput = document.getElementById(searchInputId);
+            if (!searchInput) return;
+
+            const searchTerm = searchInput.value.trim();
             if (!searchTerm) {
                 showToast('Please enter a group name to search', 'warning');
                 return;
             }
-            
+
+            const sanitizedSearch = searchTerm.replace(/'/g, "''");
+
             try {
                 const response = await makeApiRequest(
-                    `https://graph.microsoft.com/v1.0/groups?$filter=startswith(displayName,'${searchTerm}')&$select=id,displayName,description&$top=50`
+                    `https://graph.microsoft.com/v1.0/groups?$filter=startswith(displayName,'${sanitizedSearch}')&$select=id,displayName,description&$top=50`
                 );
-                
+
                 if (response.ok) {
                     const data = await response.json();
-                    const groupSelect = document.getElementById('groupSelect');
-                    
+                    const groupSelect = document.getElementById(selectId);
+                    if (!groupSelect) return;
+
                     groupSelect.innerHTML = '<option value="">Select a group...</option>';
-                    
+
                     if (data.value && data.value.length > 0) {
                         data.value.forEach(group => {
                             const option = document.createElement('option');
@@ -2556,12 +2686,24 @@
                             option.title = group.description || '';
                             groupSelect.appendChild(option);
                         });
-                        
+
                         groupSelect.style.display = 'block';
+                        if (addButtonId) {
+                            const addButton = document.getElementById(addButtonId);
+                            if (addButton) {
+                                addButton.style.display = 'inline-flex';
+                            }
+                        }
                         showToast(`Found ${data.value.length} groups`, 'success');
                     } else {
                         showToast('No groups found matching your search', 'info');
                         groupSelect.style.display = 'none';
+                        if (addButtonId) {
+                            const addButton = document.getElementById(addButtonId);
+                            if (addButton) {
+                                addButton.style.display = 'none';
+                            }
+                        }
                     }
                 } else {
                     showToast('Error searching for groups', 'error');
@@ -2574,50 +2716,11 @@
 
         // Search for groups in manage assignment
         async function searchManageGroups() {
-            if (!accessToken) {
-                showToast('Please sign in first', 'error');
-                return;
-            }
-            
-            const searchTerm = document.getElementById('manageGroupSearch').value.trim();
-            if (!searchTerm) {
-                showToast('Please enter a group name to search', 'warning');
-                return;
-            }
-            
-            try {
-                const response = await makeApiRequest(
-                    `https://graph.microsoft.com/v1.0/groups?$filter=startswith(displayName,'${searchTerm}')&$select=id,displayName,description&$top=50`
-                );
-                
-                if (response.ok) {
-                    const data = await response.json();
-                    const groupSelect = document.getElementById('manageGroupSelect');
-                    
-                    groupSelect.innerHTML = '<option value="">Select a group...</option>';
-                    
-                    if (data.value && data.value.length > 0) {
-                        data.value.forEach(group => {
-                            const option = document.createElement('option');
-                            option.value = group.id;
-                            option.textContent = group.displayName;
-                            option.title = group.description || '';
-                            groupSelect.appendChild(option);
-                        });
-                        
-                        groupSelect.style.display = 'block';
-                        showToast(`Found ${data.value.length} groups`, 'success');
-                    } else {
-                        showToast('No groups found matching your search', 'info');
-                        groupSelect.style.display = 'none';
-                    }
-                } else {
-                    showToast('Error searching for groups', 'error');
-                }
-            } catch (error) {
-                console.error('Error searching groups:', error);
-                showToast('Error searching for groups', 'error');
-            }
+            await searchGroupsByIds('manageGroupSearch', 'manageGroupSelect');
+        }
+
+        async function searchManageExclusionGroups() {
+            await searchGroupsByIds('manageExclusionGroupSearch', 'manageExclusionGroupSelect', 'addManageExclusionGroupBtn');
         }
 
         // Refresh policies
@@ -2877,11 +2980,14 @@
                             
                             try {
                                 await assignPolicyDuringUpload(createdPolicy, endpoint, assignmentTarget);
-                                
+
+                                const exclusionInfo = selectedExclusionGroups.length > 0
+                                    ? ` with ${selectedExclusionGroups.length} exclusion${selectedExclusionGroups.length === 1 ? '' : 's'}`
+                                    : '';
                                 results.push({
                                     name: uploadPolicy.displayName || uploadPolicy.name,
                                     status: 'Success',
-                                    details: `Policy uploaded and assigned to ${assignmentTarget === 'group' ? selectedGroupName : assignmentTarget}`
+                                    details: `Policy uploaded and assigned to ${assignmentTarget === 'group' ? selectedGroupName : assignmentTarget}${exclusionInfo}`
                                 });
                             } catch (assignError) {
                                 console.error('Assignment error:', assignError);
@@ -2969,6 +3075,12 @@
             }
             
             const assignments = [];
+            const exclusions = selectedExclusionGroups.map(group => ({
+                target: {
+                    '@odata.type': '#microsoft.graph.exclusionGroupAssignmentTarget',
+                    groupId: group.id
+                }
+            }));
             
             if (assignmentTarget === 'allDevices') {
                 assignments.push({
@@ -2991,11 +3103,16 @@
                 });
             }
             
+            const payload = { assignments };
+            if (exclusions.length > 0) {
+                payload.exclusions = exclusions;
+            }
+
             const response = await makeApiRequest(
                 `https://graph.microsoft.com/beta${assignEndpoint}`,
                 {
                     method: 'POST',
-                    body: JSON.stringify({ assignments })
+                    body: JSON.stringify(payload)
                 }
             );
             
@@ -3146,6 +3263,17 @@
             document.getElementById('manageSelectedGroupInfo').style.display = 'none';
             manageSelectedGroupId = null;
             manageSelectedGroupName = null;
+            manageSelectedExclusionGroups = [];
+            const manageExclusionSelect = document.getElementById('manageExclusionGroupSelect');
+            if (manageExclusionSelect) {
+                manageExclusionSelect.style.display = 'none';
+                manageExclusionSelect.value = '';
+            }
+            const manageAddExclusionBtn = document.getElementById('addManageExclusionGroupBtn');
+            if (manageAddExclusionBtn) {
+                manageAddExclusionBtn.style.display = 'none';
+            }
+            renderExclusionList('manage');
         }
         
         // Close assignment modal
@@ -3209,7 +3337,13 @@
                 try {
                     // Build assignment object
                     const assignments = [];
-                    
+                    const exclusions = manageSelectedExclusionGroups.map(group => ({
+                        target: {
+                            '@odata.type': '#microsoft.graph.exclusionGroupAssignmentTarget',
+                            groupId: group.id
+                        }
+                    }));
+
                     if (assignmentTarget === 'allDevices') {
                         assignments.push({
                             target: {
@@ -3230,20 +3364,27 @@
                             }
                         });
                     }
-                    
+
                     const url = `https://graph.microsoft.com/beta${endpoint.assign.replace('{id}', policy.id)}`;
+                    const payload = { assignments };
+                    if (exclusions.length > 0) {
+                        payload.exclusions = exclusions;
+                    }
                     const response = await makeApiRequest(url, {
                         method: 'POST',
-                        body: JSON.stringify({ assignments })
+                        body: JSON.stringify(payload)
                     });
-                    
+
                     if (response.ok || response.status === 204) {
                         successCount++;
                         const targetName = assignmentTarget === 'group' ? manageSelectedGroupName : assignmentTarget;
+                        const exclusionInfo = manageSelectedExclusionGroups.length > 0
+                            ? ` with ${manageSelectedExclusionGroups.length} exclusion${manageSelectedExclusionGroups.length === 1 ? '' : 's'}`
+                            : '';
                         results.push({
                             name: policy.displayName || policy.name,
                             status: 'Success',
-                            details: `Assigned to ${targetName}`
+                            details: `Assigned to ${targetName}${exclusionInfo}`
                         });
                     } else {
                         const error = await response.text();
