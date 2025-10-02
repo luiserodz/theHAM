@@ -1716,6 +1716,7 @@
         let manageSelectedGroupName = null;
         let selectedExclusionGroups = [];
         let manageSelectedExclusionGroups = [];
+        const groupNameCache = new Map();
 
         // Policy type endpoints mapping
         const policyEndpoints = {
@@ -2496,15 +2497,20 @@
                     const assignItem = document.createElement('div');
                     assignItem.className = 'assignment-item';
 
+                    const target = assignment.target || {};
+                    const odataType = target['@odata.type'] || '';
+                    const groupId = target.groupId;
+                    const groupName = groupId ? (assignment._groupName || getCachedGroupName(groupId)) : null;
+
                     let targetName = 'Unknown';
-                    if (assignment.target['@odata.type'].includes('allDevices')) {
+                    if (odataType.includes('allDevices')) {
                         targetName = '🌐 All Devices';
-                    } else if (assignment.target['@odata.type'].includes('allUsers')) {
+                    } else if (odataType.includes('allUsers')) {
                         targetName = '👥 All Users';
-                    } else if (assignment.target['@odata.type'].includes('exclusionGroupAssignmentTarget')) {
-                        targetName = `🚫 Excluded Group: ${assignment.target.groupId || 'Unknown'}`;
-                    } else if (assignment.target.groupId) {
-                        targetName = `👥 Group: ${assignment.target.groupId}`;
+                    } else if (odataType.includes('exclusionGroupAssignmentTarget')) {
+                        targetName = `🚫 Excluded Group: ${groupName || 'Unknown'}`;
+                    } else if (groupId) {
+                        targetName = `👥 Group: ${groupName || groupId}`;
                     }
 
                     assignItem.textContent = targetName;
@@ -2749,6 +2755,76 @@
             await searchGroupsByIds('manageExclusionGroupSearch', 'manageExclusionGroupSelect', 'addManageExclusionGroupBtn');
         }
 
+        async function ensureGroupNamesLoaded(groupIds) {
+            if (!groupIds || groupIds.length === 0) {
+                return;
+            }
+
+            const uncachedIds = [...new Set(groupIds.filter(id => id && !groupNameCache.has(id)))];
+            if (uncachedIds.length === 0) {
+                return;
+            }
+
+            const BATCH_SIZE = 20;
+
+            for (let i = 0; i < uncachedIds.length; i += BATCH_SIZE) {
+                const batch = uncachedIds.slice(i, i + BATCH_SIZE);
+
+                try {
+                    const response = await makeApiRequest('https://graph.microsoft.com/v1.0/directoryObjects/getByIds', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({
+                            ids: batch,
+                            types: ['group']
+                        })
+                    });
+
+                    if (!response.ok) {
+                        console.error('Failed to resolve group names', response.status);
+                        batch.forEach(id => {
+                            if (!groupNameCache.has(id)) {
+                                groupNameCache.set(id, id);
+                            }
+                        });
+                        continue;
+                    }
+
+                    const data = await response.json();
+                    if (data.value && Array.isArray(data.value)) {
+                        data.value.forEach(group => {
+                            if (group?.id) {
+                                groupNameCache.set(group.id, group.displayName || group.id);
+                            }
+                        });
+                    }
+
+                    batch.forEach(id => {
+                        if (!groupNameCache.has(id)) {
+                            groupNameCache.set(id, id);
+                        }
+                    });
+                } catch (error) {
+                    console.error('Error fetching group names:', error);
+                    batch.forEach(id => {
+                        if (!groupNameCache.has(id)) {
+                            groupNameCache.set(id, id);
+                        }
+                    });
+                }
+            }
+        }
+
+        function getCachedGroupName(groupId) {
+            if (!groupId) {
+                return 'Unknown';
+            }
+
+            return groupNameCache.get(groupId) || groupId;
+        }
+
         // Refresh policies
         async function refreshPolicies() {
             if (!accessToken) {
@@ -2787,6 +2863,18 @@
                         const assignments = await fetchAllGraphResults(url);
 
                         if (assignments.length > 0) {
+                            const groupIds = assignments
+                                .map(assignment => assignment?.target?.groupId)
+                                .filter(id => !!id);
+
+                            await ensureGroupNamesLoaded(groupIds);
+
+                            assignments.forEach(assignment => {
+                                if (assignment?.target?.groupId) {
+                                    assignment._groupName = getCachedGroupName(assignment.target.groupId);
+                                }
+                            });
+
                             policy._assignments = assignments;
                         }
                     } catch (error) {
