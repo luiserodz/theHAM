@@ -2965,13 +2965,6 @@
                 }
             }
 
-            const DETAIL_BATCH_SIZE = 5;
-            for (let i = 0; i < policies.length; i += DETAIL_BATCH_SIZE) {
-                const batch = policies.slice(i, i + DETAIL_BATCH_SIZE)
-                    .map(policy => populatePolicyDetail(policy, errors));
-                await Promise.all(batch);
-            }
-
             return { policies, errors };
         }
 
