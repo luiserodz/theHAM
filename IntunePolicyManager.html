@@ -1122,6 +1122,11 @@
                                     <li><code>User.Read</code> - To sign in</li>
                                 </ul>
                             </li>
+                            <li style="list-style: none; margin-top: 8px; color: #374151; font-size: 0.95rem;">
+                                <strong>Tip:</strong> If you only need to read policies (refresh, export, or back up) you can use the read-only equivalents:
+                                <code>DeviceManagementConfiguration.Read.All</code>, <code>DeviceManagementServiceConfig.Read.All</code>,
+                                <code>Group.Read.All</code>, and <code>User.Read</code>.
+                            </li>
                             <li><strong style="color: red;">Important:</strong> Click <strong>Grant admin consent</strong></li>
                             <li>Ensure all permissions show a green checkmark under "Status"</li>
                         </ol>
@@ -1373,6 +1378,13 @@
                         <path d="M8 4.466V.534a.25.25 0 0 1 .41-.192l2.36 1.966c.12.1.12.284 0 .384L8.41 4.658A.25.25 0 0 1 8 4.466z"/>
                     </svg>
                     Refresh
+                </button>
+                <button class="btn btn-primary" id="tenantBackupBtn" onclick="generateTenantBackup()">
+                    <svg width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
+                        <path d="M4.406 1.342A5.53 5.53 0 0 1 8 0a5.53 5.53 0 0 1 5.473 4.926 3.5 3.5 0 0 1-.401 6.47.5.5 0 1 1-.342-.94 2.5 2.5 0 0 0 .286-4.621.5.5 0 0 1-.33-.445A4.53 4.53 0 0 0 8 1a4.53 4.53 0 0 0-4.032 2.356.5.5 0 0 1-.611.234 2.5 2.5 0 0 0-.715 4.22.5.5 0 1 1-.58.815 3.5 3.5 0 0 1 1.002-5.908 5.53 5.53 0 0 1 1.342-1.375"/>
+                        <path d="M7.646 15.854a.5.5 0 0 0 .708 0l3-3a.5.5 0 0 0-.708-.708L8.5 14.293V6.5a.5.5 0 0 0-1 0v7.793l-2.146-2.147a.5.5 0 0 0-.708.708z"/>
+                    </svg>
+                    <span class="btn-text">Download Tenant Backup</span>
                 </button>
                 <span class="filter-stats" id="manageFilterStats"></span>
             </div>
@@ -1724,33 +1736,140 @@
                 list: '/deviceManagement/configurationPolicies',
                 delete: '/deviceManagement/configurationPolicies/',
                 assignments: '/deviceManagement/configurationPolicies/{id}/assignments',
-                assign: '/deviceManagement/configurationPolicies/{id}/assign'
+                assign: '/deviceManagement/configurationPolicies/{id}/assign',
+                detail: [
+                    '/deviceManagement/configurationPolicies/{id}?$expand=settings',
+                    '/deviceManagement/configurationPolicies/{id}'
+                ]
             },
             deviceConfigurations: {
                 list: '/deviceManagement/deviceConfigurations',
                 delete: '/deviceManagement/deviceConfigurations/',
                 assignments: '/deviceManagement/deviceConfigurations/{id}/assignments',
-                assign: '/deviceManagement/deviceConfigurations/{id}/assign'
+                assign: '/deviceManagement/deviceConfigurations/{id}/assign',
+                detail: '/deviceManagement/deviceConfigurations/{id}'
             },
             compliancePolicies: {
                 list: '/deviceManagement/deviceCompliancePolicies',
                 delete: '/deviceManagement/deviceCompliancePolicies/',
                 assignments: '/deviceManagement/deviceCompliancePolicies/{id}/assignments',
-                assign: '/deviceManagement/deviceCompliancePolicies/{id}/assign'
+                assign: '/deviceManagement/deviceCompliancePolicies/{id}/assign',
+                detail: [
+                    '/deviceManagement/deviceCompliancePolicies/{id}?$expand=scheduledActionsForRule($expand=scheduledActionConfigurations)',
+                    '/deviceManagement/deviceCompliancePolicies/{id}'
+                ]
             },
             groupPolicyConfigurations: {
                 list: '/deviceManagement/groupPolicyConfigurations',
                 delete: '/deviceManagement/groupPolicyConfigurations/',
                 assignments: '/deviceManagement/groupPolicyConfigurations/{id}/assignments',
-                assign: '/deviceManagement/groupPolicyConfigurations/{id}/assign'
+                assign: '/deviceManagement/groupPolicyConfigurations/{id}/assign',
+                detail: [
+                    '/deviceManagement/groupPolicyConfigurations/{id}?$expand=definitionValues',
+                    '/deviceManagement/groupPolicyConfigurations/{id}'
+                ]
             },
             intentPolicies: {
                 list: '/deviceManagement/intents',
                 delete: '/deviceManagement/intents/',
                 assignments: '/deviceManagement/intents/{id}/assignments',
-                assign: '/deviceManagement/intents/{id}/assign'
+                assign: '/deviceManagement/intents/{id}/assign',
+                detail: [
+                    '/deviceManagement/intents/{id}?$expand=settings,categories',
+                    '/deviceManagement/intents/{id}'
+                ]
             }
         };
+
+        function sanitizeGraphData(data) {
+            if (Array.isArray(data)) {
+                return data.map(item => sanitizeGraphData(item));
+            }
+
+            if (data && typeof data === 'object') {
+                const sanitized = {};
+                Object.keys(data).forEach(key => {
+                    if (key && key.startsWith('@')) {
+                        return;
+                    }
+                    sanitized[key] = sanitizeGraphData(data[key]);
+                });
+                return sanitized;
+            }
+
+            return data;
+        }
+
+        async function fetchConfigurationPolicySettings(policy, errors) {
+            if (!policy?.id) {
+                return;
+            }
+
+            const settingsUrl = `https://graph.microsoft.com/beta/deviceManagement/configurationPolicies/${policy.id}/settings`;
+
+            try {
+                const settings = await fetchAllGraphResults(settingsUrl);
+                policy.settings = sanitizeGraphData(Array.isArray(settings) ? settings : []);
+            } catch (error) {
+                console.error(`Error fetching settings for configuration policy ${policy.displayName || policy.name || policy.id}:`, error);
+                errors.push({
+                    type: policy._type,
+                    stage: 'settings',
+                    policyId: policy.id || null,
+                    message: error?.message || String(error)
+                });
+            }
+        }
+
+        async function populatePolicyDetail(policy, errors) {
+            const endpoint = policyEndpoints[policy._type];
+            if (!endpoint?.detail || !policy?.id) {
+                return;
+            }
+
+            const detailPaths = Array.isArray(endpoint.detail) ? endpoint.detail : [endpoint.detail];
+            let lastError = null;
+
+            for (const path of detailPaths) {
+                if (!path) {
+                    continue;
+                }
+
+                const detailUrl = `https://graph.microsoft.com/beta${path.replace('{id}', policy.id)}`;
+
+                try {
+                    const response = await makeApiRequest(detailUrl);
+                    if (!response.ok) {
+                        throw new Error(`Request failed with status ${response.status}`);
+                    }
+
+                    const detailData = await response.json();
+
+                    const sanitizedDetail = sanitizeGraphData(detailData);
+                    if (sanitizedDetail && typeof sanitizedDetail === 'object') {
+                        Object.assign(policy, sanitizedDetail);
+                    }
+
+                    if (policy._type === 'configurationPolicies') {
+                        await fetchConfigurationPolicySettings(policy, errors);
+                    }
+
+                    return;
+                } catch (error) {
+                    lastError = error;
+                    console.error(`Error fetching detail for ${policy.displayName || policy.name || policy.id}:`, error);
+                }
+            }
+
+            if (lastError) {
+                errors.push({
+                    type: policy._type,
+                    stage: 'detail',
+                    policyId: policy.id || null,
+                    message: lastError?.message || String(lastError)
+                });
+            }
+        }
 
         function getAssignmentOdataType(policyType) {
             switch (policyType) {
@@ -2825,72 +2944,228 @@
             return groupNameCache.get(groupId) || groupId;
         }
 
+        async function fetchPoliciesWithAssignments() {
+            const policies = [];
+            const errors = [];
+
+            for (const [type, endpoints] of Object.entries(policyEndpoints)) {
+                try {
+                    const fetchedPolicies = await fetchAllGraphResults(`https://graph.microsoft.com/beta${endpoints.list}`);
+
+                    fetchedPolicies.forEach(policy => {
+                        policies.push({
+                            ...policy,
+                            _type: type
+                        });
+                    });
+                } catch (error) {
+                    console.error(`Error fetching ${type}:`, error);
+                    errors.push({
+                        type,
+                        stage: 'list',
+                        message: error?.message || String(error)
+                    });
+                }
+            }
+
+            for (const policy of policies) {
+                const endpoint = policyEndpoints[policy._type];
+                policy._assignments = [];
+
+                if (!endpoint || !endpoint.assignments || !policy.id) {
+                    continue;
+                }
+
+                try {
+                    const url = `https://graph.microsoft.com/beta${endpoint.assignments.replace('{id}', policy.id)}`;
+                    const assignments = await fetchAllGraphResults(url);
+
+                    if (assignments.length > 0) {
+                        const groupIds = assignments
+                            .map(assignment => assignment?.target?.groupId)
+                            .filter(id => !!id);
+                        await ensureGroupNamesLoaded(groupIds);
+                    }
+
+                    policy._assignments = assignments.map(assignment => {
+                        const assignmentCopy = JSON.parse(JSON.stringify(assignment));
+                        if (assignmentCopy?.target?.groupId) {
+                            assignmentCopy._groupName = getCachedGroupName(assignmentCopy.target.groupId);
+                        }
+                        return assignmentCopy;
+                    });
+                } catch (error) {
+                    const policyName = policy.displayName || policy.name || policy.id || 'Unknown policy';
+                    console.error(`Error fetching assignments for ${policyName}:`, error);
+                    errors.push({
+                        type: policy._type,
+                        stage: 'assignments',
+                        policyId: policy.id || null,
+                        message: error?.message || String(error)
+                    });
+                }
+            }
+
+            const DETAIL_BATCH_SIZE = 5;
+            for (let i = 0; i < policies.length; i += DETAIL_BATCH_SIZE) {
+                const batch = policies.slice(i, i + DETAIL_BATCH_SIZE)
+                    .map(policy => populatePolicyDetail(policy, errors));
+                await Promise.all(batch);
+            }
+
+            return { policies, errors };
+        }
+
         // Refresh policies
         async function refreshPolicies() {
             if (!accessToken) {
                 showToast('Please sign in first', 'error');
                 return;
             }
-            
+
             const managePolicyList = document.getElementById('managePolicyList');
             managePolicyList.innerHTML = '<div class="skeleton skeleton-item"></div>'.repeat(5);
             managePolicyList.classList.add('loading');
-            
+
             try {
-                allPolicies = [];
-                
-                // Fetch all policy types
-                for (const [type, endpoints] of Object.entries(policyEndpoints)) {
-                    try {
-                        const policies = await fetchAllGraphResults(`https://graph.microsoft.com/beta${endpoints.list}`);
+                const { policies, errors } = await fetchPoliciesWithAssignments();
+                allPolicies = policies;
 
-                        policies.forEach(policy => {
-                            policy._type = type;
-                            allPolicies.push(policy);
-                        });
-                    } catch (error) {
-                        console.error(`Error fetching ${type}:`, error);
-                    }
+                if (errors.length > 0) {
+                    console.warn('Some issues occurred while loading policies:', errors);
+                    showToast(`Loaded ${policies.length} policies with ${errors.length} warning${errors.length === 1 ? '' : 's'}`,
+                        'warning', 5000);
+                } else {
+                    showToast(`Loaded ${policies.length} policies`, 'success');
                 }
 
-                // Fetch assignments for each policy
-                for (const policy of allPolicies) {
-                    const endpoint = policyEndpoints[policy._type];
-                    if (!endpoint || !endpoint.assignments) continue;
-
-                    try {
-                        const url = `https://graph.microsoft.com/beta${endpoint.assignments.replace('{id}', policy.id)}`;
-                        const assignments = await fetchAllGraphResults(url);
-
-                        if (assignments.length > 0) {
-                            const groupIds = assignments
-                                .map(assignment => assignment?.target?.groupId)
-                                .filter(id => !!id);
-
-                            await ensureGroupNamesLoaded(groupIds);
-
-                            assignments.forEach(assignment => {
-                                if (assignment?.target?.groupId) {
-                                    assignment._groupName = getCachedGroupName(assignment.target.groupId);
-                                }
-                            });
-
-                            policy._assignments = assignments;
-                        }
-                    } catch (error) {
-                        console.error(`Error fetching assignments for ${policy.displayName}:`, error);
-                    }
-                }
-                
-                showToast(`Loaded ${allPolicies.length} policies`, 'success');
                 displayPolicies();
                 updatePolicyStats();
-                
+
             } catch (error) {
                 console.error('Error refreshing policies:', error);
                 showToast('Error loading policies', 'error');
             } finally {
                 managePolicyList.classList.remove('loading');
+            }
+        }
+
+        async function generateTenantBackup() {
+            if (!accessToken) {
+                showToast('Please sign in first', 'error');
+                return;
+            }
+
+            const backupBtn = document.getElementById('tenantBackupBtn');
+            let textSpan = null;
+            let originalText = '';
+
+            if (backupBtn) {
+                backupBtn.disabled = true;
+                backupBtn.setAttribute('aria-busy', 'true');
+                textSpan = backupBtn.querySelector('.btn-text');
+                if (textSpan) {
+                    originalText = textSpan.textContent;
+                    textSpan.textContent = 'Generating Backup...';
+                }
+            }
+
+            try {
+                showToast('Generating tenant backup. This may take a moment...', 'info', 4000);
+
+                const { policies, errors } = await fetchPoliciesWithAssignments();
+                allPolicies = policies;
+
+                displayPolicies();
+                updatePolicyStats();
+
+                const accounts = msalInstance?.getAllAccounts ? msalInstance.getAllAccounts() : [];
+                const account = accounts && accounts.length > 0 ? accounts[0] : null;
+                const tenantId = account?.tenantId || account?.idTokenClaims?.tid || null;
+                const userPrincipalName = account?.username || account?.name || null;
+
+                const typeCounts = {
+                    configurationPolicies: 0,
+                    deviceConfigurations: 0,
+                    compliancePolicies: 0,
+                    groupPolicyConfigurations: 0,
+                    intentPolicies: 0
+                };
+
+                policies.forEach(policy => {
+                    if (!policy?._type) {
+                        return;
+                    }
+
+                    if (typeof typeCounts[policy._type] !== 'number') {
+                        typeCounts[policy._type] = 0;
+                    }
+
+                    typeCounts[policy._type] += 1;
+                });
+
+                const backupPolicies = policies.map(policy => {
+                    const { _assignments = [], ...policyWithoutAssignments } = policy;
+                    const policyJson = JSON.parse(JSON.stringify(policyWithoutAssignments));
+                    delete policyJson._type;
+
+                    const assignments = (_assignments || []).map(assignment => JSON.parse(JSON.stringify(assignment)));
+
+                    return {
+                        id: policy.id || null,
+                        displayName: policy.displayName || policy.name || '',
+                        type: policy._type || null,
+                        platform: policy.platforms || policy.platformType || null,
+                        createdDateTime: policy.createdDateTime || null,
+                        lastModifiedDateTime: policy.lastModifiedDateTime || null,
+                        isAssigned: policy.isAssigned ?? (assignments.length > 0),
+                        policyJson,
+                        assignments
+                    };
+                });
+
+                const backupPayload = {
+                    generatedAt: new Date().toISOString(),
+                    tenantId,
+                    userPrincipalName,
+                    totals: {
+                        totalPolicies: backupPolicies.length,
+                        ...typeCounts
+                    },
+                    policies: backupPolicies
+                };
+
+                if (errors.length > 0) {
+                    backupPayload.errors = errors;
+                }
+
+                const blob = new Blob([JSON.stringify(backupPayload, null, 2)], { type: 'application/json' });
+                const url = URL.createObjectURL(blob);
+                const link = document.createElement('a');
+                link.href = url;
+                const timestamp = new Date().toISOString().replace(/[:]/g, '-').replace(/\./g, '-');
+                link.download = `intune-tenant-backup-${timestamp}.json`;
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+                URL.revokeObjectURL(url);
+
+                if (errors.length > 0) {
+                    showToast(`Backup completed with ${errors.length} warning${errors.length === 1 ? '' : 's'}`, 'warning', 5000);
+                } else {
+                    showToast('Tenant backup downloaded successfully', 'success');
+                }
+            } catch (error) {
+                console.error('Error generating tenant backup:', error);
+                showToast('Failed to generate tenant backup', 'error', 5000);
+            } finally {
+                if (backupBtn) {
+                    backupBtn.disabled = false;
+                    backupBtn.removeAttribute('aria-busy');
+                    if (textSpan && originalText) {
+                        textSpan.textContent = originalText;
+                    }
+                }
             }
         }
 
