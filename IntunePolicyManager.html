@@ -1122,6 +1122,11 @@
                                     <li><code>User.Read</code> - To sign in</li>
                                 </ul>
                             </li>
+                            <li style="list-style: none; margin-top: 8px; color: #374151; font-size: 0.95rem;">
+                                <strong>Tip:</strong> If you only need to read policies (refresh, export, or back up) you can use the read-only equivalents:
+                                <code>DeviceManagementConfiguration.Read.All</code>, <code>DeviceManagementServiceConfig.Read.All</code>,
+                                <code>Group.Read.All</code>, and <code>User.Read</code>.
+                            </li>
                             <li><strong style="color: red;">Important:</strong> Click <strong>Grant admin consent</strong></li>
                             <li>Ensure all permissions show a green checkmark under "Status"</li>
                         </ol>
@@ -1731,33 +1736,99 @@
                 list: '/deviceManagement/configurationPolicies',
                 delete: '/deviceManagement/configurationPolicies/',
                 assignments: '/deviceManagement/configurationPolicies/{id}/assignments',
-                assign: '/deviceManagement/configurationPolicies/{id}/assign'
+                assign: '/deviceManagement/configurationPolicies/{id}/assign',
+                detail: [
+                    '/deviceManagement/configurationPolicies/{id}?$expand=settings',
+                    '/deviceManagement/configurationPolicies/{id}'
+                ]
             },
             deviceConfigurations: {
                 list: '/deviceManagement/deviceConfigurations',
                 delete: '/deviceManagement/deviceConfigurations/',
                 assignments: '/deviceManagement/deviceConfigurations/{id}/assignments',
-                assign: '/deviceManagement/deviceConfigurations/{id}/assign'
+                assign: '/deviceManagement/deviceConfigurations/{id}/assign',
+                detail: '/deviceManagement/deviceConfigurations/{id}'
             },
             compliancePolicies: {
                 list: '/deviceManagement/deviceCompliancePolicies',
                 delete: '/deviceManagement/deviceCompliancePolicies/',
                 assignments: '/deviceManagement/deviceCompliancePolicies/{id}/assignments',
-                assign: '/deviceManagement/deviceCompliancePolicies/{id}/assign'
+                assign: '/deviceManagement/deviceCompliancePolicies/{id}/assign',
+                detail: [
+                    '/deviceManagement/deviceCompliancePolicies/{id}?$expand=scheduledActionsForRule($expand=scheduledActionConfigurations)',
+                    '/deviceManagement/deviceCompliancePolicies/{id}'
+                ]
             },
             groupPolicyConfigurations: {
                 list: '/deviceManagement/groupPolicyConfigurations',
                 delete: '/deviceManagement/groupPolicyConfigurations/',
                 assignments: '/deviceManagement/groupPolicyConfigurations/{id}/assignments',
-                assign: '/deviceManagement/groupPolicyConfigurations/{id}/assign'
+                assign: '/deviceManagement/groupPolicyConfigurations/{id}/assign',
+                detail: [
+                    '/deviceManagement/groupPolicyConfigurations/{id}?$expand=definitionValues',
+                    '/deviceManagement/groupPolicyConfigurations/{id}'
+                ]
             },
             intentPolicies: {
                 list: '/deviceManagement/intents',
                 delete: '/deviceManagement/intents/',
                 assignments: '/deviceManagement/intents/{id}/assignments',
-                assign: '/deviceManagement/intents/{id}/assign'
+                assign: '/deviceManagement/intents/{id}/assign',
+                detail: [
+                    '/deviceManagement/intents/{id}?$expand=settings,categories',
+                    '/deviceManagement/intents/{id}'
+                ]
             }
         };
+
+        async function populatePolicyDetail(policy, errors) {
+            const endpoint = policyEndpoints[policy._type];
+            if (!endpoint?.detail || !policy?.id) {
+                return;
+            }
+
+            const detailPaths = Array.isArray(endpoint.detail) ? endpoint.detail : [endpoint.detail];
+            let lastError = null;
+
+            for (const path of detailPaths) {
+                if (!path) {
+                    continue;
+                }
+
+                const detailUrl = `https://graph.microsoft.com/beta${path.replace('{id}', policy.id)}`;
+
+                try {
+                    const response = await makeApiRequest(detailUrl);
+                    if (!response.ok) {
+                        throw new Error(`Request failed with status ${response.status}`);
+                    }
+
+                    const detailData = await response.json();
+
+                    const sanitizedDetail = JSON.parse(JSON.stringify(detailData));
+                    if (sanitizedDetail) {
+                        Object.keys(sanitizedDetail)
+                            .filter(key => key.startsWith('@'))
+                            .forEach(key => delete sanitizedDetail[key]);
+                        Object.assign(policy, sanitizedDetail);
+                    }
+
+                    return;
+                } catch (error) {
+                    lastError = error;
+                    console.error(`Error fetching detail for ${policy.displayName || policy.name || policy.id}:`, error);
+                }
+            }
+
+            if (lastError) {
+                errors.push({
+                    type: policy._type,
+                    stage: 'detail',
+                    policyId: policy.id || null,
+                    message: lastError?.message || String(lastError)
+                });
+            }
+        }
 
         function getAssignmentOdataType(policyType) {
             switch (policyType) {
