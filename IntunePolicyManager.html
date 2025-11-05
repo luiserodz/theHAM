@@ -1781,46 +1781,6 @@
             }
         };
 
-        function sanitizeGraphData(data) {
-            if (Array.isArray(data)) {
-                return data.map(item => sanitizeGraphData(item));
-            }
-
-            if (data && typeof data === 'object') {
-                const sanitized = {};
-                Object.keys(data).forEach(key => {
-                    if (key && key.startsWith('@')) {
-                        return;
-                    }
-                    sanitized[key] = sanitizeGraphData(data[key]);
-                });
-                return sanitized;
-            }
-
-            return data;
-        }
-
-        async function fetchConfigurationPolicySettings(policy, errors) {
-            if (!policy?.id) {
-                return;
-            }
-
-            const settingsUrl = `https://graph.microsoft.com/beta/deviceManagement/configurationPolicies/${policy.id}/settings`;
-
-            try {
-                const settings = await fetchAllGraphResults(settingsUrl);
-                policy.settings = sanitizeGraphData(Array.isArray(settings) ? settings : []);
-            } catch (error) {
-                console.error(`Error fetching settings for configuration policy ${policy.displayName || policy.name || policy.id}:`, error);
-                errors.push({
-                    type: policy._type,
-                    stage: 'settings',
-                    policyId: policy.id || null,
-                    message: error?.message || String(error)
-                });
-            }
-        }
-
         async function populatePolicyDetail(policy, errors) {
             const endpoint = policyEndpoints[policy._type];
             if (!endpoint?.detail || !policy?.id) {
@@ -1845,13 +1805,12 @@
 
                     const detailData = await response.json();
 
-                    const sanitizedDetail = sanitizeGraphData(detailData);
-                    if (sanitizedDetail && typeof sanitizedDetail === 'object') {
+                    const sanitizedDetail = JSON.parse(JSON.stringify(detailData));
+                    if (sanitizedDetail) {
+                        Object.keys(sanitizedDetail)
+                            .filter(key => key.startsWith('@'))
+                            .forEach(key => delete sanitizedDetail[key]);
                         Object.assign(policy, sanitizedDetail);
-                    }
-
-                    if (policy._type === 'configurationPolicies') {
-                        await fetchConfigurationPolicySettings(policy, errors);
                     }
 
                     return;
@@ -3004,13 +2963,6 @@
                         message: error?.message || String(error)
                     });
                 }
-            }
-
-            const DETAIL_BATCH_SIZE = 5;
-            for (let i = 0; i < policies.length; i += DETAIL_BATCH_SIZE) {
-                const batch = policies.slice(i, i + DETAIL_BATCH_SIZE)
-                    .map(policy => populatePolicyDetail(policy, errors));
-                await Promise.all(batch);
             }
 
             return { policies, errors };
