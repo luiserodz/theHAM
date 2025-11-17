@@ -1887,21 +1887,22 @@
 
         const deploymentStatusConfig = {
             configurationPolicies: {
-                unsupportedMessage: 'Deployment status is not available for Settings Catalog policies via Microsoft Graph.'
+                device: { type: 'list', path: '/deviceManagement/configurationPolicies/{id}/deviceStatuses?$select=status' },
+                user: { type: 'list', path: '/deviceManagement/configurationPolicies/{id}/userStatuses?$select=status' }
             },
             deviceConfigurations: {
-                device: { type: 'summary', path: '/deviceManagement/deviceConfigurations/{id}/deviceStatusOverview' },
-                user: { type: 'summary', path: '/deviceManagement/deviceConfigurations/{id}/userStatusOverview' }
+                device: { type: 'summary', path: '/deviceManagement/deviceConfigurations/{id}/deviceStatusSummary' },
+                user: { type: 'summary', path: '/deviceManagement/deviceConfigurations/{id}/userStatusSummary' }
             },
             compliancePolicies: {
-                device: { type: 'summary', path: '/deviceManagement/deviceCompliancePolicies/{id}/deviceStatusOverview' },
-                user: { type: 'summary', path: '/deviceManagement/deviceCompliancePolicies/{id}/userStatusOverview' }
+                device: { type: 'summary', path: '/deviceManagement/deviceCompliancePolicies/{id}/deviceStatusSummary' },
+                user: { type: 'summary', path: '/deviceManagement/deviceCompliancePolicies/{id}/userStatusSummary' }
             },
             groupPolicyConfigurations: {
-                unsupportedMessage: 'Deployment status is not available for Administrative Templates via Microsoft Graph.'
+                device: { type: 'list', path: '/deviceManagement/groupPolicyConfigurations/{id}/deviceStatuses?$select=status' }
             },
             intentPolicies: {
-                unsupportedMessage: 'Deployment status is not available for custom compliance intents via Microsoft Graph.'
+                device: { type: 'list', path: '/deviceManagement/intents/{id}/deviceStates?$select=state' }
             }
         };
 
@@ -2091,10 +2092,9 @@
             }
 
             if (tasks.length === 0) {
-                const unsupportedMessage = config?.unsupportedMessage || 'Deployment status is not available for this policy type.';
                 const unsupported = {
                     state: 'unsupported',
-                    message: unsupportedMessage
+                    message: 'Deployment status is not available for this policy type.'
                 };
                 policy._deploymentStatus = unsupported;
                 return unsupported;
@@ -2123,7 +2123,7 @@
             if (configEntry.type === 'summary') {
                 const response = await makeApiRequest(url);
                 if (!response.ok) {
-                    throw await buildGraphError(response, 'Status request failed');
+                    throw new Error(`Status request failed (${response.status})`);
                 }
                 const data = await response.json();
                 return normalizeDeploymentSummaryData(data);
