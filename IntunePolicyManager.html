@@ -2123,7 +2123,7 @@
             if (configEntry.type === 'summary') {
                 const response = await makeApiRequest(url);
                 if (!response.ok) {
-                    throw await buildGraphError(response, 'Status request failed');
+                    throw new Error(`Status request failed (${response.status})`);
                 }
                 const data = await response.json();
                 return normalizeDeploymentSummaryData(data);
