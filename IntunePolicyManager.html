@@ -2190,7 +2190,9 @@
                     method: 'POST',
                     body: JSON.stringify({
                         reportName: CONFIG_POLICY_REPORT_NAME,
-                        filter: `ConfigurationPolicyId eq '${policyId}'`
+                        // The export dataset uses PolicyId (not ConfigurationPolicyId) as the identifier column
+                        // for Settings Catalog policies, so filter on PolicyId to avoid Graph 400 errors.
+                        filter: `PolicyId eq '${policyId}'`
                     })
                 }
             );
