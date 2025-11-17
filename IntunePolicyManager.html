@@ -1887,7 +1887,8 @@
 
         const deploymentStatusConfig = {
             configurationPolicies: {
-                unsupportedMessage: 'Deployment status is not available for Settings Catalog policies via Microsoft Graph.'
+                device: { type: 'summary', path: '/deviceManagement/configurationPolicies/{id}/overview' },
+                user: { type: 'list', path: '/deviceManagement/configurationPolicies/{id}/userStatuses' }
             },
             deviceConfigurations: {
                 device: { type: 'summary', path: '/deviceManagement/deviceConfigurations/{id}/deviceStatusOverview' },
