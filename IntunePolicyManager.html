@@ -2184,26 +2184,40 @@
         }
 
         async function runConfigurationPolicyReportExport(policyId) {
-            const startResponse = await makeApiRequest(
-                'https://graph.microsoft.com/beta/deviceManagement/reports/exportJobs',
-                {
-                    method: 'POST',
-                    body: JSON.stringify({
-                        reportName: CONFIG_POLICY_REPORT_NAME,
-                        // The export dataset uses PolicyId (not ConfigurationPolicyId) as the identifier column
-                        // for Settings Catalog policies, so filter on PolicyId to avoid Graph 400 errors.
-                        filter: `PolicyId eq '${policyId}'`
-                    })
-                }
-            );
+            const filterColumns = ['PolicyId', 'ConfigurationPolicyId'];
+            let startData = null;
+            let lastError = null;
 
-            if (!startResponse.ok) {
+            for (const column of filterColumns) {
+                const startResponse = await makeApiRequest(
+                    'https://graph.microsoft.com/beta/deviceManagement/reports/exportJobs',
+                    {
+                        method: 'POST',
+                        body: JSON.stringify({
+                            reportName: CONFIG_POLICY_REPORT_NAME,
+                            filter: `${column} eq '${policyId}'`
+                        })
+                    }
+                );
+
+                if (startResponse.ok) {
+                    startData = await startResponse.json();
+                    break;
+                }
+
                 const graphError = await buildGraphError(startResponse, 'Unable to start deployment status export.');
-                throw graphError;
+                lastError = graphError;
+
+                // If the failure is specifically about an unknown filter column, try the next one.
+                if (!(graphError?.message || '').includes(column)) {
+                    throw graphError;
+                }
             }
 
-            const startData = await startResponse.json();
             if (!startData?.id) {
+                if (lastError) {
+                    throw lastError;
+                }
                 throw new Error('Failed to start export job for configuration policy.');
             }
 
