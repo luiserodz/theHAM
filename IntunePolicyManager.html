@@ -1906,7 +1906,7 @@
         };
 
         const EXPORT_JOB_POLL_DELAY_MS = 2000;
-        const EXPORT_JOB_MAX_POLLS = 15;
+        const EXPORT_JOB_MAX_POLLS = 45;
         const CONFIG_POLICY_REPORT_NAME = 'DeviceAssignmentStatusByConfigurationPolicyV3';
 
         const summaryStatusLabelMap = {
@@ -1946,7 +1946,13 @@
             not_applicable: 'Not Applicable',
             compliant: 'Compliant',
             success: 'Success',
+            succeeded: 'Success',
+            completed: 'Success',
             pending: 'Pending',
+            inprogress: 'Pending',
+            in_progress: 'Pending',
+            processing: 'Pending',
+            queued: 'Pending',
             remediated: 'Remediated',
             ingraceperiod: 'In Grace',
             in_grace_period: 'In Grace',
@@ -1954,6 +1960,9 @@
             error: 'Error',
             failed: 'Failed',
             conflict: 'Conflict',
+            nottargeted: 'Not Assigned',
+            not_targeted: 'Not Assigned',
+            'not targeted': 'Not Assigned',
             notassigned: 'Not Assigned'
         };
 
