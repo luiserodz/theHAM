@@ -1887,8 +1887,7 @@
 
         const deploymentStatusConfig = {
             configurationPolicies: {
-                device: { type: 'summary', path: '/deviceManagement/configurationPolicies/{id}/overview' },
-                user: { type: 'list', path: '/deviceManagement/configurationPolicies/{id}/userStatuses' }
+                viaReports: true
             },
             deviceConfigurations: {
                 device: { type: 'summary', path: '/deviceManagement/deviceConfigurations/{id}/deviceStatusOverview' },
@@ -1905,6 +1904,10 @@
                 unsupportedMessage: 'Deployment status is not available for custom compliance intents via Microsoft Graph.'
             }
         };
+
+        const EXPORT_JOB_POLL_DELAY_MS = 2000;
+        const EXPORT_JOB_MAX_POLLS = 15;
+        const CONFIG_POLICY_REPORT_NAME = 'DeviceAssignmentStatusByConfigurationPolicyV3';
 
         const summaryStatusLabelMap = {
             pendingCount: 'Pending',
@@ -2055,6 +2058,12 @@
                 return policy._deploymentStatus;
             }
 
+            if (policy._type === 'configurationPolicies') {
+                const viaReports = await fetchConfigurationPolicyDeploymentStatus(policy);
+                policy._deploymentStatus = viaReports;
+                return viaReports;
+            }
+
             const config = deploymentStatusConfig[policy._type];
             if (!config) {
                 const unsupported = {
@@ -2133,6 +2142,197 @@
 
             policy._deploymentStatus = result;
             return result;
+        }
+
+        async function fetchConfigurationPolicyDeploymentStatus(policy) {
+            const result = {
+                state: 'loading',
+                deviceSummary: [],
+                userSummary: [],
+                lastUpdated: new Date().toISOString(),
+                errors: []
+            };
+
+            if (!policy?.id) {
+                result.state = 'error';
+                result.message = 'Policy identifier missing.';
+                return result;
+            }
+
+            try {
+                const rows = await runConfigurationPolicyReportExport(policy.id);
+                const counts = {};
+
+                rows.forEach(row => {
+                    const status = normalizeListStatusLabel(extractStatusFromReportRow(row));
+                    counts[status] = (counts[status] || 0) + 1;
+                });
+
+                result.deviceSummary = convertCountsToSummary(counts);
+                result.state = result.deviceSummary.length ? 'loaded' : 'error';
+                if (!result.deviceSummary.length) {
+                    result.message = 'No deployment data returned from Intune reports.';
+                }
+            } catch (error) {
+                console.error('Configuration policy export error:', error);
+                result.state = 'error';
+                result.message = error?.message || 'Unable to retrieve deployment status.';
+                result.errors.push(error);
+            }
+
+            return result;
+        }
+
+        async function runConfigurationPolicyReportExport(policyId) {
+            const startResponse = await makeApiRequest(
+                'https://graph.microsoft.com/beta/deviceManagement/reports/exportJobs',
+                {
+                    method: 'POST',
+                    body: JSON.stringify({
+                        reportName: CONFIG_POLICY_REPORT_NAME,
+                        filter: `ConfigurationPolicyId eq '${policyId}'`
+                    })
+                }
+            );
+
+            if (!startResponse.ok) {
+                const graphError = await buildGraphError(startResponse, 'Unable to start deployment status export.');
+                throw graphError;
+            }
+
+            const startData = await startResponse.json();
+            if (!startData?.id) {
+                throw new Error('Failed to start export job for configuration policy.');
+            }
+
+            const completedJob = await pollExportJob(startData.id);
+            const csvText = await downloadExportedReport(completedJob?.exportLocation);
+            return parseCsv(csvText);
+        }
+
+        async function pollExportJob(jobId) {
+            for (let attempt = 0; attempt < EXPORT_JOB_MAX_POLLS; attempt++) {
+                const pollResponse = await makeApiRequest(
+                    `https://graph.microsoft.com/beta/deviceManagement/reports/exportJobs/${jobId}`
+                );
+
+                if (!pollResponse.ok) {
+                    const graphError = await buildGraphError(pollResponse, 'Failed to poll export job.');
+                    throw graphError;
+                }
+
+                const pollData = await pollResponse.json();
+                const status = String(pollData?.status || '').toLowerCase();
+
+                if (status === 'completed') {
+                    return pollData;
+                }
+
+                if (status === 'failed') {
+                    const jobError = pollData?.error?.message || 'Export job failed.';
+                    throw new Error(jobError);
+                }
+
+                await delay(EXPORT_JOB_POLL_DELAY_MS);
+            }
+
+            throw new Error('Timed out waiting for configuration policy deployment report.');
+        }
+
+        async function downloadExportedReport(url) {
+            if (!url) {
+                throw new Error('Export location missing from completed job.');
+            }
+
+            const response = await fetch(url);
+            if (!response.ok) {
+                throw new Error(`Failed to download export report (status ${response.status}).`);
+            }
+
+            return response.text();
+        }
+
+        function parseCsv(csvText) {
+            if (!csvText) {
+                return [];
+            }
+
+            const lines = csvText.trim().split(/\r?\n/);
+            if (lines.length === 0) {
+                return [];
+            }
+
+            const headers = parseCsvLine(lines.shift());
+            return lines
+                .filter(line => line.trim().length > 0)
+                .map(line => {
+                    const values = parseCsvLine(line);
+                    const row = {};
+                    headers.forEach((header, index) => {
+                        row[header] = values[index] ?? '';
+                    });
+                    return row;
+                });
+        }
+
+        function parseCsvLine(line) {
+            const result = [];
+            let current = '';
+            let inQuotes = false;
+
+            for (let i = 0; i < line.length; i++) {
+                const char = line[i];
+
+                if (char === '"') {
+                    if (inQuotes && line[i + 1] === '"') {
+                        current += '"';
+                        i++; // Skip escaped quote
+                    } else {
+                        inQuotes = !inQuotes;
+                    }
+                    continue;
+                }
+
+                if (char === ',' && !inQuotes) {
+                    result.push(current);
+                    current = '';
+                    continue;
+                }
+
+                current += char;
+            }
+
+            result.push(current);
+            return result;
+        }
+
+        function extractStatusFromReportRow(row) {
+            if (!row || typeof row !== 'object') {
+                return null;
+            }
+
+            const statusKeys = [
+                'DeploymentStatus',
+                'deploymentStatus',
+                'Status',
+                'status',
+                'State',
+                'state',
+                'ComplianceStatus',
+                'complianceStatus'
+            ];
+
+            for (const key of statusKeys) {
+                if (key in row) {
+                    return row[key];
+                }
+            }
+
+            return null;
+        }
+
+        function delay(ms) {
+            return new Promise(resolve => setTimeout(resolve, ms));
         }
 
         async function fetchDeploymentStatusData(configEntry, policyId) {
