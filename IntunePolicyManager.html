@@ -2702,11 +2702,24 @@
         // Sign out
         async function signOut() {
             if (!msalInstance) return;
-            
+
             try {
                 await msalInstance.logoutPopup();
                 accessToken = null;
                 tokenExpiresAt = null;
+                localStorage.removeItem('intuneManagerClientId');
+
+                const clientIdInput = document.getElementById('clientId');
+                const loginBtn = document.getElementById('loginBtn');
+
+                if (clientIdInput) {
+                    clientIdInput.value = '';
+                    clientIdInput.dispatchEvent(new Event('input'));
+                }
+
+                if (loginBtn) {
+                    loginBtn.disabled = true;
+                }
                 updateAuthUI(null);
                 showToast('Successfully signed out', 'success');
                 
