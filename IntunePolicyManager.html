@@ -2222,7 +2222,8 @@
             }
 
             const completedJob = await pollExportJob(startData.id);
-            const csvText = await downloadExportedReport(completedJob?.exportLocation);
+            const downloadUrl = selectExportDownloadUrl(completedJob);
+            const csvText = await downloadExportedReport(downloadUrl);
             return parseCsv(csvText);
         }
 
@@ -2266,6 +2267,35 @@
             }
 
             return response.text();
+        }
+
+        function selectExportDownloadUrl(job) {
+            if (!job || typeof job !== 'object') {
+                return '';
+            }
+
+            // Common properties we have seen from export job responses.
+            const directUrl = [job.exportLocation, job.url, job.downloadUrl, job.reportDownloadUrl]
+                .find(value => typeof value === 'string' && value.trim().length > 0);
+            if (directUrl) {
+                return directUrl;
+            }
+
+            // Some tenants may surface the URL inside additionalInformation collections.
+            const additional = job.additionalInformation;
+            if (Array.isArray(additional)) {
+                for (const entry of additional) {
+                    if (entry && typeof entry === 'object') {
+                        const value = [entry.url, entry.downloadUrl, entry.exportLocation, entry.reportDownloadUrl, entry.value]
+                            .find(v => typeof v === 'string' && v.trim().length > 0);
+                        if (value) {
+                            return value;
+                        }
+                    }
+                }
+            }
+
+            return '';
         }
 
         function parseCsv(csvText) {
