@@ -1887,22 +1887,21 @@
 
         const deploymentStatusConfig = {
             configurationPolicies: {
-                device: { type: 'list', path: '/deviceManagement/configurationPolicies/{id}/deviceStatuses?$select=status' },
-                user: { type: 'list', path: '/deviceManagement/configurationPolicies/{id}/userStatuses?$select=status' }
+                unsupportedMessage: 'Deployment status is not available for Settings Catalog policies via Microsoft Graph.'
             },
             deviceConfigurations: {
-                device: { type: 'summary', path: '/deviceManagement/deviceConfigurations/{id}/deviceStatusSummary' },
-                user: { type: 'summary', path: '/deviceManagement/deviceConfigurations/{id}/userStatusSummary' }
+                device: { type: 'summary', path: '/deviceManagement/deviceConfigurations/{id}/deviceStatusOverview' },
+                user: { type: 'summary', path: '/deviceManagement/deviceConfigurations/{id}/userStatusOverview' }
             },
             compliancePolicies: {
-                device: { type: 'summary', path: '/deviceManagement/deviceCompliancePolicies/{id}/deviceStatusSummary' },
-                user: { type: 'summary', path: '/deviceManagement/deviceCompliancePolicies/{id}/userStatusSummary' }
+                device: { type: 'summary', path: '/deviceManagement/deviceCompliancePolicies/{id}/deviceStatusOverview' },
+                user: { type: 'summary', path: '/deviceManagement/deviceCompliancePolicies/{id}/userStatusOverview' }
             },
             groupPolicyConfigurations: {
-                device: { type: 'list', path: '/deviceManagement/groupPolicyConfigurations/{id}/deviceStatuses?$select=status' }
+                unsupportedMessage: 'Deployment status is not available for Administrative Templates via Microsoft Graph.'
             },
             intentPolicies: {
-                device: { type: 'list', path: '/deviceManagement/intents/{id}/deviceStates?$select=state' }
+                unsupportedMessage: 'Deployment status is not available for custom compliance intents via Microsoft Graph.'
             }
         };
 
@@ -2074,12 +2073,18 @@
             };
 
             const tasks = [];
+            let missingStatusEndpoint = false;
 
             if (config.device) {
                 tasks.push(
                     fetchDeploymentStatusData(config.device, policy.id)
                         .then(summary => { result.deviceSummary = summary; })
-                        .catch(error => { result.errors.push(error?.message || String(error)); })
+                        .catch(error => {
+                            if (error?.missingStatusEndpoint) {
+                                missingStatusEndpoint = true;
+                            }
+                            result.errors.push(error);
+                        })
                 );
             }
 
@@ -2087,20 +2092,36 @@
                 tasks.push(
                     fetchDeploymentStatusData(config.user, policy.id)
                         .then(summary => { result.userSummary = summary; })
-                        .catch(error => { result.errors.push(error?.message || String(error)); })
+                        .catch(error => {
+                            if (error?.missingStatusEndpoint) {
+                                missingStatusEndpoint = true;
+                            }
+                            result.errors.push(error);
+                        })
                 );
             }
 
             if (tasks.length === 0) {
+                const unsupportedMessage = config?.unsupportedMessage || 'Deployment status is not available for this policy type.';
                 const unsupported = {
                     state: 'unsupported',
-                    message: 'Deployment status is not available for this policy type.'
+                    message: unsupportedMessage
                 };
                 policy._deploymentStatus = unsupported;
                 return unsupported;
             }
 
             await Promise.all(tasks);
+
+            if (missingStatusEndpoint && !result.deviceSummary.length && !result.userSummary.length) {
+                const unsupported = {
+                    state: 'unsupported',
+                    message: 'Microsoft Graph does not expose deployment status for this policy type in this tenant.',
+                    errors: result.errors
+                };
+                policy._deploymentStatus = unsupported;
+                return unsupported;
+            }
 
             if (result.errors.length && !result.deviceSummary.length && !result.userSummary.length) {
                 result.state = 'error';
@@ -2123,14 +2144,24 @@
             if (configEntry.type === 'summary') {
                 const response = await makeApiRequest(url);
                 if (!response.ok) {
-                    throw new Error(`Status request failed (${response.status})`);
+                    const graphError = await buildGraphError(response, 'Status request failed');
+                    if (response.status === 400 && /segment '.*Statuses'/i.test(graphError.message || '')) {
+                        graphError.missingStatusEndpoint = true;
+                    }
+                    throw graphError;
                 }
                 const data = await response.json();
                 return normalizeDeploymentSummaryData(data);
             }
 
             if (configEntry.type === 'list') {
-                const items = await fetchAllGraphResults(url);
+                const items = await fetchAllGraphResults(url).catch(async (error) => {
+                    if (error?.status === 400 && typeof error?.message === 'string' && /segment '.*Statuses'/i.test(error.messag
+e)) {
+                        error.missingStatusEndpoint = true;
+                    }
+                    throw error;
+                });
                 return normalizeDeploymentListData(items);
             }
 
@@ -2267,7 +2298,7 @@
                     errorList.className = 'status-info';
                     statusData.errors.forEach(err => {
                         const li = document.createElement('li');
-                        li.textContent = err;
+                        li.textContent = typeof err === 'string' ? err : (err?.message || String(err));
                         errorList.appendChild(li);
                     });
                     container.appendChild(errorList);
