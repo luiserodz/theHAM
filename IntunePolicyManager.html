@@ -379,6 +379,110 @@
             margin-left: 30px;
         }
 
+        .deployment-status-section {
+            margin-top: 12px;
+            padding-top: 12px;
+            border-top: 1px solid #e5e7eb;
+            flex-basis: 100%;
+        }
+
+        .status-toggle-btn {
+            background: #eef2ff;
+            border: 1px solid #c7d2fe;
+            color: #3730a3;
+            padding: 6px 14px;
+            border-radius: 999px;
+            font-size: 0.85rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background 0.2s ease;
+        }
+
+        .status-toggle-btn:hover {
+            background: #e0e7ff;
+        }
+
+        .deployment-status-details {
+            margin-top: 12px;
+            background: #f9fafb;
+            border: 1px solid #e5e7eb;
+            border-radius: 10px;
+            padding: 14px;
+        }
+
+        .deployment-status-body {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .status-group h4 {
+            margin-bottom: 6px;
+            color: #111827;
+            font-size: 0.95rem;
+        }
+
+        .status-summary {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+
+        .status-chip {
+            background: #fff;
+            border: 1px solid #e5e7eb;
+            border-radius: 999px;
+            padding: 6px 12px;
+            font-size: 0.85rem;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .status-chip .count {
+            font-weight: 600;
+            color: #111827;
+        }
+
+        .status-chip .label {
+            color: #4b5563;
+        }
+
+        .status-loading {
+            color: #6b7280;
+            font-style: italic;
+        }
+
+        .status-error {
+            color: #b91c1c;
+            font-weight: 600;
+        }
+
+        .status-info {
+            color: #4b5563;
+        }
+
+        .status-meta {
+            font-size: 0.8rem;
+            color: #6b7280;
+        }
+
+        .status-refresh-btn {
+            margin-top: 12px;
+            background: none;
+            border: none;
+            color: #2563eb;
+            font-weight: 600;
+            cursor: pointer;
+            padding: 0;
+            text-align: left;
+        }
+
+        .status-refresh-btn:disabled {
+            color: #94a3b8;
+            cursor: not-allowed;
+        }
+
         .policy-type {
             background: #e0e7ff;
             color: #3730a3;
@@ -1584,7 +1688,7 @@
     (function() {
         // Check if user has already authenticated in this session
         const isAuthenticated = sessionStorage.getItem('intunePolicyManagerAuth');
-        
+
         if (!isAuthenticated) {
             authenticateUser();
         }
@@ -1781,6 +1885,93 @@
             }
         };
 
+        const deploymentStatusConfig = {
+            configurationPolicies: {
+                viaReports: true
+            },
+            deviceConfigurations: {
+                device: { type: 'summary', path: '/deviceManagement/deviceConfigurations/{id}/deviceStatusOverview' },
+                user: { type: 'summary', path: '/deviceManagement/deviceConfigurations/{id}/userStatusOverview' }
+            },
+            compliancePolicies: {
+                device: { type: 'summary', path: '/deviceManagement/deviceCompliancePolicies/{id}/deviceStatusOverview' },
+                user: { type: 'summary', path: '/deviceManagement/deviceCompliancePolicies/{id}/userStatusOverview' }
+            },
+            groupPolicyConfigurations: {
+                unsupportedMessage: 'Deployment status is not available for Administrative Templates via Microsoft Graph.'
+            },
+            intentPolicies: {
+                unsupportedMessage: 'Deployment status is not available for custom compliance intents via Microsoft Graph.'
+            }
+        };
+
+        const EXPORT_JOB_POLL_DELAY_MS = 2000;
+        const EXPORT_JOB_MAX_POLLS = 15;
+        const CONFIG_POLICY_REPORT_NAME = 'DeviceAssignmentStatusByConfigurationPolicyV3';
+
+        const summaryStatusLabelMap = {
+            pendingCount: 'Pending',
+            pendingDeviceCount: 'Pending',
+            pendingUserCount: 'Pending',
+            pendingDevices: 'Pending',
+            notApplicableCount: 'Not Applicable',
+            notApplicableDeviceCount: 'Not Applicable',
+            notApplicableUserCount: 'Not Applicable',
+            successCount: 'Success',
+            successDeviceCount: 'Success',
+            successUserCount: 'Success',
+            failedCount: 'Failed',
+            failedDeviceCount: 'Failed',
+            failedUserCount: 'Failed',
+            errorCount: 'Error',
+            errorDeviceCount: 'Error',
+            errorUserCount: 'Error',
+            conflictCount: 'Conflict',
+            conflictDeviceCount: 'Conflict',
+            conflictUserCount: 'Conflict',
+            compliantDeviceCount: 'Compliant',
+            nonCompliantDeviceCount: 'Non-Compliant',
+            remediatedDeviceCount: 'Remediated',
+            inGracePeriodCount: 'In Grace',
+            inGracePeriodDeviceCount: 'In Grace',
+            notAssignedCount: 'Not Assigned',
+            notAssignedDeviceCount: 'Not Assigned',
+            notAssignedUserCount: 'Not Assigned',
+            unknownDeviceCount: 'Unknown'
+        };
+
+        const listStatusLabelMap = {
+            unknown: 'Unknown',
+            notapplicable: 'Not Applicable',
+            not_applicable: 'Not Applicable',
+            compliant: 'Compliant',
+            success: 'Success',
+            pending: 'Pending',
+            remediated: 'Remediated',
+            ingraceperiod: 'In Grace',
+            in_grace_period: 'In Grace',
+            noncompliant: 'Non-Compliant',
+            error: 'Error',
+            failed: 'Failed',
+            conflict: 'Conflict',
+            notassigned: 'Not Assigned'
+        };
+
+        const STATUS_ORDER = [
+            'Success',
+            'Compliant',
+            'Pending',
+            'Remediated',
+            'In Grace',
+            'Not Applicable',
+            'Non-Compliant',
+            'Failed',
+            'Error',
+            'Conflict',
+            'Not Assigned',
+            'Unknown'
+        ];
+
         async function populatePolicyDetail(policy, errors) {
             const endpoint = policyEndpoints[policy._type];
             if (!endpoint?.detail || !policy?.id) {
@@ -1853,6 +2044,595 @@
                 assignment['@odata.type'] = assignmentType;
             }
             return assignment;
+        }
+
+        async function fetchPolicyDeploymentStatus(policy) {
+            if (!policy?.id) {
+                return {
+                    state: 'error',
+                    message: 'Policy identifier missing.'
+                };
+            }
+
+            if (policy._deploymentStatus && policy._deploymentStatus.state && policy._deploymentStatus.state !== 'stale') {
+                return policy._deploymentStatus;
+            }
+
+            if (policy._type === 'configurationPolicies') {
+                const viaReports = await fetchConfigurationPolicyDeploymentStatus(policy);
+                policy._deploymentStatus = viaReports;
+                return viaReports;
+            }
+
+            const config = deploymentStatusConfig[policy._type];
+            if (!config) {
+                const unsupported = {
+                    state: 'unsupported',
+                    message: 'Deployment status is not available for this policy type.'
+                };
+                policy._deploymentStatus = unsupported;
+                return unsupported;
+            }
+
+            const result = {
+                state: 'loading',
+                deviceSummary: [],
+                userSummary: [],
+                lastUpdated: new Date().toISOString(),
+                errors: []
+            };
+
+            const tasks = [];
+            let missingStatusEndpoint = false;
+
+            if (config.device) {
+                tasks.push(
+                    fetchDeploymentStatusData(config.device, policy.id)
+                        .then(summary => { result.deviceSummary = summary; })
+                        .catch(error => {
+                            if (error?.missingStatusEndpoint) {
+                                missingStatusEndpoint = true;
+                            }
+                            result.errors.push(error);
+                        })
+                );
+            }
+
+            if (config.user) {
+                tasks.push(
+                    fetchDeploymentStatusData(config.user, policy.id)
+                        .then(summary => { result.userSummary = summary; })
+                        .catch(error => {
+                            if (error?.missingStatusEndpoint) {
+                                missingStatusEndpoint = true;
+                            }
+                            result.errors.push(error);
+                        })
+                );
+            }
+
+            if (tasks.length === 0) {
+                const unsupportedMessage = config?.unsupportedMessage || 'Deployment status is not available for this policy type.';
+                const unsupported = {
+                    state: 'unsupported',
+                    message: unsupportedMessage
+                };
+                policy._deploymentStatus = unsupported;
+                return unsupported;
+            }
+
+            await Promise.all(tasks);
+
+            if (missingStatusEndpoint && !result.deviceSummary.length && !result.userSummary.length) {
+                const unsupported = {
+                    state: 'unsupported',
+                    message: 'Microsoft Graph does not expose deployment status for this policy type in this tenant.',
+                    errors: result.errors
+                };
+                policy._deploymentStatus = unsupported;
+                return unsupported;
+            }
+
+            if (result.errors.length && !result.deviceSummary.length && !result.userSummary.length) {
+                result.state = 'error';
+                result.message = 'Unable to retrieve deployment status.';
+            } else {
+                result.state = 'loaded';
+            }
+
+            policy._deploymentStatus = result;
+            return result;
+        }
+
+        async function fetchConfigurationPolicyDeploymentStatus(policy) {
+            const result = {
+                state: 'loading',
+                deviceSummary: [],
+                userSummary: [],
+                lastUpdated: new Date().toISOString(),
+                errors: []
+            };
+
+            if (!policy?.id) {
+                result.state = 'error';
+                result.message = 'Policy identifier missing.';
+                return result;
+            }
+
+            try {
+                const rows = await runConfigurationPolicyReportExport(policy.id);
+                const counts = {};
+
+                rows.forEach(row => {
+                    const status = normalizeListStatusLabel(extractStatusFromReportRow(row));
+                    counts[status] = (counts[status] || 0) + 1;
+                });
+
+                result.deviceSummary = convertCountsToSummary(counts);
+                result.state = result.deviceSummary.length ? 'loaded' : 'error';
+                if (!result.deviceSummary.length) {
+                    result.message = 'No deployment data returned from Intune reports.';
+                }
+            } catch (error) {
+                console.error('Configuration policy export error:', error);
+                result.state = 'error';
+                result.message = error?.message || 'Unable to retrieve deployment status.';
+                result.errors.push(error);
+            }
+
+            return result;
+        }
+
+        async function runConfigurationPolicyReportExport(policyId) {
+            const filterColumns = ['PolicyId', 'ConfigurationPolicyId'];
+            let startData = null;
+            let lastError = null;
+
+            for (const column of filterColumns) {
+                const startResponse = await makeApiRequest(
+                    'https://graph.microsoft.com/beta/deviceManagement/reports/exportJobs',
+                    {
+                        method: 'POST',
+                        body: JSON.stringify({
+                            reportName: CONFIG_POLICY_REPORT_NAME,
+                            filter: `${column} eq '${policyId}'`
+                        })
+                    }
+                );
+
+                if (startResponse.ok) {
+                    startData = await startResponse.json();
+                    break;
+                }
+
+                const graphError = await buildGraphError(startResponse, 'Unable to start deployment status export.');
+                lastError = graphError;
+
+                // If the failure is specifically about an unknown filter column, try the next one.
+                if (!(graphError?.message || '').includes(column)) {
+                    throw graphError;
+                }
+            }
+
+            if (!startData?.id) {
+                if (lastError) {
+                    throw lastError;
+                }
+                throw new Error('Failed to start export job for configuration policy.');
+            }
+
+            const completedJob = await pollExportJob(startData.id);
+            const downloadUrl = selectExportDownloadUrl(completedJob);
+            const csvText = await downloadExportedReport(downloadUrl);
+            return parseCsv(csvText);
+        }
+
+        async function pollExportJob(jobId) {
+            for (let attempt = 0; attempt < EXPORT_JOB_MAX_POLLS; attempt++) {
+                const pollResponse = await makeApiRequest(
+                    `https://graph.microsoft.com/beta/deviceManagement/reports/exportJobs/${jobId}`
+                );
+
+                if (!pollResponse.ok) {
+                    const graphError = await buildGraphError(pollResponse, 'Failed to poll export job.');
+                    throw graphError;
+                }
+
+                const pollData = await pollResponse.json();
+                const status = String(pollData?.status || '').toLowerCase();
+
+                if (status === 'completed') {
+                    return pollData;
+                }
+
+                if (status === 'failed') {
+                    const jobError = pollData?.error?.message || 'Export job failed.';
+                    throw new Error(jobError);
+                }
+
+                await delay(EXPORT_JOB_POLL_DELAY_MS);
+            }
+
+            throw new Error('Timed out waiting for configuration policy deployment report.');
+        }
+
+        async function downloadExportedReport(url) {
+            if (!url) {
+                throw new Error('Export location missing from completed job.');
+            }
+
+            const downloaders = [
+                () => fetch(url),
+                () => fetch(`https://cors.isomorphic-git.org/${encodeURIComponent(url)}`),
+                () => fetch(`https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`)
+            ];
+
+            let lastError = null;
+
+            for (const attempt of downloaders) {
+                try {
+                    const response = await attempt();
+                    if (!response.ok) {
+                        lastError = new Error(`Failed to download export report (status ${response.status}).`);
+                        continue;
+                    }
+
+                    return response.text();
+                } catch (error) {
+                    lastError = error;
+                }
+            }
+
+            if (lastError) {
+                throw lastError;
+            }
+
+            throw new Error('Failed to download export report.');
+        }
+
+        function selectExportDownloadUrl(job) {
+            if (!job || typeof job !== 'object') {
+                return '';
+            }
+
+            // Common properties we have seen from export job responses.
+            const directUrl = [job.exportLocation, job.url, job.downloadUrl, job.reportDownloadUrl]
+                .find(value => typeof value === 'string' && value.trim().length > 0);
+            if (directUrl) {
+                return directUrl;
+            }
+
+            // Some tenants may surface the URL inside additionalInformation collections.
+            const additional = job.additionalInformation;
+            if (Array.isArray(additional)) {
+                for (const entry of additional) {
+                    if (entry && typeof entry === 'object') {
+                        const value = [entry.url, entry.downloadUrl, entry.exportLocation, entry.reportDownloadUrl, entry.value]
+                            .find(v => typeof v === 'string' && v.trim().length > 0);
+                        if (value) {
+                            return value;
+                        }
+                    }
+                }
+            }
+
+            return '';
+        }
+
+        function parseCsv(csvText) {
+            if (!csvText) {
+                return [];
+            }
+
+            const lines = csvText.trim().split(/\r?\n/);
+            if (lines.length === 0) {
+                return [];
+            }
+
+            const headers = parseCsvLine(lines.shift());
+            return lines
+                .filter(line => line.trim().length > 0)
+                .map(line => {
+                    const values = parseCsvLine(line);
+                    const row = {};
+                    headers.forEach((header, index) => {
+                        row[header] = values[index] ?? '';
+                    });
+                    return row;
+                });
+        }
+
+        function parseCsvLine(line) {
+            const result = [];
+            let current = '';
+            let inQuotes = false;
+
+            for (let i = 0; i < line.length; i++) {
+                const char = line[i];
+
+                if (char === '"') {
+                    if (inQuotes && line[i + 1] === '"') {
+                        current += '"';
+                        i++; // Skip escaped quote
+                    } else {
+                        inQuotes = !inQuotes;
+                    }
+                    continue;
+                }
+
+                if (char === ',' && !inQuotes) {
+                    result.push(current);
+                    current = '';
+                    continue;
+                }
+
+                current += char;
+            }
+
+            result.push(current);
+            return result;
+        }
+
+        function extractStatusFromReportRow(row) {
+            if (!row || typeof row !== 'object') {
+                return null;
+            }
+
+            const statusKeys = [
+                'DeploymentStatus',
+                'deploymentStatus',
+                'Status',
+                'status',
+                'State',
+                'state',
+                'ComplianceStatus',
+                'complianceStatus'
+            ];
+
+            for (const key of statusKeys) {
+                if (key in row) {
+                    return row[key];
+                }
+            }
+
+            return null;
+        }
+
+        function delay(ms) {
+            return new Promise(resolve => setTimeout(resolve, ms));
+        }
+
+        async function fetchDeploymentStatusData(configEntry, policyId) {
+            if (!configEntry?.path) {
+                throw new Error('Invalid deployment status configuration.');
+            }
+
+            const url = `https://graph.microsoft.com/beta${configEntry.path.replace('{id}', policyId)}`;
+
+            if (configEntry.type === 'summary') {
+                const response = await makeApiRequest(url);
+                if (!response.ok) {
+                    const graphError = await buildGraphError(response, 'Status request failed');
+                    if (response.status === 400 && /segment '.*Statuses'/i.test(graphError.message || '')) {
+                        graphError.missingStatusEndpoint = true;
+                    }
+                    throw graphError;
+                }
+                const data = await response.json();
+                return normalizeDeploymentSummaryData(data);
+            }
+
+            if (configEntry.type === 'list') {
+                const items = await fetchAllGraphResults(url).catch(async (error) => {
+                    if (error?.status === 400 && typeof error?.message === 'string' && /segment '.*Statuses'/i.test(error.message)) {
+                        error.missingStatusEndpoint = true;
+                    }
+                    throw error;
+                });
+                return normalizeDeploymentListData(items);
+            }
+
+            throw new Error('Unknown deployment status configuration type.');
+        }
+
+        function normalizeDeploymentSummaryData(data) {
+            if (!data) {
+                return [];
+            }
+
+            const summaryObject = Array.isArray(data?.value) ? data.value[0] : data;
+            if (!summaryObject) {
+                return [];
+            }
+
+            const counts = {};
+
+            Object.entries(summaryObject).forEach(([key, value]) => {
+                if (key.startsWith('@') || typeof value !== 'number') {
+                    return;
+                }
+
+                const label = summaryStatusLabelMap[key] || formatStatusLabel(key);
+                if (!label) {
+                    return;
+                }
+
+                counts[label] = (counts[label] || 0) + value;
+            });
+
+            return convertCountsToSummary(counts);
+        }
+
+        function normalizeDeploymentListData(items) {
+            if (!items || items.length === 0) {
+                return [];
+            }
+
+            const counts = {};
+
+            items.forEach(item => {
+                const rawStatus = item?.status || item?.complianceStatus || item?.state || item?.deploymentStatus;
+                const normalized = normalizeListStatusLabel(rawStatus);
+                counts[normalized] = (counts[normalized] || 0) + 1;
+            });
+
+            return convertCountsToSummary(counts);
+        }
+
+        function normalizeListStatusLabel(status) {
+            if (!status) {
+                return 'Unknown';
+            }
+
+            const key = String(status).replace(/\s+/g, '').toLowerCase();
+            return listStatusLabelMap[key] || formatStatusLabel(status);
+        }
+
+        function convertCountsToSummary(counts) {
+            return Object.entries(counts)
+                .filter(([, value]) => typeof value === 'number')
+                .map(([label, value]) => ({ label, count: value }))
+                .sort((a, b) => getStatusOrderIndex(a.label) - getStatusOrderIndex(b.label));
+        }
+
+        function formatStatusLabel(key) {
+            if (!key) {
+                return 'Unknown';
+            }
+            const cleaned = String(key)
+                .replace(/Count$/i, '')
+                .replace(/Device$/i, '')
+                .replace(/User$/i, '')
+                .replace(/([a-z])([A-Z])/g, '$1 $2')
+                .replace(/_/g, ' ')
+                .trim();
+            if (!cleaned) {
+                return 'Unknown';
+            }
+            return cleaned.charAt(0).toUpperCase() + cleaned.slice(1);
+        }
+
+        function getStatusOrderIndex(label) {
+            const index = STATUS_ORDER.indexOf(label);
+            return index === -1 ? STATUS_ORDER.length + 1 : index;
+        }
+
+        async function loadDeploymentStatus(policy, container, refreshBtn) {
+            if (refreshBtn) {
+                refreshBtn.disabled = true;
+                refreshBtn.textContent = 'Refreshing deployment data...';
+            }
+
+            container.innerHTML = '<p class="status-loading">Loading deployment status...</p>';
+
+            try {
+                const statusData = await fetchPolicyDeploymentStatus(policy);
+                renderDeploymentStatus(container, statusData);
+                container.dataset.loaded = 'true';
+            } catch (error) {
+                console.error('Error loading deployment status:', error);
+                container.innerHTML = `<p class="status-error">${error?.message || 'Failed to load deployment status.'}</p>`;
+                container.dataset.loaded = 'false';
+            } finally {
+                if (refreshBtn) {
+                    refreshBtn.disabled = false;
+                    refreshBtn.textContent = 'Refresh deployment data';
+                }
+            }
+        }
+
+        function renderDeploymentStatus(container, statusData) {
+            if (!container) {
+                return;
+            }
+
+            container.innerHTML = '';
+
+            if (!statusData) {
+                container.innerHTML = '<p class="status-info">Deployment status data is not available.</p>';
+                return;
+            }
+
+            if (statusData.state === 'unsupported') {
+                container.innerHTML = `<p class="status-info">${statusData.message}</p>`;
+                return;
+            }
+
+            if (statusData.state === 'error') {
+                container.innerHTML = `<p class="status-error">${statusData.message || 'Unable to retrieve deployment status.'}</p>`;
+                if (statusData.errors && statusData.errors.length) {
+                    const errorList = document.createElement('ul');
+                    errorList.className = 'status-info';
+                    statusData.errors.forEach(err => {
+                        const li = document.createElement('li');
+                        li.textContent = typeof err === 'string' ? err : (err?.message || String(err));
+                        errorList.appendChild(li);
+                    });
+                    container.appendChild(errorList);
+                }
+                return;
+            }
+
+            if (statusData.deviceSummary?.length) {
+                container.appendChild(buildStatusGroup('Device status', statusData.deviceSummary));
+            }
+
+            if (statusData.userSummary?.length) {
+                container.appendChild(buildStatusGroup('User status', statusData.userSummary));
+            }
+
+            if ((!statusData.deviceSummary || statusData.deviceSummary.length === 0) &&
+                (!statusData.userSummary || statusData.userSummary.length === 0)) {
+                container.innerHTML = '<p class="status-info">No deployment data returned for this policy yet.</p>';
+            }
+
+            if (statusData.errors && statusData.errors.length) {
+                const warning = document.createElement('p');
+                warning.className = 'status-info';
+                warning.textContent = 'Some deployment data could not be loaded.';
+                container.appendChild(warning);
+            }
+
+            const meta = document.createElement('p');
+            meta.className = 'status-meta';
+            if (statusData.lastUpdated) {
+                meta.textContent = `Last updated ${new Date(statusData.lastUpdated).toLocaleString()}`;
+            } else {
+                meta.textContent = 'Last updated just now';
+            }
+            container.appendChild(meta);
+        }
+
+        function buildStatusGroup(title, summary) {
+            const group = document.createElement('div');
+            group.className = 'status-group';
+
+            const heading = document.createElement('h4');
+            heading.textContent = title;
+            group.appendChild(heading);
+
+            const wrapper = document.createElement('div');
+            wrapper.className = 'status-summary';
+
+            summary.forEach(entry => {
+                const chip = document.createElement('span');
+                chip.className = 'status-chip';
+
+                const count = document.createElement('span');
+                count.className = 'count';
+                count.textContent = entry.count;
+                chip.appendChild(count);
+
+                const label = document.createElement('span');
+                label.className = 'label';
+                label.textContent = entry.label;
+                chip.appendChild(label);
+
+                wrapper.appendChild(chip);
+            });
+
+            group.appendChild(wrapper);
+            return group;
         }
 
         // Tab switching
@@ -1965,6 +2745,30 @@
             }
         }
 
+        async function buildGraphError(response, prefix = 'Request failed') {
+            let details = '';
+
+            try {
+                const data = await response.clone().json();
+                details = data?.error?.message || data?.message || '';
+            } catch (_) {
+                try {
+                    const text = await response.clone().text();
+                    details = text || '';
+                } catch (__) {
+                    details = '';
+                }
+            }
+
+            const message = details ? `${prefix} with status ${response.status}: ${details}` : `${prefix} with status ${response.status}`;
+            const error = new Error(message);
+            error.status = response.status;
+            if (details) {
+                error.details = details;
+            }
+            return error;
+        }
+
         // Fetch all paginated results from Microsoft Graph
         async function fetchAllGraphResults(initialUrl, options = {}) {
             let allItems = [];
@@ -1974,7 +2778,7 @@
                 const response = await makeApiRequest(nextUrl, options);
 
                 if (!response.ok) {
-                    throw new Error(`Request failed with status ${response.status}`);
+                    throw await buildGraphError(response);
                 }
 
                 const data = await response.json();
@@ -2597,10 +3401,67 @@
                 
                 details.appendChild(assignmentList);
             }
-            
+
+            if (context === 'manage') {
+                const statusSection = document.createElement('div');
+                statusSection.className = 'deployment-status-section';
+
+                const statusToggle = document.createElement('button');
+                statusToggle.type = 'button';
+                statusToggle.className = 'status-toggle-btn';
+                statusToggle.textContent = 'Show Deployment Status';
+                statusToggle.setAttribute('aria-expanded', 'false');
+
+                const statusDetails = document.createElement('div');
+                statusDetails.className = 'deployment-status-details';
+                statusDetails.style.display = 'none';
+
+                const statusBody = document.createElement('div');
+                statusBody.className = 'deployment-status-body';
+                statusDetails.appendChild(statusBody);
+
+                const refreshBtn = document.createElement('button');
+                refreshBtn.type = 'button';
+                refreshBtn.className = 'status-refresh-btn';
+                refreshBtn.textContent = 'Refresh deployment data';
+                refreshBtn.addEventListener('click', async (event) => {
+                    event.stopPropagation();
+                    statusBody.dataset.loaded = 'false';
+                    policy._deploymentStatus = null;
+                    await loadDeploymentStatus(policy, statusBody, refreshBtn);
+                });
+                statusDetails.appendChild(refreshBtn);
+
+                statusToggle.addEventListener('click', async () => {
+                    const isVisible = statusDetails.style.display === 'block';
+                    if (isVisible) {
+                        statusDetails.style.display = 'none';
+                        statusToggle.textContent = 'Show Deployment Status';
+                        statusToggle.setAttribute('aria-expanded', 'false');
+                        return;
+                    }
+
+                    statusDetails.style.display = 'block';
+                    statusToggle.textContent = 'Hide Deployment Status';
+                    statusToggle.setAttribute('aria-expanded', 'true');
+
+                    if (policy._deploymentStatus) {
+                        renderDeploymentStatus(statusBody, policy._deploymentStatus);
+                        statusBody.dataset.loaded = 'true';
+                        return;
+                    }
+
+                    await loadDeploymentStatus(policy, statusBody, refreshBtn);
+                });
+
+                statusSection.appendChild(statusToggle);
+                statusSection.appendChild(statusDetails);
+                details.appendChild(statusSection);
+            }
+
             item.appendChild(header);
             item.appendChild(details);
-            
+
             return item;
         }
 
