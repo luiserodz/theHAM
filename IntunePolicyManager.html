@@ -2447,6 +2447,30 @@
             }
         }
 
+        async function buildGraphError(response, prefix = 'Request failed') {
+            let details = '';
+
+            try {
+                const data = await response.clone().json();
+                details = data?.error?.message || data?.message || '';
+            } catch (_) {
+                try {
+                    const text = await response.clone().text();
+                    details = text || '';
+                } catch (__) {
+                    details = '';
+                }
+            }
+
+            const message = details ? `${prefix} with status ${response.status}: ${details}` : `${prefix} with status ${response.status}`;
+            const error = new Error(message);
+            error.status = response.status;
+            if (details) {
+                error.details = details;
+            }
+            return error;
+        }
+
         // Fetch all paginated results from Microsoft Graph
         async function fetchAllGraphResults(initialUrl, options = {}) {
             let allItems = [];
@@ -2456,7 +2480,7 @@
                 const response = await makeApiRequest(nextUrl, options);
 
                 if (!response.ok) {
-                    throw new Error(`Request failed with status ${response.status}`);
+                    throw await buildGraphError(response);
                 }
 
                 const data = await response.json();
