@@ -1688,7 +1688,7 @@
     (function() {
         // Check if user has already authenticated in this session
         const isAuthenticated = sessionStorage.getItem('intunePolicyManagerAuth');
-        
+
         if (!isAuthenticated) {
             authenticateUser();
         }
@@ -2156,8 +2156,7 @@
 
             if (configEntry.type === 'list') {
                 const items = await fetchAllGraphResults(url).catch(async (error) => {
-                    if (error?.status === 400 && typeof error?.message === 'string' && /segment '.*Statuses'/i.test(error.messag
-e)) {
+                    if (error?.status === 400 && typeof error?.message === 'string' && /segment '.*Statuses'/i.test(error.message)) {
                         error.missingStatusEndpoint = true;
                     }
                     throw error;
