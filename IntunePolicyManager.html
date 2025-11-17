@@ -2261,12 +2261,33 @@
                 throw new Error('Export location missing from completed job.');
             }
 
-            const response = await fetch(url);
-            if (!response.ok) {
-                throw new Error(`Failed to download export report (status ${response.status}).`);
+            const downloaders = [
+                () => fetch(url),
+                () => fetch(`https://cors.isomorphic-git.org/${encodeURIComponent(url)}`),
+                () => fetch(`https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`)
+            ];
+
+            let lastError = null;
+
+            for (const attempt of downloaders) {
+                try {
+                    const response = await attempt();
+                    if (!response.ok) {
+                        lastError = new Error(`Failed to download export report (status ${response.status}).`);
+                        continue;
+                    }
+
+                    return response.text();
+                } catch (error) {
+                    lastError = error;
+                }
             }
 
-            return response.text();
+            if (lastError) {
+                throw lastError;
+            }
+
+            throw new Error('Failed to download export report.');
         }
 
         function selectExportDownloadUrl(job) {
