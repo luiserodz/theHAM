@@ -2168,28 +2168,118 @@
                 return result;
             }
 
+            let summaryLoaded = false;
+
             try {
-                const rows = await runConfigurationPolicyReportExport(policy.id);
-                const counts = {};
-
-                rows.forEach(row => {
-                    const status = normalizeListStatusLabel(extractStatusFromReportRow(row));
-                    counts[status] = (counts[status] || 0) + 1;
-                });
-
-                result.deviceSummary = convertCountsToSummary(counts);
-                result.state = result.deviceSummary.length ? 'loaded' : 'error';
-                if (!result.deviceSummary.length) {
-                    result.message = 'No deployment data returned from Intune reports.';
+                const summary = await fetchConfigurationPolicyDeviceSummary(policy.id);
+                if (summary.length) {
+                    result.deviceSummary = summary;
+                    result.state = 'loaded';
+                    summaryLoaded = true;
                 }
             } catch (error) {
-                console.error('Configuration policy export error:', error);
-                result.state = 'error';
-                result.message = error?.message || 'Unable to retrieve deployment status.';
+                console.error('Configuration policy summary error:', error);
                 result.errors.push(error);
             }
 
+            if (!summaryLoaded) {
+                try {
+                    const rows = await runConfigurationPolicyReportExport(policy.id);
+                    const counts = {};
+
+                    rows.forEach(row => {
+                        const status = normalizeListStatusLabel(extractStatusFromReportRow(row));
+                        counts[status] = (counts[status] || 0) + 1;
+                    });
+
+                    result.deviceSummary = convertCountsToSummary(counts);
+                    result.state = result.deviceSummary.length ? 'loaded' : 'error';
+                    if (!result.deviceSummary.length) {
+                        result.message = 'No deployment data returned from Intune reports.';
+                    }
+                } catch (error) {
+                    console.error('Configuration policy export error:', error);
+                    result.state = 'error';
+                    result.message = error?.message || 'Unable to retrieve deployment status.';
+                    result.errors.push(error);
+                }
+            }
+
+            if (!result.deviceSummary.length && result.errors.length) {
+                result.state = 'error';
+                if (!result.message) {
+                    result.message = 'Unable to retrieve deployment status.';
+                }
+            }
+
             return result;
+        }
+
+        async function fetchConfigurationPolicyDeviceSummary(policyId) {
+            const summaryResponse = await makeApiRequest(
+                'https://graph.microsoft.com/beta/deviceManagement/reports/getConfigurationPolicyDeviceSummaryReport',
+                {
+                    method: 'POST',
+                    body: JSON.stringify({
+                        select: [
+                            'NumberOfCompliantDevices',
+                            'NumberOfConflictDevices',
+                            'NumberOfInProgressDevices',
+                            'NumberOfNonCompliantOrErrorDevices',
+                            'NumberOfNotApplicableDevices',
+                            'UnifiedPolicyType'
+                        ],
+                        filter: `((PolicyBaseTypeName eq 'DeviceManagementConfigurationPolicy')) and (PolicyId eq '${policyId}')`,
+                        top: 1
+                    })
+                }
+            );
+
+            if (!summaryResponse.ok) {
+                throw await buildGraphError(summaryResponse, 'Unable to retrieve configuration policy summary report.');
+            }
+
+            const summaryData = await summaryResponse.json();
+            const rows = parseReportValues(summaryData);
+            const counts = {};
+
+            rows.forEach(row => {
+                const mappings = [
+                    ['NumberOfCompliantDevices', 'Compliant'],
+                    ['NumberOfConflictDevices', 'Conflict'],
+                    ['NumberOfInProgressDevices', 'Pending'],
+                    ['NumberOfNonCompliantOrErrorDevices', 'Non-Compliant'],
+                    ['NumberOfNotApplicableDevices', 'Not Applicable']
+                ];
+
+                mappings.forEach(([column, label]) => {
+                    const value = Number(row[column]);
+                    if (!Number.isNaN(value)) {
+                        counts[label] = (counts[label] || 0) + value;
+                    }
+                });
+            });
+
+            return convertCountsToSummary(counts);
+        }
+
+        function parseReportValues(reportData) {
+            const schema = Array.isArray(reportData?.Schema) ? reportData.Schema : [];
+            const values = Array.isArray(reportData?.Values) ? reportData.Values : [];
+
+            if (!schema.length || !values.length) {
+                return [];
+            }
+
+            const headers = schema.map(column => column?.Column).filter(Boolean);
+
+            return values.map(row => {
+                const mappedRow = {};
+                headers.forEach((header, index) => {
+                    mappedRow[header] = row[index];
+                });
+                return mappedRow;
+            });
         }
 
         async function runConfigurationPolicyReportExport(policyId) {
