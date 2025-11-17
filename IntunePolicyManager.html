@@ -2842,6 +2842,9 @@
                 return;
             }
             
+            // Always start with a clean client ID to avoid cached reuse
+            localStorage.removeItem('intuneManagerClientId');
+
             clientIdInput.addEventListener('input', (e) => {
                 const clientId = e.target.value.trim();
                 const guidPattern = /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/;
@@ -2849,20 +2852,13 @@
                 if (guidPattern.test(clientId)) {
                     loginBtn.disabled = false;
                     clientIdInput.style.borderColor = '#28a745';
-                    localStorage.setItem('intuneManagerClientId', clientId);
                     initializeMsal(clientId);
                 } else {
                     loginBtn.disabled = true;
                     clientIdInput.style.borderColor = clientId ? '#dc3545' : '#ddd';
+                    msalInstance = null;
                 }
             });
-
-            // Load saved client ID if available
-            const savedClientId = localStorage.getItem('intuneManagerClientId');
-            if (savedClientId) {
-                clientIdInput.value = savedClientId;
-                clientIdInput.dispatchEvent(new Event('input'));
-            }
 
             loginBtn.addEventListener('click', signIn);
             
@@ -2979,11 +2975,24 @@
         // Sign out
         async function signOut() {
             if (!msalInstance) return;
-            
+
             try {
                 await msalInstance.logoutPopup();
                 accessToken = null;
                 tokenExpiresAt = null;
+                localStorage.removeItem('intuneManagerClientId');
+
+                const clientIdInput = document.getElementById('clientId');
+                const loginBtn = document.getElementById('loginBtn');
+
+                if (clientIdInput) {
+                    clientIdInput.value = '';
+                    clientIdInput.dispatchEvent(new Event('input'));
+                }
+
+                if (loginBtn) {
+                    loginBtn.disabled = true;
+                }
                 updateAuthUI(null);
                 showToast('Successfully signed out', 'success');
                 
