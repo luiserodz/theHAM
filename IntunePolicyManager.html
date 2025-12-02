@@ -2088,14 +2088,6 @@
         let restoreUnmappedGroups = new Set();
 
         const MODIFIER_CACHE_TTL_MS = 5 * 60 * 1000; // 5 minutes
-        const policyComponentMap = {
-            configurationPolicies: ['ConfigurationPolicy', 'SettingsCatalog'],
-            deviceConfigurations: ['DeviceConfiguration'],
-            compliancePolicies: ['DeviceCompliancePolicy'],
-            groupPolicyConfigurations: ['GroupPolicyConfiguration'],
-            intentPolicies: ['DeviceManagementIntent']
-        };
-
         // Policy type endpoints mapping
         const policyEndpoints = {
             configurationPolicies: {
@@ -3181,6 +3173,18 @@
             });
         }
 
+        function buildModifierResult(event, source) {
+            return {
+                actor: event?.actor?.userPrincipalName || event?.actor?.applicationDisplayName || 'System',
+                actorType: event?.actor?.type || 'Unknown',
+                activity: event?.displayName || event?.activityType || 'Modified',
+                activityResult: event?.activityResult || 'Unknown',
+                timestamp: event?.activityDateTime || null,
+                source,
+                error: null
+            };
+        }
+
         function formatRelativeTimestamp(isoString) {
             if (!isoString) return 'Unknown';
 
@@ -3279,15 +3283,7 @@
                 return cached;
             }
 
-            const result = {
-                actor: null,
-                actorType: null,
-                activity: null,
-                activityResult: null,
-                timestamp: null,
-                source: null,
-                error: null
-            };
+            let lastError = null;
 
             try {
                 const url = `https://graph.microsoft.com/beta/deviceManagement/auditEvents?$filter=resources/any(r: r/resourceId eq '${policyId}')&$orderby=activityDateTime desc&$top=1`;
@@ -3298,20 +3294,14 @@
                     const event = data?.value?.[0];
 
                     if (event) {
-                        result.actor = event?.actor?.userPrincipalName || event?.actor?.applicationDisplayName || 'System';
-                        result.actorType = event?.actor?.type || 'Unknown';
-                        result.activity = event?.displayName || event?.activityType || 'Modified';
-                        result.activityResult = event?.activityResult || 'Unknown';
-                        result.timestamp = event?.activityDateTime;
-                        result.source = 'resourceIdFilter';
-
-                        cacheLastModifier(policyId, result);
-                        return result;
+                        const normalized = buildModifierResult(event, 'resourceIdFilter');
+                        cacheLastModifier(policyId, normalized);
+                        return normalized;
                     }
                 }
             } catch (error) {
                 console.warn(`Primary audit query failed for ${policyId}:`, error);
-                result.error = error?.message || 'Primary audit query failed';
+                lastError = error?.message || 'Primary audit query failed';
             }
 
             if (policyName) {
@@ -3325,55 +3315,28 @@
                         const event = data?.value?.[0];
 
                         if (event) {
-                            result.actor = event?.actor?.userPrincipalName || event?.actor?.applicationDisplayName || 'System';
-                            result.actorType = event?.actor?.type || 'Unknown';
-                            result.activity = event?.displayName || event?.activityType || 'Modified';
-                            result.activityResult = event?.activityResult || 'Unknown';
-                            result.timestamp = event?.activityDateTime;
-                            result.source = 'nameFilter';
-
-                            cacheLastModifier(policyId, result);
-                            return result;
+                            const normalized = buildModifierResult(event, 'nameFilter');
+                            cacheLastModifier(policyId, normalized);
+                            return normalized;
                         }
                     }
                 } catch (error) {
                     console.warn(`Name filter audit query failed for ${policyName}:`, error);
-                    result.error = result.error || error?.message;
+                    lastError = lastError || error?.message;
                 }
             }
 
-            try {
-                const url = 'https://graph.microsoft.com/beta/deviceManagement/auditEvents?$orderby=activityDateTime desc&$top=100';
-                const response = await makeApiRequest(url);
-
-                if (response.ok) {
-                    const data = await response.json();
-                    const event = Array.isArray(data?.value)
-                        ? data.value.find(e =>
-                            e?.resources?.some(r => r?.resourceId === policyId)
-                            || e?.resources?.some(r => r?.displayName === policyName))
-                        : null;
-
-                    if (event) {
-                        result.actor = event?.actor?.userPrincipalName || event?.actor?.applicationDisplayName || 'System';
-                        result.actorType = event?.actor?.type || 'Unknown';
-                        result.activity = event?.displayName || event?.activityType || 'Modified';
-                        result.activityResult = event?.activityResult || 'Unknown';
-                        result.timestamp = event?.activityDateTime;
-                        result.source = 'clientFilter';
-
-                        cacheLastModifier(policyId, result);
-                        return result;
-                    }
-                }
-            } catch (error) {
-                console.warn('Client-side filter audit query failed:', error);
-                result.error = result.error || error?.message;
-            }
-
-            result.source = 'notFound';
-            cacheLastModifier(policyId, result);
-            return result;
+            const notFoundResult = {
+                actor: null,
+                actorType: null,
+                activity: null,
+                activityResult: null,
+                timestamp: null,
+                source: 'notFound',
+                error: lastError
+            };
+            cacheLastModifier(policyId, notFoundResult);
+            return notFoundResult;
         }
 
         function createLastModifiedSection(policy) {
