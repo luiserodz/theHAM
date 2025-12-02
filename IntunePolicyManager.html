@@ -1404,7 +1404,7 @@
                                     <li><code>DeviceManagementApps.ReadWrite.All</code> - For app policies</li>
                                     <li><code>DeviceManagementServiceConfig.ReadWrite.All</code> - For service configurations</li>
                                     <li><code>Group.Read.All</code> - To read group names for assignments</li>
-                                    <li><code>AuditLog.Read.All</code> - To retrieve audit history for policy changes</li>
+                                    <li><code>AuditLog.Read.All</code> - Optional fallback for Entra ID directory audits</li>
                                     <li><code>User.Read</code> - To sign in</li>
                                 </ul>
                             </li>
@@ -2065,6 +2065,13 @@
         let restoreUnmappedGroups = new Set();
 
         const AUDIT_LOG_CACHE_TTL_MS = 5 * 60 * 1000; // 5 minutes
+        const policyComponentMap = {
+            configurationPolicies: ['ConfigurationPolicy', 'SettingsCatalog'],
+            deviceConfigurations: ['DeviceConfiguration'],
+            compliancePolicies: ['DeviceCompliancePolicy'],
+            groupPolicyConfigurations: ['GroupPolicyConfiguration'],
+            intentPolicies: ['DeviceManagementIntent']
+        };
 
         // Policy type endpoints mapping
         const policyEndpoints = {
@@ -3182,7 +3189,35 @@
             return String(value);
         }
 
-        function normalizeAuditEvent(event) {
+        function normalizeIntuneAuditEvent(event, policy) {
+            const resources = Array.isArray(event?.resources) ? event.resources : [];
+            const resource = resources.find(r => r?.resourceId === policy?.id) || resources[0] || {};
+            const actor = event?.actor?.userPrincipalName
+                || event?.actor?.applicationDisplayName
+                || 'System';
+            const activityLabel = event?.activityType || event?.displayName || event?.activityOperationType || 'Policy activity';
+            const activity = event?.activityResult ? `${activityLabel} (${event.activityResult})` : activityLabel;
+
+            const modifications = [];
+            (resource?.modifiedProperties || []).forEach(prop => {
+                modifications.push({
+                    name: prop?.displayName || prop?.name || 'Modified property',
+                    displayName: prop?.displayName || prop?.name || 'Modified property',
+                    oldValue: formatAuditValue(prop?.oldValue),
+                    newValue: formatAuditValue(prop?.newValue)
+                });
+            });
+
+            return {
+                id: event?.id || `${event?.activityDateTime || Date.now()}-${activityLabel}`,
+                activity,
+                timestamp: event?.activityDateTime || new Date().toISOString(),
+                actor,
+                modifiedProperties: modifications
+            };
+        }
+
+        function normalizeDirectoryAuditEvent(event) {
             const actor = event?.initiatedBy?.user?.userPrincipalName
                 || event?.initiatedBy?.app?.displayName
                 || 'Unknown actor';
@@ -3208,18 +3243,73 @@
             };
         }
 
-        async function fetchPolicyAuditLogs(policyId, { forceRefresh = false } = {}) {
-            if (!policyId) {
-                throw new Error('Policy identifier missing for audit lookup.');
-            }
+        async function fetchIntuneAuditEvents(url, policy, { clientFilter = false } = {}) {
+            let nextUrl = url;
+            const events = [];
+            let lastResponse = null;
 
-            if (!forceRefresh) {
-                const cached = getCachedAuditLogs(policyId);
-                if (cached) {
-                    return { events: cached, cached: true };
+            while (nextUrl) {
+                const response = await makeApiRequest(nextUrl);
+                lastResponse = response;
+
+                if (response.status === 403) {
+                    const permissionError = new Error('Audit logs unavailable. Please grant DeviceManagementApps.Read.All to this app registration.');
+                    permissionError.permissionDenied = true;
+                    throw permissionError;
+                }
+
+                if (response.status === 429) {
+                    await delay(rateLimitDelay);
+                    rateLimitDelay = Math.min(rateLimitDelay * 2, 2000);
+                    continue;
+                }
+
+                if (!response.ok) {
+                    if (response.status === 400 || response.status === 404) {
+                        break;
+                    }
+                    throw await buildGraphError(response, 'Failed to fetch audit logs');
+                }
+
+                rateLimitDelay = 100;
+                const data = await response.json();
+                let pageEvents = Array.isArray(data?.value) ? data.value : [];
+
+                if (clientFilter && policy?.id) {
+                    pageEvents = pageEvents.filter(evt => Array.isArray(evt?.resources) && evt.resources.some(res => res?.resourceId === policy.id));
+                }
+
+                const allowedComponents = policyComponentMap[policy?._type];
+                if (allowedComponents && allowedComponents.length) {
+                    pageEvents = pageEvents.filter(evt => !evt?.componentName || allowedComponents.includes(evt.componentName));
+                }
+
+                events.push(...pageEvents);
+
+                const nextLink = data['@odata.nextLink'];
+                if (nextLink) {
+                    if (nextLink.startsWith('https://')) {
+                        nextUrl = nextLink;
+                    } else {
+                        const baseUrl = 'https://graph.microsoft.com';
+                        const separator = nextLink.startsWith('/') ? '' : '/';
+                        nextUrl = `${baseUrl}${separator}${nextLink}`;
+                    }
+                } else {
+                    nextUrl = null;
                 }
             }
 
+            if (lastResponse && (lastResponse.status === 400 || lastResponse.status === 404) && events.length === 0) {
+                const filterError = new Error('Audit filter not supported; retrying without server filter.');
+                filterError.retryable = true;
+                throw filterError;
+            }
+
+            return events.map(evt => normalizeIntuneAuditEvent(evt, policy));
+        }
+
+        async function fetchDirectoryAuditEvents(policyId) {
             const url = `https://graph.microsoft.com/beta/auditLogs/directoryAudits?$filter=targetResources/any(t: t/id eq '${policyId}')&$orderby=activityDateTime desc&$top=50`;
             const response = await makeApiRequest(url);
 
@@ -3234,8 +3324,74 @@
             }
 
             const data = await response.json();
-            const events = (data?.value || []).map(normalizeAuditEvent);
-            cacheAuditLogs(policyId, events);
+            return (data?.value || []).map(normalizeDirectoryAuditEvent);
+        }
+
+        async function fetchPolicyAuditLogs(policy, { forceRefresh = false } = {}) {
+            if (!policy?.id) {
+                throw new Error('Policy identifier missing for audit lookup.');
+            }
+
+            if (!forceRefresh) {
+                const cached = getCachedAuditLogs(policy.id);
+                if (cached) {
+                    return { events: cached, cached: true };
+                }
+            }
+
+            const primaryUrl = `https://graph.microsoft.com/beta/deviceManagement/auditEvents?$filter=resources/any(r: r/resourceId eq '${policy.id}')&$orderby=activityDateTime desc&$top=50`;
+            const bulkUrl = `https://graph.microsoft.com/beta/deviceManagement/auditEvents?$orderby=activityDateTime desc&$top=200`;
+            const nameUrl = policy?.displayName
+                ? `https://graph.microsoft.com/beta/deviceManagement/auditEvents?$filter=contains(displayName, '${encodeURIComponent(policy.displayName)}')&$orderby=activityDateTime desc&$top=50`
+                : null;
+
+            let events = [];
+            let lastError = null;
+
+            try {
+                events = await fetchIntuneAuditEvents(primaryUrl, policy);
+            } catch (error) {
+                lastError = error;
+            }
+
+            if (!events.length) {
+                try {
+                    events = await fetchIntuneAuditEvents(bulkUrl, policy, { clientFilter: true });
+                } catch (error) {
+                    if (error?.permissionDenied) {
+                        throw error;
+                    }
+                    lastError = lastError || error;
+                }
+            }
+
+            if (!events.length && nameUrl) {
+                try {
+                    events = await fetchIntuneAuditEvents(nameUrl, policy, { clientFilter: true });
+                } catch (error) {
+                    if (error?.permissionDenied) {
+                        throw error;
+                    }
+                    lastError = lastError || error;
+                }
+            }
+
+            if (!events.length) {
+                try {
+                    events = await fetchDirectoryAuditEvents(policy.id);
+                } catch (error) {
+                    if (error?.permissionDenied) {
+                        throw error;
+                    }
+                    lastError = lastError || error;
+                }
+            }
+
+            if (!events.length && lastError) {
+                throw lastError;
+            }
+
+            cacheAuditLogs(policy.id, events);
             return { events, cached: false };
         }
 
@@ -3374,7 +3530,7 @@
             timelineEl.innerHTML = '';
 
             try {
-                const { events, cached } = await fetchPolicyAuditLogs(policy.id, { forceRefresh });
+                const { events, cached } = await fetchPolicyAuditLogs(policy, { forceRefresh });
                 policy._auditEvents = events;
                 renderAuditTimeline(timelineEl, events);
 
@@ -3383,14 +3539,14 @@
                 }
 
                 if (events.length === 0) {
-                    statusEl.textContent = 'No audit events found for this policy.';
+                    statusEl.textContent = 'No audit events found for this policy. Intune retains audit logs for 30 days; older events may not be available.';
                 } else {
                     statusEl.textContent = `Showing ${events.length} recent audit ${events.length === 1 ? 'event' : 'events'}${cached ? ' (cached)' : ''}.`;
                 }
             } catch (error) {
                 console.error('Audit history error:', error);
                 const message = error?.permissionDenied
-                    ? 'Audit logs unavailable. Please grant AuditLog.Read.All to this app registration.'
+                    ? error.message
                     : (error?.message || 'Unable to load audit history.');
                 statusEl.textContent = message;
                 statusEl.classList.add('error');
