@@ -458,6 +458,135 @@
             font-weight: 600;
         }
 
+        .last-modified-section {
+            margin-top: 10px;
+            padding: 10px 12px;
+            background: #f9fafb;
+            border: 1px solid #e5e7eb;
+            border-radius: 6px;
+            font-size: 0.85rem;
+        }
+
+        .last-modified-header {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 6px;
+        }
+
+        .modified-label {
+            color: #6b7280;
+            font-weight: 500;
+        }
+
+        .modified-timestamp {
+            color: #374151;
+            font-weight: 600;
+            cursor: help;
+        }
+
+        .modified-timestamp.timestamp-recent {
+            color: #059669;
+        }
+
+        .modified-timestamp.timestamp-current {
+            color: #374151;
+        }
+
+        .modified-timestamp.timestamp-aging {
+            color: #d97706;
+        }
+
+        .modified-timestamp.timestamp-stale {
+            color: #dc2626;
+        }
+
+        .modified-timestamp.timestamp-obsolete {
+            color: #991b1b;
+            font-weight: 700;
+        }
+
+        .modified-timestamp.timestamp-unknown {
+            color: #9ca3af;
+            font-style: italic;
+        }
+
+        .version-badge {
+            background: #e0e7ff;
+            color: #3730a3;
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-size: 0.75rem;
+            font-weight: 600;
+        }
+
+        .last-modified-actor {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+
+        .actor-loading {
+            color: #9ca3af;
+            font-style: italic;
+        }
+
+        .actor-info {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .actor-icon {
+            font-size: 1rem;
+        }
+
+        .actor-name {
+            color: #1f2937;
+            font-weight: 500;
+        }
+
+        .activity-info {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .activity-type {
+            color: #6b7280;
+            font-size: 0.8rem;
+            background: #f3f4f6;
+            padding: 2px 8px;
+            border-radius: 4px;
+        }
+
+        .activity-result {
+            font-size: 0.9rem;
+        }
+
+        .activity-result.success {
+            color: #059669;
+        }
+
+        .activity-result.failure {
+            color: #dc2626;
+        }
+
+        .actor-unknown,
+        .actor-error {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            color: #9ca3af;
+            font-size: 0.8rem;
+        }
+
+        .actor-error {
+            color: #dc2626;
+        }
+
         .status-info {
             color: #4b5563;
         }
@@ -1298,6 +1427,7 @@
                                     <li><code>DeviceManagementApps.ReadWrite.All</code> - For app policies</li>
                                     <li><code>DeviceManagementServiceConfig.ReadWrite.All</code> - For service configurations</li>
                                     <li><code>Group.Read.All</code> - To read group names for assignments</li>
+                                    <li><code>DeviceManagementApps.Read.All</code> - Required to read policy audit events</li>
                                     <li><code>User.Read</code> - To sign in</li>
                                 </ul>
                             </li>
@@ -1950,12 +2080,14 @@
         let selectedExclusionGroups = [];
         let manageSelectedExclusionGroups = [];
         const groupNameCache = new Map();
+        const lastModifierCache = new Map();
         let restoreBackupData = null;
         let restoreSelectedPolicyIds = new Set();
         let restoreGroupMappings = {};
         let restoreProgressLog = [];
         let restoreUnmappedGroups = new Set();
 
+        const MODIFIER_CACHE_TTL_MS = 5 * 60 * 1000; // 5 minutes
         // Policy type endpoints mapping
         const policyEndpoints = {
             configurationPolicies: {
@@ -3025,6 +3157,250 @@
             return allItems;
         }
 
+
+        function getCachedLastModifier(policyId) {
+            const cached = lastModifierCache.get(policyId);
+            if (cached && (Date.now() - cached.timestamp) < MODIFIER_CACHE_TTL_MS) {
+                return cached.data;
+            }
+            return null;
+        }
+
+        function cacheLastModifier(policyId, data) {
+            lastModifierCache.set(policyId, {
+                timestamp: Date.now(),
+                data
+            });
+        }
+
+        function buildModifierResult(event, source) {
+            return {
+                actor: event?.actor?.userPrincipalName || event?.actor?.applicationDisplayName || 'System',
+                actorType: event?.actor?.type || 'Unknown',
+                activity: event?.displayName || event?.activityType || 'Modified',
+                activityResult: event?.activityResult || 'Unknown',
+                timestamp: event?.activityDateTime || null,
+                source,
+                error: null
+            };
+        }
+
+        function formatRelativeTimestamp(isoString) {
+            if (!isoString) return 'Unknown';
+
+            const date = new Date(isoString);
+            const now = new Date();
+            const diffMs = now - date;
+            const diffSeconds = Math.floor(diffMs / 1000);
+            const diffMinutes = Math.floor(diffSeconds / 60);
+            const diffHours = Math.floor(diffMinutes / 60);
+            const diffDays = Math.floor(diffHours / 24);
+            const diffWeeks = Math.floor(diffDays / 7);
+            const diffMonths = Math.floor(diffDays / 30);
+            const diffYears = Math.floor(diffDays / 365);
+
+            if (diffSeconds < 60) return 'Just now';
+            if (diffMinutes < 60) return `${diffMinutes} minute${diffMinutes === 1 ? '' : 's'} ago`;
+            if (diffHours < 24) return `${diffHours} hour${diffHours === 1 ? '' : 's'} ago`;
+            if (diffDays === 1) return 'Yesterday';
+            if (diffDays < 7) return `${diffDays} days ago`;
+            if (diffWeeks < 4) return `${diffWeeks} week${diffWeeks === 1 ? '' : 's'} ago`;
+            if (diffMonths < 12) return `${diffMonths} month${diffMonths === 1 ? '' : 's'} ago`;
+            if (diffYears === 1) return '1 year ago';
+            if (diffYears > 1) return `${diffYears} years ago`;
+
+            return date.toLocaleDateString([], { year: 'numeric', month: 'short', day: 'numeric' });
+        }
+
+        function formatAbsoluteTimestamp(isoString) {
+            if (!isoString) return 'Unknown';
+
+            const date = new Date(isoString);
+            return date.toLocaleString([], {
+                year: 'numeric',
+                month: 'short',
+                day: 'numeric',
+                hour: '2-digit',
+                minute: '2-digit'
+            });
+        }
+
+        function getTimestampAgeClass(isoString) {
+            if (!isoString) return 'timestamp-unknown';
+
+            const date = new Date(isoString);
+            const now = new Date();
+            const diffDays = Math.floor((now - date) / (1000 * 60 * 60 * 24));
+
+            if (diffDays <= 7) return 'timestamp-recent';
+            if (diffDays <= 30) return 'timestamp-current';
+            if (diffDays <= 90) return 'timestamp-aging';
+            if (diffDays <= 365) return 'timestamp-stale';
+            return 'timestamp-obsolete';
+        }
+
+        function truncateString(str, maxLength) {
+            if (!str) return '';
+            if (str.length <= maxLength) return str;
+            return `${str.substring(0, maxLength - 3)}...`;
+        }
+
+        function formatActivityType(activity) {
+            if (!activity) return 'Modified';
+
+            return activity
+                .replace(/^(Create|Update|Delete|Patch|Assign)\s*/i, '$1 ')
+                .replace(/ConfigurationPolicy/g, 'Policy')
+                .replace(/DeviceConfiguration/g, 'Config')
+                .replace(/DeviceCompliancePolicy/g, 'Compliance')
+                .replace(/GroupPolicyConfiguration/g, 'GPO')
+                .trim();
+        }
+
+        function getNoModifierMessage(policy) {
+            if (!policy?.lastModifiedDateTime) {
+                return 'Modification history unavailable';
+            }
+
+            const modifiedDate = new Date(policy.lastModifiedDateTime);
+            const now = new Date();
+            const diffDays = Math.floor((now - modifiedDate) / (1000 * 60 * 60 * 24));
+
+            if (diffDays > 30) {
+                return 'Modifier unknown (audit log expired after 30 days)';
+            }
+
+            return 'Modifier unknown (audit event not found)';
+        }
+
+        async function fetchLastModifier(policyId, policyName) {
+            if (!policyId) {
+                return null;
+            }
+
+            const cached = getCachedLastModifier(policyId);
+            if (cached) {
+                return cached;
+            }
+
+            let lastError = null;
+
+            try {
+                const url = `https://graph.microsoft.com/beta/deviceManagement/auditEvents?$filter=resources/any(r: r/resourceId eq '${policyId}')&$orderby=activityDateTime desc&$top=1`;
+                const response = await makeApiRequest(url);
+
+                if (response.ok) {
+                    const data = await response.json();
+                    const event = data?.value?.[0];
+
+                    if (event) {
+                        const normalized = buildModifierResult(event, 'resourceIdFilter');
+                        cacheLastModifier(policyId, normalized);
+                        return normalized;
+                    }
+                }
+            } catch (error) {
+                console.warn(`Primary audit query failed for ${policyId}:`, error);
+                lastError = error?.message || 'Primary audit query failed';
+            }
+
+            if (policyName) {
+                try {
+                    const escapedName = policyName.replace(/'/g, "''");
+                    const url = `https://graph.microsoft.com/beta/deviceManagement/auditEvents?$filter=contains(displayName,'${encodeURIComponent(escapedName)}')&$orderby=activityDateTime desc&$top=1`;
+                    const response = await makeApiRequest(url);
+
+                    if (response.ok) {
+                        const data = await response.json();
+                        const event = data?.value?.[0];
+
+                        if (event) {
+                            const normalized = buildModifierResult(event, 'nameFilter');
+                            cacheLastModifier(policyId, normalized);
+                            return normalized;
+                        }
+                    }
+                } catch (error) {
+                    console.warn(`Name filter audit query failed for ${policyName}:`, error);
+                    lastError = lastError || error?.message;
+                }
+            }
+
+            const notFoundResult = {
+                actor: null,
+                actorType: null,
+                activity: null,
+                activityResult: null,
+                timestamp: null,
+                source: 'notFound',
+                error: lastError
+            };
+            cacheLastModifier(policyId, notFoundResult);
+            return notFoundResult;
+        }
+
+        function createLastModifiedSection(policy) {
+            const section = document.createElement('div');
+            section.className = 'last-modified-section';
+
+            const timestampClass = getTimestampAgeClass(policy?.lastModifiedDateTime);
+
+            section.innerHTML = `
+                <div class="last-modified-header">
+                    <span class="modified-label">Last modified:</span>
+                    <span class="modified-timestamp ${timestampClass}" title="${formatAbsoluteTimestamp(policy?.lastModifiedDateTime)}">
+                        ${formatRelativeTimestamp(policy?.lastModifiedDateTime)}
+                    </span>
+                    ${policy?.version ? `<span class="version-badge">v${policy.version}</span>` : ''}
+                </div>
+                <div class="last-modified-actor" id="actor-${policy?.id}">
+                    <span class="actor-loading">Loading modifier...</span>
+                </div>
+            `;
+
+            fetchLastModifier(policy?.id, policy?.displayName || policy?.name)
+                .then(modifier => {
+                    const actorContainer = section.querySelector(`#actor-${policy?.id}`);
+                    if (!actorContainer) return;
+
+                    if (modifier?.actor) {
+                        const actorIcon = modifier.actorType === 'User' ? '👤' : '🤖';
+                        const resultIcon = (modifier.activityResult || '').toLowerCase() === 'success' ? '✓' : '⚠';
+
+                        actorContainer.innerHTML = `
+                            <span class="actor-info">
+                                <span class="actor-icon">${actorIcon}</span>
+                                <span class="actor-name" title="${modifier.actor}">${truncateString(modifier.actor, 30)}</span>
+                            </span>
+                            <span class="activity-info">
+                                <span class="activity-type">${formatActivityType(modifier.activity)}</span>
+                                <span class="activity-result ${(modifier.activityResult || '').toLowerCase()}">${resultIcon}</span>
+                            </span>
+                        `;
+                    } else {
+                        actorContainer.innerHTML = `
+                            <span class="actor-unknown">
+                                <span class="actor-icon">❓</span>
+                                <span class="actor-message">${getNoModifierMessage(policy)}</span>
+                            </span>
+                        `;
+                    }
+                })
+                .catch(() => {
+                    const actorContainer = section.querySelector(`#actor-${policy?.id}`);
+                    if (actorContainer) {
+                        actorContainer.innerHTML = `
+                            <span class="actor-error">
+                                <span class="actor-icon">⚠</span>
+                                <span class="actor-message">Failed to load modifier</span>
+                            </span>
+                        `;
+                    }
+                });
+
+            return section;
+        }
+
         // Initialize the application
         document.addEventListener('DOMContentLoaded', function() {
             console.log('DOM loaded, initializing...');
@@ -3599,7 +3975,12 @@
                 desc.textContent = policy.description.substring(0, 100) + (policy.description.length > 100 ? '...' : '');
                 details.appendChild(desc);
             }
-            
+
+            if (context === 'manage') {
+                const lastModifiedSection = createLastModifiedSection(policy);
+                details.appendChild(lastModifiedSection);
+            }
+
             if (context === 'manage' && policy._assignments && policy._assignments.length > 0) {
                 const assignmentList = document.createElement('div');
                 assignmentList.className = 'assignment-list';
@@ -3628,7 +4009,7 @@
                     assignItem.textContent = targetName;
                     assignmentList.appendChild(assignItem);
                 });
-                
+
                 details.appendChild(assignmentList);
             }
 
