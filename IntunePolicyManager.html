@@ -458,110 +458,133 @@
             font-weight: 600;
         }
 
-        .audit-section {
-            margin-top: 12px;
-            padding-top: 12px;
-            border-top: 1px solid #e5e7eb;
-            flex-basis: 100%;
-        }
-
-        .audit-details {
-            margin-top: 12px;
+        .last-modified-section {
+            margin-top: 10px;
+            padding: 10px 12px;
             background: #f9fafb;
             border: 1px solid #e5e7eb;
-            border-radius: 10px;
-            padding: 14px;
+            border-radius: 6px;
+            font-size: 0.85rem;
         }
 
-        .audit-status {
-            color: #4b5563;
-            margin-bottom: 10px;
-            font-size: 0.9rem;
-        }
-
-        .audit-status.error {
-            color: #b91c1c;
-            font-weight: 600;
-        }
-
-        .audit-actions {
+        .last-modified-header {
             display: flex;
-            gap: 10px;
-            flex-wrap: wrap;
-            margin-bottom: 10px;
-        }
-
-        .audit-timeline {
-            display: flex;
-            flex-direction: column;
-            gap: 10px;
-        }
-
-        .audit-event {
-            background: #fff;
-            border: 1px solid #e5e7eb;
-            border-radius: 8px;
-            padding: 12px;
-            box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
-        }
-
-        .audit-event-header {
-            display: flex;
-            justify-content: space-between;
-            gap: 12px;
-            align-items: flex-start;
+            align-items: center;
+            gap: 8px;
             margin-bottom: 6px;
         }
 
-        .audit-event-title {
-            font-weight: 600;
-            color: #111827;
-        }
-
-        .audit-event-meta {
+        .modified-label {
             color: #6b7280;
-            font-size: 0.875rem;
-            text-align: right;
+            font-weight: 500;
         }
 
-        .audit-actor {
-            color: #1f2937;
-            font-size: 0.9rem;
-            margin-bottom: 8px;
-        }
-
-        .audit-modified-prop {
-            border-top: 1px dashed #e5e7eb;
-            padding-top: 8px;
-            margin-top: 8px;
-        }
-
-        .audit-prop-name {
+        .modified-timestamp {
+            color: #374151;
             font-weight: 600;
-            color: #1f2937;
+            cursor: help;
         }
 
-        .audit-diff {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
-            gap: 8px;
-            margin-top: 6px;
+        .modified-timestamp.timestamp-recent {
+            color: #059669;
         }
 
-        .audit-pill {
-            background: #eef2ff;
-            border: 1px solid #c7d2fe;
-            border-radius: 8px;
-            padding: 8px;
-            font-size: 0.875rem;
-            color: #1f2937;
-            white-space: pre-wrap;
-            word-break: break-word;
+        .modified-timestamp.timestamp-current {
+            color: #374151;
         }
 
-        .audit-empty {
-            color: #6b7280;
+        .modified-timestamp.timestamp-aging {
+            color: #d97706;
+        }
+
+        .modified-timestamp.timestamp-stale {
+            color: #dc2626;
+        }
+
+        .modified-timestamp.timestamp-obsolete {
+            color: #991b1b;
+            font-weight: 700;
+        }
+
+        .modified-timestamp.timestamp-unknown {
+            color: #9ca3af;
             font-style: italic;
+        }
+
+        .version-badge {
+            background: #e0e7ff;
+            color: #3730a3;
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-size: 0.75rem;
+            font-weight: 600;
+        }
+
+        .last-modified-actor {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+
+        .actor-loading {
+            color: #9ca3af;
+            font-style: italic;
+        }
+
+        .actor-info {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .actor-icon {
+            font-size: 1rem;
+        }
+
+        .actor-name {
+            color: #1f2937;
+            font-weight: 500;
+        }
+
+        .activity-info {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .activity-type {
+            color: #6b7280;
+            font-size: 0.8rem;
+            background: #f3f4f6;
+            padding: 2px 8px;
+            border-radius: 4px;
+        }
+
+        .activity-result {
+            font-size: 0.9rem;
+        }
+
+        .activity-result.success {
+            color: #059669;
+        }
+
+        .activity-result.failure {
+            color: #dc2626;
+        }
+
+        .actor-unknown,
+        .actor-error {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            color: #9ca3af;
+            font-size: 0.8rem;
+        }
+
+        .actor-error {
+            color: #dc2626;
         }
 
         .status-info {
@@ -1404,7 +1427,7 @@
                                     <li><code>DeviceManagementApps.ReadWrite.All</code> - For app policies</li>
                                     <li><code>DeviceManagementServiceConfig.ReadWrite.All</code> - For service configurations</li>
                                     <li><code>Group.Read.All</code> - To read group names for assignments</li>
-                                    <li><code>AuditLog.Read.All</code> - Optional fallback for Entra ID directory audits</li>
+                                    <li><code>DeviceManagementApps.Read.All</code> - Required to read policy audit events</li>
                                     <li><code>User.Read</code> - To sign in</li>
                                 </ul>
                             </li>
@@ -2057,14 +2080,14 @@
         let selectedExclusionGroups = [];
         let manageSelectedExclusionGroups = [];
         const groupNameCache = new Map();
-        const auditLogCache = new Map();
+        const lastModifierCache = new Map();
         let restoreBackupData = null;
         let restoreSelectedPolicyIds = new Set();
         let restoreGroupMappings = {};
         let restoreProgressLog = [];
         let restoreUnmappedGroups = new Set();
 
-        const AUDIT_LOG_CACHE_TTL_MS = 5 * 60 * 1000; // 5 minutes
+        const MODIFIER_CACHE_TTL_MS = 5 * 60 * 1000; // 5 minutes
         const policyComponentMap = {
             configurationPolicies: ['ConfigurationPolicy', 'SettingsCatalog'],
             deviceConfigurations: ['DeviceConfiguration'],
@@ -3142,419 +3165,277 @@
             return allItems;
         }
 
-        function getCachedAuditLogs(policyId) {
-            const cached = auditLogCache.get(policyId);
-            if (!cached) {
-                return null;
-            }
 
-            const isExpired = Date.now() - cached.timestamp > AUDIT_LOG_CACHE_TTL_MS;
-            if (isExpired) {
-                auditLogCache.delete(policyId);
-                return null;
+        function getCachedLastModifier(policyId) {
+            const cached = lastModifierCache.get(policyId);
+            if (cached && (Date.now() - cached.timestamp) < MODIFIER_CACHE_TTL_MS) {
+                return cached.data;
             }
-
-            return cached.data;
+            return null;
         }
 
-        function cacheAuditLogs(policyId, events) {
-            auditLogCache.set(policyId, {
-                data: events,
-                timestamp: Date.now()
+        function cacheLastModifier(policyId, data) {
+            lastModifierCache.set(policyId, {
+                timestamp: Date.now(),
+                data
             });
         }
 
-        function formatAuditValue(value) {
-            if (value === null || value === undefined) {
-                return '—';
+        function formatRelativeTimestamp(isoString) {
+            if (!isoString) return 'Unknown';
+
+            const date = new Date(isoString);
+            const now = new Date();
+            const diffMs = now - date;
+            const diffSeconds = Math.floor(diffMs / 1000);
+            const diffMinutes = Math.floor(diffSeconds / 60);
+            const diffHours = Math.floor(diffMinutes / 60);
+            const diffDays = Math.floor(diffHours / 24);
+            const diffWeeks = Math.floor(diffDays / 7);
+            const diffMonths = Math.floor(diffDays / 30);
+            const diffYears = Math.floor(diffDays / 365);
+
+            if (diffSeconds < 60) return 'Just now';
+            if (diffMinutes < 60) return `${diffMinutes} minute${diffMinutes === 1 ? '' : 's'} ago`;
+            if (diffHours < 24) return `${diffHours} hour${diffHours === 1 ? '' : 's'} ago`;
+            if (diffDays === 1) return 'Yesterday';
+            if (diffDays < 7) return `${diffDays} days ago`;
+            if (diffWeeks < 4) return `${diffWeeks} week${diffWeeks === 1 ? '' : 's'} ago`;
+            if (diffMonths < 12) return `${diffMonths} month${diffMonths === 1 ? '' : 's'} ago`;
+            if (diffYears === 1) return '1 year ago';
+            if (diffYears > 1) return `${diffYears} years ago`;
+
+            return date.toLocaleDateString([], { year: 'numeric', month: 'short', day: 'numeric' });
+        }
+
+        function formatAbsoluteTimestamp(isoString) {
+            if (!isoString) return 'Unknown';
+
+            const date = new Date(isoString);
+            return date.toLocaleString([], {
+                year: 'numeric',
+                month: 'short',
+                day: 'numeric',
+                hour: '2-digit',
+                minute: '2-digit'
+            });
+        }
+
+        function getTimestampAgeClass(isoString) {
+            if (!isoString) return 'timestamp-unknown';
+
+            const date = new Date(isoString);
+            const now = new Date();
+            const diffDays = Math.floor((now - date) / (1000 * 60 * 60 * 24));
+
+            if (diffDays <= 7) return 'timestamp-recent';
+            if (diffDays <= 30) return 'timestamp-current';
+            if (diffDays <= 90) return 'timestamp-aging';
+            if (diffDays <= 365) return 'timestamp-stale';
+            return 'timestamp-obsolete';
+        }
+
+        function truncateString(str, maxLength) {
+            if (!str) return '';
+            if (str.length <= maxLength) return str;
+            return `${str.substring(0, maxLength - 3)}...`;
+        }
+
+        function formatActivityType(activity) {
+            if (!activity) return 'Modified';
+
+            return activity
+                .replace(/^(Create|Update|Delete|Patch|Assign)\s*/i, '$1 ')
+                .replace(/ConfigurationPolicy/g, 'Policy')
+                .replace(/DeviceConfiguration/g, 'Config')
+                .replace(/DeviceCompliancePolicy/g, 'Compliance')
+                .replace(/GroupPolicyConfiguration/g, 'GPO')
+                .trim();
+        }
+
+        function getNoModifierMessage(policy) {
+            if (!policy?.lastModifiedDateTime) {
+                return 'Modification history unavailable';
             }
 
-            if (typeof value === 'string') {
-                const trimmed = value.trim();
+            const modifiedDate = new Date(policy.lastModifiedDateTime);
+            const now = new Date();
+            const diffDays = Math.floor((now - modifiedDate) / (1000 * 60 * 60 * 24));
+
+            if (diffDays > 30) {
+                return 'Modifier unknown (audit log expired after 30 days)';
+            }
+
+            return 'Modifier unknown (audit event not found)';
+        }
+
+        async function fetchLastModifier(policyId, policyName) {
+            if (!policyId) {
+                return null;
+            }
+
+            const cached = getCachedLastModifier(policyId);
+            if (cached) {
+                return cached;
+            }
+
+            const result = {
+                actor: null,
+                actorType: null,
+                activity: null,
+                activityResult: null,
+                timestamp: null,
+                source: null,
+                error: null
+            };
+
+            try {
+                const url = `https://graph.microsoft.com/beta/deviceManagement/auditEvents?$filter=resources/any(r: r/resourceId eq '${policyId}')&$orderby=activityDateTime desc&$top=1`;
+                const response = await makeApiRequest(url);
+
+                if (response.ok) {
+                    const data = await response.json();
+                    const event = data?.value?.[0];
+
+                    if (event) {
+                        result.actor = event?.actor?.userPrincipalName || event?.actor?.applicationDisplayName || 'System';
+                        result.actorType = event?.actor?.type || 'Unknown';
+                        result.activity = event?.displayName || event?.activityType || 'Modified';
+                        result.activityResult = event?.activityResult || 'Unknown';
+                        result.timestamp = event?.activityDateTime;
+                        result.source = 'resourceIdFilter';
+
+                        cacheLastModifier(policyId, result);
+                        return result;
+                    }
+                }
+            } catch (error) {
+                console.warn(`Primary audit query failed for ${policyId}:`, error);
+                result.error = error?.message || 'Primary audit query failed';
+            }
+
+            if (policyName) {
                 try {
-                    const parsed = JSON.parse(trimmed);
-                    if (typeof parsed === 'object') {
-                        return JSON.stringify(parsed, null, 2);
+                    const escapedName = policyName.replace(/'/g, "''");
+                    const url = `https://graph.microsoft.com/beta/deviceManagement/auditEvents?$filter=contains(displayName,'${encodeURIComponent(escapedName)}')&$orderby=activityDateTime desc&$top=1`;
+                    const response = await makeApiRequest(url);
+
+                    if (response.ok) {
+                        const data = await response.json();
+                        const event = data?.value?.[0];
+
+                        if (event) {
+                            result.actor = event?.actor?.userPrincipalName || event?.actor?.applicationDisplayName || 'System';
+                            result.actorType = event?.actor?.type || 'Unknown';
+                            result.activity = event?.displayName || event?.activityType || 'Modified';
+                            result.activityResult = event?.activityResult || 'Unknown';
+                            result.timestamp = event?.activityDateTime;
+                            result.source = 'nameFilter';
+
+                            cacheLastModifier(policyId, result);
+                            return result;
+                        }
                     }
-                } catch (_) {
-                    // Fall back to the original string if it is not JSON
+                } catch (error) {
+                    console.warn(`Name filter audit query failed for ${policyName}:`, error);
+                    result.error = result.error || error?.message;
                 }
-                return trimmed;
             }
 
-            if (typeof value === 'object') {
-                return JSON.stringify(value, null, 2);
+            try {
+                const url = 'https://graph.microsoft.com/beta/deviceManagement/auditEvents?$orderby=activityDateTime desc&$top=100';
+                const response = await makeApiRequest(url);
+
+                if (response.ok) {
+                    const data = await response.json();
+                    const event = Array.isArray(data?.value)
+                        ? data.value.find(e =>
+                            e?.resources?.some(r => r?.resourceId === policyId)
+                            || e?.resources?.some(r => r?.displayName === policyName))
+                        : null;
+
+                    if (event) {
+                        result.actor = event?.actor?.userPrincipalName || event?.actor?.applicationDisplayName || 'System';
+                        result.actorType = event?.actor?.type || 'Unknown';
+                        result.activity = event?.displayName || event?.activityType || 'Modified';
+                        result.activityResult = event?.activityResult || 'Unknown';
+                        result.timestamp = event?.activityDateTime;
+                        result.source = 'clientFilter';
+
+                        cacheLastModifier(policyId, result);
+                        return result;
+                    }
+                }
+            } catch (error) {
+                console.warn('Client-side filter audit query failed:', error);
+                result.error = result.error || error?.message;
             }
 
-            return String(value);
+            result.source = 'notFound';
+            cacheLastModifier(policyId, result);
+            return result;
         }
 
-        function normalizeIntuneAuditEvent(event, policy) {
-            const resources = Array.isArray(event?.resources) ? event.resources : [];
-            const resource = resources.find(r => r?.resourceId === policy?.id) || resources[0] || {};
-            const actor = event?.actor?.userPrincipalName
-                || event?.actor?.applicationDisplayName
-                || 'System';
-            const activityLabel = event?.activityType || event?.displayName || event?.activityOperationType || 'Policy activity';
-            const activity = event?.activityResult ? `${activityLabel} (${event.activityResult})` : activityLabel;
+        function createLastModifiedSection(policy) {
+            const section = document.createElement('div');
+            section.className = 'last-modified-section';
 
-            const modifications = [];
-            (resource?.modifiedProperties || []).forEach(prop => {
-                modifications.push({
-                    name: prop?.displayName || prop?.name || 'Modified property',
-                    displayName: prop?.displayName || prop?.name || 'Modified property',
-                    oldValue: formatAuditValue(prop?.oldValue),
-                    newValue: formatAuditValue(prop?.newValue)
-                });
-            });
+            const timestampClass = getTimestampAgeClass(policy?.lastModifiedDateTime);
 
-            return {
-                id: event?.id || `${event?.activityDateTime || Date.now()}-${activityLabel}`,
-                activity,
-                timestamp: event?.activityDateTime || new Date().toISOString(),
-                actor,
-                modifiedProperties: modifications
-            };
-        }
+            section.innerHTML = `
+                <div class="last-modified-header">
+                    <span class="modified-label">Last modified:</span>
+                    <span class="modified-timestamp ${timestampClass}" title="${formatAbsoluteTimestamp(policy?.lastModifiedDateTime)}">
+                        ${formatRelativeTimestamp(policy?.lastModifiedDateTime)}
+                    </span>
+                    ${policy?.version ? `<span class="version-badge">v${policy.version}</span>` : ''}
+                </div>
+                <div class="last-modified-actor" id="actor-${policy?.id}">
+                    <span class="actor-loading">Loading modifier...</span>
+                </div>
+            `;
 
-        function normalizeDirectoryAuditEvent(event) {
-            const actor = event?.initiatedBy?.user?.userPrincipalName
-                || event?.initiatedBy?.app?.displayName
-                || 'Unknown actor';
+            fetchLastModifier(policy?.id, policy?.displayName || policy?.name)
+                .then(modifier => {
+                    const actorContainer = section.querySelector(`#actor-${policy?.id}`);
+                    if (!actorContainer) return;
 
-            const modifications = [];
-            (event?.targetResources || []).forEach(resource => {
-                (resource?.modifiedProperties || []).forEach(prop => {
-                    modifications.push({
-                        name: prop?.name || prop?.displayName || 'Modified property',
-                        displayName: prop?.displayName || prop?.name || 'Modified property',
-                        oldValue: formatAuditValue(prop?.oldValue),
-                        newValue: formatAuditValue(prop?.newValue)
-                    });
-                });
-            });
+                    if (modifier?.actor) {
+                        const actorIcon = modifier.actorType === 'User' ? '👤' : '🤖';
+                        const resultIcon = (modifier.activityResult || '').toLowerCase() === 'success' ? '✓' : '⚠';
 
-            return {
-                id: event?.id || `${event?.activityDateTime || Date.now()}-${event?.activityDisplayName || 'audit'}`,
-                activity: event?.activityDisplayName || 'Policy activity',
-                timestamp: event?.activityDateTime || new Date().toISOString(),
-                actor,
-                modifiedProperties: modifications
-            };
-        }
-
-        async function fetchIntuneAuditEvents(url, policy, { clientFilter = false } = {}) {
-            let nextUrl = url;
-            const events = [];
-            let lastResponse = null;
-
-            while (nextUrl) {
-                const response = await makeApiRequest(nextUrl);
-                lastResponse = response;
-
-                if (response.status === 403) {
-                    const permissionError = new Error('Audit logs unavailable. Please grant DeviceManagementApps.Read.All to this app registration.');
-                    permissionError.permissionDenied = true;
-                    throw permissionError;
-                }
-
-                if (response.status === 429) {
-                    await delay(rateLimitDelay);
-                    rateLimitDelay = Math.min(rateLimitDelay * 2, 2000);
-                    continue;
-                }
-
-                if (!response.ok) {
-                    if (response.status === 400 || response.status === 404) {
-                        break;
-                    }
-                    throw await buildGraphError(response, 'Failed to fetch audit logs');
-                }
-
-                rateLimitDelay = 100;
-                const data = await response.json();
-                let pageEvents = Array.isArray(data?.value) ? data.value : [];
-
-                if (clientFilter && policy?.id) {
-                    pageEvents = pageEvents.filter(evt => Array.isArray(evt?.resources) && evt.resources.some(res => res?.resourceId === policy.id));
-                }
-
-                const allowedComponents = policyComponentMap[policy?._type];
-                if (allowedComponents && allowedComponents.length) {
-                    pageEvents = pageEvents.filter(evt => !evt?.componentName || allowedComponents.includes(evt.componentName));
-                }
-
-                events.push(...pageEvents);
-
-                const nextLink = data['@odata.nextLink'];
-                if (nextLink) {
-                    if (nextLink.startsWith('https://')) {
-                        nextUrl = nextLink;
+                        actorContainer.innerHTML = `
+                            <span class="actor-info">
+                                <span class="actor-icon">${actorIcon}</span>
+                                <span class="actor-name" title="${modifier.actor}">${truncateString(modifier.actor, 30)}</span>
+                            </span>
+                            <span class="activity-info">
+                                <span class="activity-type">${formatActivityType(modifier.activity)}</span>
+                                <span class="activity-result ${(modifier.activityResult || '').toLowerCase()}">${resultIcon}</span>
+                            </span>
+                        `;
                     } else {
-                        const baseUrl = 'https://graph.microsoft.com';
-                        const separator = nextLink.startsWith('/') ? '' : '/';
-                        nextUrl = `${baseUrl}${separator}${nextLink}`;
+                        actorContainer.innerHTML = `
+                            <span class="actor-unknown">
+                                <span class="actor-icon">❓</span>
+                                <span class="actor-message">${getNoModifierMessage(policy)}</span>
+                            </span>
+                        `;
                     }
-                } else {
-                    nextUrl = null;
-                }
-            }
-
-            if (lastResponse && (lastResponse.status === 400 || lastResponse.status === 404) && events.length === 0) {
-                const filterError = new Error('Audit filter not supported; retrying without server filter.');
-                filterError.retryable = true;
-                throw filterError;
-            }
-
-            return events.map(evt => normalizeIntuneAuditEvent(evt, policy));
-        }
-
-        async function fetchDirectoryAuditEvents(policyId) {
-            const url = `https://graph.microsoft.com/beta/auditLogs/directoryAudits?$filter=targetResources/any(t: t/id eq '${policyId}')&$orderby=activityDateTime desc&$top=50`;
-            const response = await makeApiRequest(url);
-
-            if (response.status === 403) {
-                const permissionError = new Error('Audit logs unavailable. Please grant AuditLog.Read.All to this app registration.');
-                permissionError.permissionDenied = true;
-                throw permissionError;
-            }
-
-            if (!response.ok) {
-                throw await buildGraphError(response, 'Failed to fetch audit logs');
-            }
-
-            const data = await response.json();
-            return (data?.value || []).map(normalizeDirectoryAuditEvent);
-        }
-
-        async function fetchPolicyAuditLogs(policy, { forceRefresh = false } = {}) {
-            if (!policy?.id) {
-                throw new Error('Policy identifier missing for audit lookup.');
-            }
-
-            if (!forceRefresh) {
-                const cached = getCachedAuditLogs(policy.id);
-                if (cached) {
-                    return { events: cached, cached: true };
-                }
-            }
-
-            const primaryUrl = `https://graph.microsoft.com/beta/deviceManagement/auditEvents?$filter=resources/any(r: r/resourceId eq '${policy.id}')&$orderby=activityDateTime desc&$top=50`;
-            const bulkUrl = `https://graph.microsoft.com/beta/deviceManagement/auditEvents?$orderby=activityDateTime desc&$top=200`;
-            const nameUrl = policy?.displayName
-                ? `https://graph.microsoft.com/beta/deviceManagement/auditEvents?$filter=contains(displayName, '${encodeURIComponent(policy.displayName)}')&$orderby=activityDateTime desc&$top=50`
-                : null;
-
-            let events = [];
-            let lastError = null;
-
-            try {
-                events = await fetchIntuneAuditEvents(primaryUrl, policy);
-            } catch (error) {
-                lastError = error;
-            }
-
-            if (!events.length) {
-                try {
-                    events = await fetchIntuneAuditEvents(bulkUrl, policy, { clientFilter: true });
-                } catch (error) {
-                    if (error?.permissionDenied) {
-                        throw error;
+                })
+                .catch(() => {
+                    const actorContainer = section.querySelector(`#actor-${policy?.id}`);
+                    if (actorContainer) {
+                        actorContainer.innerHTML = `
+                            <span class="actor-error">
+                                <span class="actor-icon">⚠</span>
+                                <span class="actor-message">Failed to load modifier</span>
+                            </span>
+                        `;
                     }
-                    lastError = lastError || error;
-                }
-            }
+                });
 
-            if (!events.length && nameUrl) {
-                try {
-                    events = await fetchIntuneAuditEvents(nameUrl, policy, { clientFilter: true });
-                } catch (error) {
-                    if (error?.permissionDenied) {
-                        throw error;
-                    }
-                    lastError = lastError || error;
-                }
-            }
-
-            if (!events.length) {
-                try {
-                    events = await fetchDirectoryAuditEvents(policy.id);
-                } catch (error) {
-                    if (error?.permissionDenied) {
-                        throw error;
-                    }
-                    lastError = lastError || error;
-                }
-            }
-
-            if (!events.length && lastError) {
-                throw lastError;
-            }
-
-            cacheAuditLogs(policy.id, events);
-            return { events, cached: false };
-        }
-
-        function renderAuditTimeline(container, events) {
-            if (!container) {
-                return;
-            }
-
-            container.innerHTML = '';
-
-            if (!events || events.length === 0) {
-                container.innerHTML = '<p class="audit-empty">No audit events found for this policy yet.</p>';
-                return;
-            }
-
-            events.forEach(event => {
-                const item = document.createElement('div');
-                item.className = 'audit-event';
-
-                const header = document.createElement('div');
-                header.className = 'audit-event-header';
-
-                const title = document.createElement('div');
-                title.className = 'audit-event-title';
-                title.textContent = event.activity;
-
-                const meta = document.createElement('div');
-                meta.className = 'audit-event-meta';
-                meta.textContent = new Date(event.timestamp).toLocaleString();
-
-                header.appendChild(title);
-                header.appendChild(meta);
-                item.appendChild(header);
-
-                const actor = document.createElement('div');
-                actor.className = 'audit-actor';
-                actor.textContent = `Actor: ${event.actor}`;
-                item.appendChild(actor);
-
-                if (event.modifiedProperties && event.modifiedProperties.length > 0) {
-                    event.modifiedProperties.forEach(prop => {
-                        const mod = document.createElement('div');
-                        mod.className = 'audit-modified-prop';
-
-                        const name = document.createElement('div');
-                        name.className = 'audit-prop-name';
-                        name.textContent = prop.displayName;
-                        mod.appendChild(name);
-
-                        const diff = document.createElement('div');
-                        diff.className = 'audit-diff';
-
-                        const oldVal = document.createElement('div');
-                        oldVal.className = 'audit-pill';
-                        const oldLabel = document.createElement('strong');
-                        oldLabel.textContent = 'Old:';
-                        oldVal.appendChild(oldLabel);
-                        oldVal.appendChild(document.createTextNode(` ${prop.oldValue}`));
-
-                        const newVal = document.createElement('div');
-                        newVal.className = 'audit-pill';
-                        const newLabel = document.createElement('strong');
-                        newLabel.textContent = 'New:';
-                        newVal.appendChild(newLabel);
-                        newVal.appendChild(document.createTextNode(` ${prop.newValue}`));
-
-                        diff.appendChild(oldVal);
-                        diff.appendChild(newVal);
-                        mod.appendChild(diff);
-                        item.appendChild(mod);
-                    });
-                } else {
-                    const noChanges = document.createElement('div');
-                    noChanges.className = 'audit-empty';
-                    noChanges.textContent = 'No modified properties were reported for this event.';
-                    item.appendChild(noChanges);
-                }
-
-                container.appendChild(item);
-            });
-        }
-
-        function exportAuditHistory(policy) {
-            if (!policy?._auditEvents || policy._auditEvents.length === 0) {
-                showToast('No audit history to export for this policy yet.', 'warning');
-                return;
-            }
-
-            const rows = policy._auditEvents.flatMap(event => {
-                if (!event.modifiedProperties || event.modifiedProperties.length === 0) {
-                    return [{
-                        timestamp: event.timestamp,
-                        actor: event.actor,
-                        activity: event.activity,
-                        property: 'N/A',
-                        oldValue: '',
-                        newValue: ''
-                    }];
-                }
-
-                return event.modifiedProperties.map(prop => ({
-                    timestamp: event.timestamp,
-                    actor: event.actor,
-                    activity: event.activity,
-                    property: prop.displayName,
-                    oldValue: prop.oldValue,
-                    newValue: prop.newValue
-                }));
-            });
-
-            const header = 'Timestamp,Actor,Activity,Property,Old Value,New Value';
-            const csv = [header, ...rows.map(row => [row.timestamp, row.actor, row.activity, row.property, row.oldValue, row.newValue]
-                .map(value => `"${String(value ?? '').replace(/"/g, '""')}"`).join(','))].join('\n');
-
-            const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
-            const url = URL.createObjectURL(blob);
-            const link = document.createElement('a');
-            link.href = url;
-            const fileNameBase = (policy.displayName || policy.name || 'policy').replace(/[^a-z0-9-_]+/gi, '_');
-            link.download = `${fileNameBase}_audit_history.csv`;
-            link.click();
-            URL.revokeObjectURL(url);
-        }
-
-        async function loadAuditHistory(policy, timelineEl, statusEl, exportBtn, forceRefresh = false) {
-            if (!timelineEl || !statusEl || !policy) {
-                return;
-            }
-
-            if (exportBtn) {
-                exportBtn.disabled = true;
-            }
-
-            statusEl.classList.remove('error');
-            statusEl.textContent = forceRefresh ? 'Refreshing audit history...' : 'Loading audit history...';
-            timelineEl.innerHTML = '';
-
-            try {
-                const { events, cached } = await fetchPolicyAuditLogs(policy, { forceRefresh });
-                policy._auditEvents = events;
-                renderAuditTimeline(timelineEl, events);
-
-                if (exportBtn) {
-                    exportBtn.disabled = events.length === 0;
-                }
-
-                if (events.length === 0) {
-                    statusEl.textContent = 'No audit events found for this policy. Intune retains audit logs for 30 days; older events may not be available.';
-                } else {
-                    statusEl.textContent = `Showing ${events.length} recent audit ${events.length === 1 ? 'event' : 'events'}${cached ? ' (cached)' : ''}.`;
-                }
-            } catch (error) {
-                console.error('Audit history error:', error);
-                const message = error?.permissionDenied
-                    ? error.message
-                    : (error?.message || 'Unable to load audit history.');
-                statusEl.textContent = message;
-                statusEl.classList.add('error');
-                timelineEl.innerHTML = '';
-                if (exportBtn) {
-                    exportBtn.disabled = true;
-                }
-            }
+            return section;
         }
 
         // Initialize the application
@@ -4131,7 +4012,12 @@
                 desc.textContent = policy.description.substring(0, 100) + (policy.description.length > 100 ? '...' : '');
                 details.appendChild(desc);
             }
-            
+
+            if (context === 'manage') {
+                const lastModifiedSection = createLastModifiedSection(policy);
+                details.appendChild(lastModifiedSection);
+            }
+
             if (context === 'manage' && policy._assignments && policy._assignments.length > 0) {
                 const assignmentList = document.createElement('div');
                 assignmentList.className = 'assignment-list';
