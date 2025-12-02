@@ -4014,6 +4014,76 @@
             }
 
             if (context === 'manage') {
+                const auditSection = document.createElement('div');
+                auditSection.className = 'audit-section';
+
+                const auditToggle = document.createElement('button');
+                auditToggle.type = 'button';
+                auditToggle.className = 'status-toggle-btn';
+                auditToggle.textContent = 'Show Audit History';
+                auditToggle.setAttribute('aria-expanded', 'false');
+
+                const auditDetails = document.createElement('div');
+                auditDetails.className = 'audit-details';
+                auditDetails.style.display = 'none';
+
+                const auditStatus = document.createElement('p');
+                auditStatus.className = 'audit-status';
+                auditStatus.textContent = 'Load audit history to see recent policy changes.';
+
+                const auditActions = document.createElement('div');
+                auditActions.className = 'audit-actions';
+
+                const auditRefreshBtn = document.createElement('button');
+                auditRefreshBtn.type = 'button';
+                auditRefreshBtn.className = 'status-refresh-btn';
+                auditRefreshBtn.textContent = 'Refresh audit logs';
+
+                const auditExportBtn = document.createElement('button');
+                auditExportBtn.type = 'button';
+                auditExportBtn.className = 'status-refresh-btn';
+                auditExportBtn.textContent = 'Export audit history';
+                auditExportBtn.disabled = true;
+
+                const auditTimeline = document.createElement('div');
+                auditTimeline.className = 'audit-timeline';
+
+                auditActions.appendChild(auditRefreshBtn);
+                auditActions.appendChild(auditExportBtn);
+
+                auditDetails.appendChild(auditStatus);
+                auditDetails.appendChild(auditActions);
+                auditDetails.appendChild(auditTimeline);
+
+                auditToggle.addEventListener('click', async () => {
+                    const isVisible = auditDetails.style.display === 'block';
+                    if (isVisible) {
+                        auditDetails.style.display = 'none';
+                        auditToggle.textContent = 'Show Audit History';
+                        auditToggle.setAttribute('aria-expanded', 'false');
+                        return;
+                    }
+
+                    auditDetails.style.display = 'block';
+                    auditToggle.textContent = 'Hide Audit History';
+                    auditToggle.setAttribute('aria-expanded', 'true');
+                    await loadAuditHistory(policy, auditTimeline, auditStatus, auditExportBtn);
+                });
+
+                auditRefreshBtn.addEventListener('click', async (event) => {
+                    event.stopPropagation();
+                    await loadAuditHistory(policy, auditTimeline, auditStatus, auditExportBtn, true);
+                });
+
+                auditExportBtn.addEventListener('click', (event) => {
+                    event.stopPropagation();
+                    exportAuditHistory(policy);
+                });
+
+                auditSection.appendChild(auditToggle);
+                auditSection.appendChild(auditDetails);
+                details.appendChild(auditSection);
+
                 const statusSection = document.createElement('div');
                 statusSection.className = 'deployment-status-section';
 
