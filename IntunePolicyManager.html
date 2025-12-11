@@ -1960,6 +1960,13 @@
         let restoreUnmappedGroups = new Set();
 
         const MODIFIER_CACHE_TTL_MS = 5 * 60 * 1000; // 5 minutes
+
+        window.addEventListener('beforeunload', (e) => {
+            if (selectedPolicies.upload.size > 0 || policiesForUpload.length > 0) {
+                e.preventDefault();
+                e.returnValue = '';
+            }
+        });
         // Policy type endpoints mapping
         const policyEndpoints = {
             configurationPolicies: {
@@ -3953,16 +3960,33 @@
             const viewer = document.getElementById('policyViewer');
             const title = document.getElementById('policyViewerTitle');
             const content = document.getElementById('policyViewerContent');
-            
+
             title.textContent = policy.displayName || policy.name || 'Policy Details';
             content.textContent = JSON.stringify(policy, null, 2);
-            
+
+            if (viewer._escapeHandler) {
+                document.removeEventListener('keydown', viewer._escapeHandler);
+            }
+            const handleEscape = (e) => {
+                if (e.key === 'Escape') {
+                    closePolicyViewer();
+                    document.removeEventListener('keydown', handleEscape);
+                }
+            };
+            viewer._escapeHandler = handleEscape;
+            document.addEventListener('keydown', handleEscape);
+
             viewer.style.display = 'block';
         }
 
         // Close policy viewer
         function closePolicyViewer() {
-            document.getElementById('policyViewer').style.display = 'none';
+            const viewer = document.getElementById('policyViewer');
+            if (viewer._escapeHandler) {
+                document.removeEventListener('keydown', viewer._escapeHandler);
+                viewer._escapeHandler = null;
+            }
+            viewer.style.display = 'none';
         }
 
         // Update button states
@@ -5395,10 +5419,22 @@
             // Show assignment modal
             const modal = document.getElementById('assignmentModal');
             document.getElementById('assignmentPolicyCount').textContent = selected.length;
-            
+
+            if (modal._escapeHandler) {
+                document.removeEventListener('keydown', modal._escapeHandler);
+            }
+            const handleEscape = (e) => {
+                if (e.key === 'Escape') {
+                    closeAssignmentModal();
+                    document.removeEventListener('keydown', handleEscape);
+                }
+            };
+            modal._escapeHandler = handleEscape;
+            document.addEventListener('keydown', handleEscape);
+
             modal.style.display = 'block';
             modal.setAttribute('aria-hidden', 'false');
-            
+
             // Reset selection
             document.querySelector('input[name="manageAssignmentTarget"][value="allUsers"]').checked = true;
             document.getElementById('manageGroupSelectionContainer').style.display = 'none';
@@ -5422,6 +5458,10 @@
         // Close assignment modal
         function closeAssignmentModal() {
             const modal = document.getElementById('assignmentModal');
+            if (modal._escapeHandler) {
+                document.removeEventListener('keydown', modal._escapeHandler);
+                modal._escapeHandler = null;
+            }
             modal.style.display = 'none';
             modal.setAttribute('aria-hidden', 'true');
         }
@@ -5590,11 +5630,23 @@
             const modalHeader = document.getElementById('modalHeader');
             const modalBody = document.getElementById('modalBody');
             const confirmBtn = document.getElementById('confirmBtn');
-            
+
             modalHeader.textContent = 'Remove All Assignments?';
             modalBody.textContent = `This will remove all assignments from ${policiesWithAssignments.length} policies. Devices will no longer receive these configurations.`;
             confirmBtn.className = 'btn btn-warning';
-            
+
+            if (modal._escapeHandler) {
+                document.removeEventListener('keydown', modal._escapeHandler);
+            }
+            const handleEscape = (e) => {
+                if (e.key === 'Escape') {
+                    closeModal();
+                    document.removeEventListener('keydown', handleEscape);
+                }
+            };
+            modal._escapeHandler = handleEscape;
+            document.addEventListener('keydown', handleEscape);
+
             modal.style.display = 'block';
             modal.setAttribute('aria-hidden', 'false');
             
@@ -5709,11 +5761,23 @@
             const modalHeader = document.getElementById('modalHeader');
             const modalBody = document.getElementById('modalBody');
             const confirmBtn = document.getElementById('confirmBtn');
-            
+
             modalHeader.textContent = 'Delete Selected Policies?';
             modalBody.textContent = `This will permanently delete ${selected.length} policies. This action cannot be undone!`;
             confirmBtn.className = 'btn btn-danger';
-            
+
+            if (modal._escapeHandler) {
+                document.removeEventListener('keydown', modal._escapeHandler);
+            }
+            const handleEscape = (e) => {
+                if (e.key === 'Escape') {
+                    closeModal();
+                    document.removeEventListener('keydown', handleEscape);
+                }
+            };
+            modal._escapeHandler = handleEscape;
+            document.addEventListener('keydown', handleEscape);
+
             modal.style.display = 'block';
             modal.setAttribute('aria-hidden', 'false');
             
@@ -5816,6 +5880,10 @@
         // Close modal
         function closeModal() {
             const modal = document.getElementById('confirmModal');
+            if (modal._escapeHandler) {
+                document.removeEventListener('keydown', modal._escapeHandler);
+                modal._escapeHandler = null;
+            }
             modal.style.display = 'none';
             modal.setAttribute('aria-hidden', 'true');
             currentAction = null;
@@ -5824,9 +5892,13 @@
         // Confirm action
         async function confirmAction() {
             const modal = document.getElementById('confirmModal');
+            if (modal._escapeHandler) {
+                document.removeEventListener('keydown', modal._escapeHandler);
+                modal._escapeHandler = null;
+            }
             modal.style.display = 'none';
             modal.setAttribute('aria-hidden', 'true');
-            
+
             if (currentAction && typeof currentAction === 'function') {
                 try {
                     await currentAction();
