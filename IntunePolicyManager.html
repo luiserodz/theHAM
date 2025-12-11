@@ -2176,6 +2176,27 @@
                 }
             }
 
+            // Fallback: explicitly load settings for configuration policies if missing
+            if (policy._type === 'configurationPolicies' && (!policy.settings || policy.settings.length === 0)) {
+                try {
+                    const settingsUrl = `https://graph.microsoft.com/beta/deviceManagement/configurationPolicies/${policy.id}/settings`;
+                    const settings = await fetchAllGraphResults(settingsUrl);
+                    if (Array.isArray(settings) && settings.length > 0) {
+                        policy.settings = settings.map(setting => {
+                            const sanitizedSetting = JSON.parse(JSON.stringify(setting));
+                            Object.keys(sanitizedSetting)
+                                .filter(key => key.startsWith('@'))
+                                .forEach(key => delete sanitizedSetting[key]);
+                            return sanitizedSetting;
+                        });
+                        return;
+                    }
+                } catch (error) {
+                    lastError = error;
+                    console.error(`Error fetching settings for ${policy.displayName || policy.name || policy.id}:`, error);
+                }
+            }
+
             if (lastError) {
                 errors.push({
                     type: policy._type,
