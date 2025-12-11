@@ -1465,6 +1465,8 @@
         // Secure Password Protection with SHA-256 Hashing
         const PASSWORD_HASH = '9e5c3ce7906db8e6f333df0e10deed2263b0a8738a9abe3f3612b8f52846689e';
 
+        let isAuthenticated = false;
+
         async function authenticateUser() {
             const maxAttempts = 3;
             let attempts = 0;
@@ -1487,10 +1489,7 @@
 
                 if (enteredHash === PASSWORD_HASH) {
                     authorized = true;
-                    sessionStorage.setItem('intunePolicyManagerAuth', 'true');
-
-                    // Add session timeout (2 hours)
-                    sessionStorage.setItem('authExpiry', Date.now() + (2 * 60 * 60 * 1000));
+                    isAuthenticated = true;
                 } else {
                     attempts++;
                     if (attempts < maxAttempts) {
@@ -1560,19 +1559,6 @@
             document.getElementById('mainAppContainer').style.display = 'block';
         }
 
-        // Check session expiry on each load
-        function checkSessionExpiry() {
-            const authExpiry = sessionStorage.getItem('authExpiry');
-            if (authExpiry && Date.now() > parseInt(authExpiry)) {
-                sessionStorage.removeItem('intunePolicyManagerAuth');
-                sessionStorage.removeItem('authExpiry');
-                // Reload to re-trigger authentication
-                location.reload();
-                return true; // Session expired
-            }
-            return false; // Session still valid or no session
-        }
-
         // Auto-logout on inactivity (30 minutes)
         let inactivityTimer;
         const INACTIVITY_TIMEOUT = 30 * 60 * 1000; // 30 minutes
@@ -1580,93 +1566,61 @@
         function resetInactivityTimer() {
             clearTimeout(inactivityTimer);
             inactivityTimer = setTimeout(() => {
-                sessionStorage.removeItem('intunePolicyManagerAuth');
-                sessionStorage.removeItem('authExpiry');
+                isAuthenticated = false;
                 alert('⏱️ Session expired due to inactivity.\n\nPlease refresh the page to log in again.');
                 location.reload();
             }, INACTIVITY_TIMEOUT);
         }
 
-        // Execute immediately since the script is loaded after the DOM
-        (async function() {
-    // Check for authentication first
-    if (!checkSessionExpiry() && sessionStorage.getItem('intunePolicyManagerAuth')) {
-        // If already authenticated in this session, show the app immediately
-        showMainApplication();
-    } else {
-        // If not authenticated, run the password prompt
-        try {
-            await authenticateUser();
-            showMainApplication();
-        } catch (error) {
-            console.error("Authentication failed:", error.message);
-            showAccessDenied(`Authentication error: ${error.message}`);
-            return; // Stop further script execution if authentication failed
+        async function initializeComplianceManager() {
+            try {
+                await authenticateUser();
+                showMainApplication();
+            } catch (error) {
+                console.error('Authentication failed:', error.message);
+                showAccessDenied(`Authentication error: ${error.message}`);
+                return;
+            }
+
+            console.log('Intune Compliance Manager initializing...');
+
+            document.addEventListener('click', resetInactivityTimer);
+            document.addEventListener('keypress', resetInactivityTimer);
+            document.addEventListener('scroll', resetInactivityTimer);
+            document.addEventListener('mousemove', resetInactivityTimer);
+            resetInactivityTimer();
+
+            const redirectUri = window.location.origin + window.location.pathname;
+            document.getElementById('redirectUri').textContent = redirectUri;
+
+            const clientIdInput = document.getElementById('clientId');
+            clientIdInput.value = '';
+
+            clientIdInput.addEventListener('input', function() {
+                const clientId = this.value.trim();
+                if (clientId && clientId.match(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i)) {
+                    localStorage.setItem('intuneComplianceClientId', clientId);
+                    initializeMSAL(clientId);
+                }
+            });
+
+            if (checkExistingToken()) {
+                console.log('Found existing token, auto-loading data...');
+                setTimeout(() => {
+                    refreshComplianceData();
+                    refreshPolicyData();
+                    refreshApplicationData();
+                }, 1000);
+            }
+
+            const savedClientId = localStorage.getItem('intuneComplianceClientId');
+            if (savedClientId && !clientIdInput.value) {
+                clientIdInput.value = savedClientId;
+                initializeMSAL(savedClientId);
+            }
         }
-    }
 
-    console.log('Intune Compliance Manager initializing...');
-
-    // Start inactivity timer if authenticated and main app is shown
-    if (sessionStorage.getItem('intunePolicyManagerAuth')) {
-        document.addEventListener('click', resetInactivityTimer);
-        document.addEventListener('keypress', resetInactivityTimer);
-        document.addEventListener('scroll', resetInactivityTimer);
-        document.addEventListener('mousemove', resetInactivityTimer);
-        resetInactivityTimer();
-    }
-
-    const redirectUri = window.location.origin + window.location.pathname;
-    document.getElementById('redirectUri').textContent = redirectUri;
-
-    const clientIdInput = document.getElementById('clientId');
-    clientIdInput.value = '';
-
-    clientIdInput.addEventListener('input', function() {
-        const clientId = this.value.trim();
-        if (clientId && clientId.match(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i)) {
-            localStorage.setItem('intuneComplianceClientId', clientId);
-            initializeMSAL(clientId);
-        }
-    });
-    console.log('Intune Compliance Manager initializing...');
-    // Check for existing token from previous session
-    if (checkExistingToken()) {
-        console.log('Found existing token, auto-loading data...');
-        // Auto-load data if we have a valid token
-        setTimeout(() => {
-            refreshComplianceData();
-            refreshPolicyData();
-            refreshApplicationData();
-        }, 1000);
-    }
-
-    // Also check if we have a saved client ID
-    const savedClientId = localStorage.getItem('intuneComplianceClientId');
-    if (savedClientId && !clientIdInput.value) {
-        clientIdInput.value = savedClientId;
-        initializeMSAL(savedClientId);
-    }
-            
-    // Start inactivity timer if authenticated and main app is shown
-    if (sessionStorage.getItem('intunePolicyManagerAuth')) {
-        document.addEventListener('click', resetInactivityTimer);
-        document.addEventListener('keypress', resetInactivityTimer);
-        document.addEventListener('scroll', resetInactivityTimer);
-        document.addEventListener('mousemove', resetInactivityTimer);
-        resetInactivityTimer();
-    }
-
-    // Don't check for saved config initially - let user enter it
-    // const savedClientId = localStorage.getItem('intuneComplianceClientId');
-    // if (savedClientId) {
-    //     document.getElementById('clientId').value = savedClientId;
-    //     initializeMSAL(savedClientId);
-    // } else {
-    //     // Ensure the clientId input is enabled if no saved ID
-    //     document.getElementById('clientId').disabled = false;
-    // }
-})();
+        initializeComplianceManager();
 
 // Notification system
         function showNotification(message, type = 'info', duration = 5000) {
