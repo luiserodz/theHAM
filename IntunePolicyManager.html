@@ -379,6 +379,25 @@
             margin-left: 30px;
         }
 
+        .policy-validation-warning {
+            display: flex;
+            align-items: flex-start;
+            gap: 10px;
+            margin: 8px 0 0 30px;
+            color: #92400e;
+            font-size: 0.9rem;
+        }
+
+        .policy-validation-warning .warning-icon {
+            font-size: 1.3rem;
+            margin-top: 0;
+        }
+
+        .policy-validation-warning ul {
+            margin: 0;
+            padding-left: 18px;
+        }
+
         .deployment-status-section {
             margin-top: 12px;
             padding-top: 12px;
@@ -3750,6 +3769,15 @@
         }
 
         // Handle file selection
+        function validatePolicyJson(policy) {
+            const errors = [];
+            if (!policy.displayName && !policy.name) errors.push('Missing displayName or name');
+            if (!policy['@odata.type'] && !policy.settings && !policy.scheduledActionsForRule) {
+                errors.push('Cannot determine policy type');
+            }
+            return errors;
+        }
+
         function handleFileSelection(event) {
             const files = event.target.files;
             if (files.length === 0) return;
@@ -3766,6 +3794,7 @@
                 reader.onload = (e) => {
                     try {
                         const policy = JSON.parse(e.target.result);
+                        policy._validationErrors = validatePolicyJson(policy);
                         policy._fileName = file.name;
                         policy._index = index;
                         policiesForUpload.push(policy);
@@ -3853,6 +3882,23 @@
                 const desc = document.createElement('span');
                 desc.textContent = policy.description.substring(0, 100) + (policy.description.length > 100 ? '...' : '');
                 details.appendChild(desc);
+            }
+
+            if (context === 'upload' && Array.isArray(policy._validationErrors) && policy._validationErrors.length > 0) {
+                const warningContainer = document.createElement('div');
+                warningContainer.className = 'policy-validation-warning';
+
+                const warningIcon = document.createElement('div');
+                warningIcon.className = 'warning-icon';
+                warningIcon.textContent = '⚠️';
+                warningIcon.setAttribute('aria-label', 'Validation warning');
+
+                const warningText = document.createElement('div');
+                warningText.innerHTML = `<strong>Validation issues detected:</strong><ul>${policy._validationErrors.map(err => `<li>${err}</li>`).join('')}</ul>`;
+
+                warningContainer.appendChild(warningIcon);
+                warningContainer.appendChild(warningText);
+                details.appendChild(warningContainer);
             }
 
             if (context === 'manage') {
@@ -4271,11 +4317,12 @@
             return groupNameCache.get(groupId) || groupId;
         }
 
-        async function fetchPoliciesWithAssignments() {
+        async function fetchPoliciesWithAssignments(progressUpdater) {
             const policies = [];
             const errors = [];
 
             for (const [type, endpoints] of Object.entries(policyEndpoints)) {
+                progressUpdater?.('typeStart', { type });
                 try {
                     const fetchedPolicies = await fetchAllGraphResults(`https://graph.microsoft.com/beta${endpoints.list}`);
 
@@ -4285,6 +4332,8 @@
                             _type: type
                         });
                     });
+
+                    progressUpdater?.('typeComplete', { type, count: fetchedPolicies.length });
                 } catch (error) {
                     console.error(`Error fetching ${type}:`, error);
                     errors.push({
@@ -4294,6 +4343,8 @@
                     });
                 }
             }
+
+            progressUpdater?.('assignmentsStart', { total: policies.length });
 
             for (const policy of policies) {
                 const endpoint = policyEndpoints[policy._type];
@@ -4393,7 +4444,40 @@
             try {
                 showToast('Generating tenant backup. This may take a moment...', 'info', 4000);
 
-                const { policies, errors } = await fetchPoliciesWithAssignments();
+                const progressCounter = { current: 0, total: 0 };
+                const typeLabels = {
+                    configurationPolicies: 'configuration',
+                    deviceConfigurations: 'configuration',
+                    compliancePolicies: 'compliance',
+                    groupPolicyConfigurations: 'configuration',
+                    intentPolicies: 'intent'
+                };
+
+                const updateBackupText = (text) => {
+                    if (textSpan) {
+                        textSpan.textContent = text;
+                    }
+                };
+
+                const formatTypeLabel = (type) => typeLabels[type]
+                    ? `${typeLabels[type]} policies`
+                    : `${type.replace(/([A-Z])/g, ' $1').toLowerCase()} policies`;
+
+                const { policies, errors } = await fetchPoliciesWithAssignments((stage, data = {}) => {
+                    if (stage === 'typeStart' && data.type) {
+                        updateBackupText(`Fetching ${formatTypeLabel(data.type)}...`);
+                    }
+
+                    if (stage === 'typeComplete' && data.type) {
+                        progressCounter.total += data.count || 0;
+                        progressCounter.current = progressCounter.total;
+                        updateBackupText(`Fetching ${formatTypeLabel(data.type)} (${progressCounter.current}/${progressCounter.total})...`);
+                    }
+
+                    if (stage === 'assignmentsStart') {
+                        updateBackupText('Fetching assignments...');
+                    }
+                });
                 allPolicies = policies;
 
                 displayPolicies();
@@ -4458,6 +4542,8 @@
                 if (errors.length > 0) {
                     backupPayload.errors = errors;
                 }
+
+                updateBackupText('Generating ZIP...');
 
                 const blob = new Blob([JSON.stringify(backupPayload, null, 2)], { type: 'application/json' });
                 const url = URL.createObjectURL(blob);
