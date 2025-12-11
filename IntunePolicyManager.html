@@ -2958,6 +2958,17 @@
             }, duration);
         }
 
+        function withLoadingCursor(asyncFn) {
+            return async function (...args) {
+                document.body.style.cursor = 'wait';
+                try {
+                    return await asyncFn.apply(this, args);
+                } finally {
+                    document.body.style.cursor = 'default';
+                }
+            };
+        }
+
         // Copy redirect URI
         function copyRedirectUri() {
             const uri = document.getElementById('redirectUriDisplay').textContent;
@@ -3783,11 +3794,15 @@
 
             renderExclusionList('upload');
             renderExclusionList('manage');
-            
+
             // Manage search and filter inputs
             const manageSearchInput = document.getElementById('manageSearchInput');
             if (manageSearchInput) {
-                manageSearchInput.addEventListener('input', filterPolicies);
+                let searchTimeout;
+                manageSearchInput.addEventListener('input', () => {
+                    clearTimeout(searchTimeout);
+                    searchTimeout = setTimeout(filterPolicies, 300);
+                });
             }
             
             const policyTypeFilter = document.getElementById('policyTypeFilter');
@@ -4431,7 +4446,7 @@
         }
 
         // Refresh policies
-        async function refreshPolicies() {
+        const refreshPolicies = withLoadingCursor(async function refreshPolicies() {
             if (!accessToken) {
                 showToast('Please sign in first', 'error');
                 return;
@@ -4462,9 +4477,9 @@
             } finally {
                 managePolicyList.classList.remove('loading');
             }
-        }
+        });
 
-        async function generateTenantBackup() {
+        const generateTenantBackup = withLoadingCursor(async function generateTenantBackup() {
             if (!accessToken) {
                 showToast('Please sign in first', 'error');
                 return;
@@ -4620,10 +4635,10 @@
                     backupBtn.disabled = false;
                     backupBtn.removeAttribute('aria-busy');
                     if (textSpan && originalText) {
-                        textSpan.textContent = originalText;
-                    }
+                    textSpan.textContent = originalText;
                 }
             }
+        });
         }
 
         function resetRestoreUI() {
@@ -5027,7 +5042,7 @@
             }
         }
 
-        async function executeRestoreFromBackup(policiesOverride = null) {
+        const executeRestoreFromBackup = withLoadingCursor(async function executeRestoreFromBackup(policiesOverride = null) {
             if (!accessToken) {
                 showToast('Please sign in first', 'error');
                 return;
@@ -5108,10 +5123,10 @@
                 if (startBtn) {
                     startBtn.disabled = false;
                 }
-                if (retryBtn) {
-                    retryBtn.disabled = lastRestoreFailures.length === 0;
-                }
+            if (retryBtn) {
+                retryBtn.disabled = lastRestoreFailures.length === 0;
             }
+        });
         }
 
         function retryFailedRestores() {
@@ -5187,7 +5202,7 @@
         }
 
         // Upload selected policies
-        async function uploadSelectedPolicies() {
+        const uploadSelectedPolicies = withLoadingCursor(async function uploadSelectedPolicies() {
             if (!accessToken) {
                 showToast('Please sign in first', 'error');
                 return;
@@ -5644,9 +5659,9 @@
         }
         
         // Confirm assignment
-        async function confirmAssignment() {
+        const confirmAssignment = withLoadingCursor(async function confirmAssignment() {
             const assignmentTarget = document.querySelector('input[name="manageAssignmentTarget"]:checked').value;
-            
+
             if (assignmentTarget === 'group' && !manageSelectedGroupId) {
                 showToast('Please select a group for assignment', 'error');
                 return;
@@ -5783,7 +5798,7 @@
             if (successCount > 0) {
                 setTimeout(refreshPolicies, 1000);
             }
-        }
+        });
 
         // Unassign selected policies
         async function unassignSelected() {
@@ -5828,7 +5843,7 @@
             modal.setAttribute('aria-hidden', 'false');
             
             // Set the action to execute when confirmed
-            currentAction = async () => {
+            currentAction = withLoadingCursor(async () => {
                 const deleteProgress = document.getElementById('deleteProgress');
                 const deleteResults = document.getElementById('deleteResults');
                 const progressFill = document.getElementById('deleteProgressFill');
@@ -5923,7 +5938,7 @@
                     setTimeout(refreshPolicies, 1000);
                 }
             };
-        }
+        });
 
         // Delete selected policies
         function deleteSelected() {
@@ -5959,7 +5974,7 @@
             modal.setAttribute('aria-hidden', 'false');
             
             // Set the action to execute when confirmed
-            currentAction = async () => {
+            currentAction = withLoadingCursor(async () => {
                 const deleteProgress = document.getElementById('deleteProgress');
                 const deleteResults = document.getElementById('deleteResults');
                 const progressFill = document.getElementById('deleteProgressFill');
@@ -6051,7 +6066,7 @@
                 if (successCount > 0) {
                     setTimeout(refreshPolicies, 1000);
                 }
-            };
+            });
         }
 
         // Close modal
