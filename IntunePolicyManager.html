@@ -1794,6 +1794,9 @@
                         <button class="btn btn-primary" style="margin-top: 10px;" onclick="executeRestoreFromBackup()" id="restoreStartBtn" disabled>
                             Start Restore
                         </button>
+                        <button class="btn btn-secondary" style="margin-top: 10px;" onclick="retryFailedRestores()" id="restoreRetryBtn" disabled>
+                            Retry Failed
+                        </button>
                     </div>
 
                     <div class="restore-card">
@@ -1977,6 +1980,7 @@
         let restoreGroupMappings = {};
         let restoreProgressLog = [];
         let restoreUnmappedGroups = new Set();
+        let lastRestoreFailures = [];
 
         const MODIFIER_CACHE_TTL_MS = 5 * 60 * 1000; // 5 minutes
 
@@ -2169,6 +2173,27 @@
                 } catch (error) {
                     lastError = error;
                     console.error(`Error fetching detail for ${policy.displayName || policy.name || policy.id}:`, error);
+                }
+            }
+
+            // Fallback: explicitly load settings for configuration policies if missing
+            if (policy._type === 'configurationPolicies' && (!policy.settings || policy.settings.length === 0)) {
+                try {
+                    const settingsUrl = `https://graph.microsoft.com/beta/deviceManagement/configurationPolicies/${policy.id}/settings`;
+                    const settings = await fetchAllGraphResults(settingsUrl);
+                    if (Array.isArray(settings) && settings.length > 0) {
+                        policy.settings = settings.map(setting => {
+                            const sanitizedSetting = JSON.parse(JSON.stringify(setting));
+                            Object.keys(sanitizedSetting)
+                                .filter(key => key.startsWith('@'))
+                                .forEach(key => delete sanitizedSetting[key]);
+                            return sanitizedSetting;
+                        });
+                        return;
+                    }
+                } catch (error) {
+                    lastError = error;
+                    console.error(`Error fetching settings for ${policy.displayName || policy.name || policy.id}:`, error);
                 }
             }
 
@@ -2950,6 +2975,17 @@
             });
         }
 
+        async function fetchWithTimeout(url, options = {}, timeoutMs = 30000) {
+            const controller = new AbortController();
+            const timeout = setTimeout(() => controller.abort(), timeoutMs);
+            try {
+                const response = await fetch(url, { ...options, signal: controller.signal });
+                return response;
+            } finally {
+                clearTimeout(timeout);
+            }
+        }
+
         // API request with retry logic
         async function makeApiRequest(url, options = {}, retryCount = 0) {
             try {
@@ -2963,8 +2999,8 @@
                     ...options,
                     headers: headers
                 };
-                
-                const response = await fetch(url, requestOptions);
+
+                const response = await fetchWithTimeout(url, requestOptions);
                 
                 if (response.status === 429) {
                     const retryAfter = response.headers.get('Retry-After') || Math.pow(2, retryCount + 1);
@@ -4384,6 +4420,13 @@
                 }
             }
 
+            progressUpdater?.('detailsStart', { total: policies.length });
+
+            for (let i = 0; i < policies.length; i++) {
+                await populatePolicyDetail(policies[i], errors);
+                progressUpdater?.('detailsProgress', { current: i + 1, total: policies.length });
+            }
+
             return { policies, errors };
         }
 
@@ -4476,6 +4519,14 @@
 
                     if (stage === 'assignmentsStart') {
                         updateBackupText('Fetching assignments...');
+                    }
+
+                    if (stage === 'detailsStart') {
+                        updateBackupText('Fetching policy details...');
+                    }
+
+                    if (stage === 'detailsProgress' && data.total) {
+                        updateBackupText(`Fetching policy details (${data.current}/${data.total})...`);
                     }
                 });
                 allPolicies = policies;
@@ -4581,12 +4632,14 @@
             restoreGroupMappings = {};
             restoreProgressLog = [];
             restoreUnmappedGroups = new Set();
+            lastRestoreFailures = [];
 
             const policyContainer = document.getElementById('restorePolicyContainer');
             const groupMapping = document.getElementById('restoreGroupMapping');
             const restoreMeta = document.getElementById('restoreMeta');
             const progressArea = document.getElementById('restoreProgress');
             const startBtn = document.getElementById('restoreStartBtn');
+            const retryBtn = document.getElementById('restoreRetryBtn');
 
             if (policyContainer) {
                 policyContainer.innerHTML = '<div style="padding: 12px; color: #6b7280;">Load a backup file to review policies.</div>';
@@ -4602,6 +4655,9 @@
             }
             if (startBtn) {
                 startBtn.disabled = true;
+            }
+            if (retryBtn) {
+                retryBtn.disabled = true;
             }
         }
 
@@ -4971,7 +5027,7 @@
             }
         }
 
-        async function executeRestoreFromBackup() {
+        async function executeRestoreFromBackup(policiesOverride = null) {
             if (!accessToken) {
                 showToast('Please sign in first', 'error');
                 return;
@@ -4983,7 +5039,7 @@
             }
 
             const conflictMode = document.getElementById('restoreConflictMode')?.value || 'skip';
-            const selectedPolicies = restoreBackupData.policies
+            const selectedPolicies = policiesOverride || restoreBackupData.policies
                 .map((policy, index) => ({ policy, index, key: getRestorePolicyKey(policy, index) }))
                 .filter(item => restoreSelectedPolicyIds.has(item.key));
 
@@ -4993,12 +5049,20 @@
             }
 
             const startBtn = document.getElementById('restoreStartBtn');
+            const retryBtn = document.getElementById('restoreRetryBtn');
             if (startBtn) {
                 startBtn.disabled = true;
             }
+            if (retryBtn) {
+                retryBtn.disabled = true;
+            }
 
             restoreProgressLog = [];
+            lastRestoreFailures = [];
             const createdPolicies = [];
+            let successCount = 0;
+            let failureCount = 0;
+            let skippedCount = 0;
             addRestoreProgress(`Starting restore for ${selectedPolicies.length} policies (mode: ${conflictMode}).`, 'info');
 
             try {
@@ -5006,21 +5070,35 @@
                     const name = policy.displayName || policy.name || `Policy ${index + 1}`;
                     addRestoreProgress(`Restoring ${name}...`, 'info');
 
-                    const result = await createPolicyFromBackup(policy, conflictMode);
+                    try {
+                        const result = await createPolicyFromBackup(policy, conflictMode);
 
-                    if (result.status === 'skipped') {
-                        addRestoreProgress(`${name} skipped: ${result.details}`, 'warning');
-                        continue;
+                        if (result.status === 'skipped') {
+                            skippedCount++;
+                            addRestoreProgress(`${name} skipped: ${result.details}`, 'warning');
+                            continue;
+                        }
+
+                        if (result.createdId) {
+                            createdPolicies.push({ type: policy.type, id: result.createdId });
+                        }
+
+                        successCount++;
+                        addRestoreProgress(`${name} restored successfully`, 'success');
+                    } catch (policyError) {
+                        failureCount++;
+                        lastRestoreFailures.push({ policy, index });
+                        addRestoreProgress(`${name} failed: ${policyError.message}`, 'error');
                     }
-
-                    if (result.createdId) {
-                        createdPolicies.push({ type: policy.type, id: result.createdId });
-                    }
-
-                    addRestoreProgress(`${name} restored successfully`, 'success');
                 }
 
-                showToast('Restore completed', 'success');
+                addRestoreProgress(`Restore summary: ${successCount} succeeded, ${failureCount} failed, ${skippedCount} skipped.`, failureCount ? 'warning' : 'success');
+
+                if (failureCount > 0) {
+                    showToast('Restore completed with failures. Retry failed items when ready.', 'warning');
+                } else {
+                    showToast('Restore completed', 'success');
+                }
             } catch (error) {
                 console.error('Restore failed:', error);
                 addRestoreProgress(`Restore failed: ${error.message}`, 'error');
@@ -5030,7 +5108,20 @@
                 if (startBtn) {
                     startBtn.disabled = false;
                 }
+                if (retryBtn) {
+                    retryBtn.disabled = lastRestoreFailures.length === 0;
+                }
             }
+        }
+
+        function retryFailedRestores() {
+            if (!lastRestoreFailures.length) {
+                showToast('No failed policies to retry', 'info');
+                return;
+            }
+
+            addRestoreProgress('Retrying failed policies...', 'info');
+            executeRestoreFromBackup(lastRestoreFailures);
         }
 
         // Display policies
