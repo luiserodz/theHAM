@@ -4896,13 +4896,23 @@
             const displayName = policyEntry.policyJson?.displayName || policyEntry.policyJson?.name || policyEntry.displayName;
             if (!displayName) return null;
 
-            const encodedName = displayName.replace(/'/g, "''");
-            const url = `https://graph.microsoft.com/beta${endpoint.list}?$filter=displayName eq '${encodedName}'&$select=id,displayName`;
-            const response = await makeApiRequest(url);
-            if (!response.ok) return null;
+            const escapedName = displayName.replace(/'/g, "''");
+            const filterExpression = encodeURIComponent(`displayName eq '${escapedName}'`);
+            const url = `https://graph.microsoft.com/beta${endpoint.list}?$filter=${filterExpression}&$select=id,displayName`;
+            
+            try {
+                const response = await makeApiRequest(url);
+                if (!response.ok) {
+                    console.warn(`Policy existence check failed for "${displayName}": ${response.status}`);
+                    return null;
+                }
 
-            const data = await response.json();
-            return data?.value?.[0] || null;
+                const data = await response.json();
+                return data?.value?.[0] || null;
+            } catch (error) {
+                console.warn(`Error checking for existing policy "${displayName}":`, error);
+                return null;
+            }
         }
 
         async function deletePolicyById(policyType, policyId) {
