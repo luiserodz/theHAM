@@ -5415,9 +5415,9 @@
             });
             
             const successCount = results.filter(r => r.status === 'Success').length;
-            showToast(`Upload complete: ${successCount}/${results.length} successful`, 
+            showToast(`Upload complete: ${successCount}/${results.length} successful`,
                 successCount === results.length ? 'success' : 'warning');
-        }
+        });
 
         // Assign policy during upload
         async function assignPolicyDuringUpload(policy, endpoint, assignmentTarget, policyTypeKey) {
@@ -5931,9 +5931,9 @@
                     resultsTableBody.appendChild(row);
                 });
                 
-                showToast(`Removed assignments from ${successCount}/${policiesWithAssignments.length} policies`, 
+                showToast(`Removed assignments from ${successCount}/${policiesWithAssignments.length} policies`,
                     successCount === policiesWithAssignments.length ? 'success' : 'warning');
-                
+
                 if (successCount > 0) {
                     setTimeout(refreshPolicies, 1000);
                 }
