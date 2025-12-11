@@ -4635,11 +4635,11 @@
                     backupBtn.disabled = false;
                     backupBtn.removeAttribute('aria-busy');
                     if (textSpan && originalText) {
-                        textSpan.textContent = originalText;
-                    }
+                    textSpan.textContent = originalText;
                 }
             }
         });
+        }
 
         function resetRestoreUI() {
             restoreBackupData = null;
@@ -5123,11 +5123,11 @@
                 if (startBtn) {
                     startBtn.disabled = false;
                 }
-                if (retryBtn) {
-                    retryBtn.disabled = lastRestoreFailures.length === 0;
-                }
+            if (retryBtn) {
+                retryBtn.disabled = lastRestoreFailures.length === 0;
             }
         });
+        }
 
         function retryFailedRestores() {
             if (!lastRestoreFailures.length) {
@@ -5937,9 +5937,8 @@
                 if (successCount > 0) {
                     setTimeout(refreshPolicies, 1000);
                 }
-            });
-
-        }
+            };
+        });
 
         // Delete selected policies
         function deleteSelected() {
