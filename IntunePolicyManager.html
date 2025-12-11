@@ -4399,6 +4399,13 @@
                 }
             }
 
+            progressUpdater?.('detailsStart', { total: policies.length });
+
+            for (let i = 0; i < policies.length; i++) {
+                await populatePolicyDetail(policies[i], errors);
+                progressUpdater?.('detailsProgress', { current: i + 1, total: policies.length });
+            }
+
             return { policies, errors };
         }
 
@@ -4491,6 +4498,14 @@
 
                     if (stage === 'assignmentsStart') {
                         updateBackupText('Fetching assignments...');
+                    }
+
+                    if (stage === 'detailsStart') {
+                        updateBackupText('Fetching policy details...');
+                    }
+
+                    if (stage === 'detailsProgress' && data.total) {
+                        updateBackupText(`Fetching policy details (${data.current}/${data.total})...`);
                     }
                 });
                 allPolicies = policies;
