@@ -1,0 +1,1363 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <base target="_top">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg-primary: #0a0e14;
+      --bg-secondary: #111820;
+      --bg-card: #151d28;
+      --bg-hover: #1a2432;
+      --border: #232f3e;
+      --text-primary: #e6edf3;
+      --text-secondary: #8b949e;
+      --text-muted: #6e7681;
+      --critical: #ff4757;
+      --critical-bg: rgba(255, 71, 87, 0.12);
+      --high: #ff7f50;
+      --high-bg: rgba(255, 127, 80, 0.12);
+      --medium: #ffa502;
+      --medium-bg: rgba(255, 165, 2, 0.12);
+      --low: #3498db;
+      --low-bg: rgba(52, 152, 219, 0.12);
+      --info: #6c757d;
+      --info-bg: rgba(108, 117, 125, 0.12);
+      --pass: #2ed573;
+      --pass-bg: rgba(46, 213, 115, 0.12);
+      --accent: #00d9ff;
+      --accent-dim: rgba(0, 217, 255, 0.15);
+    }
+
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: 'Plus Jakarta Sans', -apple-system, sans-serif;
+      background: var(--bg-primary);
+      color: var(--text-primary);
+      min-height: 100vh;
+      line-height: 1.5;
+    }
+
+    .container {
+      max-width: 1600px;
+      margin: 0 auto;
+      padding: 24px;
+    }
+
+    /* Header */
+    .header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 32px;
+      padding-bottom: 24px;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .logo {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .logo-icon {
+      width: 40px;
+      height: 40px;
+      background: linear-gradient(135deg, var(--accent) 0%, #0099ff 100%);
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 20px;
+    }
+
+    .logo-text h1 {
+      font-size: 20px;
+      font-weight: 700;
+      letter-spacing: -0.5px;
+    }
+
+    .logo-text span {
+      font-size: 12px;
+      color: var(--text-secondary);
+    }
+
+    .header-actions {
+      display: flex;
+      gap: 12px;
+    }
+
+    /* Buttons */
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 10px 18px;
+      border-radius: 8px;
+      font-size: 14px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.2s;
+      border: none;
+      font-family: inherit;
+    }
+
+    .btn-primary {
+      background: var(--accent);
+      color: var(--bg-primary);
+    }
+
+    .btn-primary:hover {
+      background: #00c4e6;
+      transform: translateY(-1px);
+    }
+
+    .btn-secondary {
+      background: var(--bg-card);
+      color: var(--text-primary);
+      border: 1px solid var(--border);
+    }
+
+    .btn-secondary:hover {
+      background: var(--bg-hover);
+      border-color: var(--accent);
+    }
+
+    .btn:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+
+    /* Upload Section */
+    .upload-section {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      min-height: 400px;
+      padding: 60px;
+    }
+
+    .upload-zone {
+      width: 100%;
+      max-width: 600px;
+      padding: 60px 40px;
+      border: 2px dashed var(--border);
+      border-radius: 16px;
+      text-align: center;
+      transition: all 0.3s;
+      cursor: pointer;
+      background: var(--bg-secondary);
+    }
+
+    .upload-zone:hover,
+    .upload-zone.dragover {
+      border-color: var(--accent);
+      background: var(--accent-dim);
+    }
+
+    .upload-icon {
+      width: 80px;
+      height: 80px;
+      margin: 0 auto 24px;
+      background: var(--bg-card);
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 36px;
+    }
+
+    .upload-zone h2 {
+      font-size: 24px;
+      margin-bottom: 8px;
+      font-weight: 600;
+    }
+
+    .upload-zone p {
+      color: var(--text-secondary);
+      margin-bottom: 24px;
+    }
+
+    .upload-zone small {
+      color: var(--text-muted);
+      font-size: 13px;
+    }
+
+    #fileInput {
+      display: none;
+    }
+
+    /* Dashboard */
+    .dashboard {
+      display: none;
+    }
+
+    .dashboard.active {
+      display: block;
+    }
+
+    /* Account Info Bar */
+    .account-bar {
+      display: flex;
+      align-items: center;
+      gap: 24px;
+      padding: 16px 20px;
+      background: var(--bg-secondary);
+      border-radius: 12px;
+      margin-bottom: 24px;
+      flex-wrap: wrap;
+    }
+
+    .account-info {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .account-info .label {
+      color: var(--text-muted);
+      font-size: 13px;
+    }
+
+    .account-info .value {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 14px;
+      color: var(--accent);
+    }
+
+    /* Stats Grid */
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 16px;
+      margin-bottom: 24px;
+    }
+
+    .stat-card {
+      background: var(--bg-card);
+      border-radius: 12px;
+      padding: 20px;
+      border: 1px solid var(--border);
+    }
+
+    .stat-card .stat-label {
+      font-size: 13px;
+      color: var(--text-secondary);
+      margin-bottom: 8px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .stat-card .stat-value {
+      font-size: 32px;
+      font-weight: 700;
+      font-family: 'JetBrains Mono', monospace;
+    }
+
+    .stat-card .stat-sub {
+      font-size: 13px;
+      color: var(--text-muted);
+      margin-top: 4px;
+    }
+
+    .stat-card.pass .stat-value { color: var(--pass); }
+    .stat-card.fail .stat-value { color: var(--critical); }
+    .stat-card.critical .stat-value { color: var(--critical); }
+    .stat-card.high .stat-value { color: var(--high); }
+
+    /* Severity Cards */
+    .severity-grid {
+      display: grid;
+      grid-template-columns: repeat(5, 1fr);
+      gap: 12px;
+      margin-bottom: 24px;
+    }
+
+    @media (max-width: 900px) {
+      .severity-grid {
+        grid-template-columns: repeat(3, 1fr);
+      }
+    }
+
+    @media (max-width: 600px) {
+      .severity-grid {
+        grid-template-columns: repeat(2, 1fr);
+      }
+    }
+
+    .severity-card {
+      padding: 16px;
+      border-radius: 10px;
+      text-align: center;
+      cursor: pointer;
+      transition: all 0.2s;
+      border: 2px solid transparent;
+    }
+
+    .severity-card:hover {
+      transform: translateY(-2px);
+    }
+
+    .severity-card.active {
+      border-color: currentColor;
+    }
+
+    .severity-card.critical { background: var(--critical-bg); color: var(--critical); }
+    .severity-card.high { background: var(--high-bg); color: var(--high); }
+    .severity-card.medium { background: var(--medium-bg); color: var(--medium); }
+    .severity-card.low { background: var(--low-bg); color: var(--low); }
+    .severity-card.info { background: var(--info-bg); color: var(--info); }
+
+    .severity-card .sev-count {
+      font-size: 28px;
+      font-weight: 700;
+      font-family: 'JetBrains Mono', monospace;
+    }
+
+    .severity-card .sev-label {
+      font-size: 12px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      margin-top: 4px;
+    }
+
+    /* Panel Grid */
+    .panel-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 24px;
+      margin-bottom: 24px;
+    }
+
+    @media (max-width: 1000px) {
+      .panel-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    .panel {
+      background: var(--bg-card);
+      border-radius: 12px;
+      border: 1px solid var(--border);
+      overflow: hidden;
+    }
+
+    .panel-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 16px 20px;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .panel-header h3 {
+      font-size: 15px;
+      font-weight: 600;
+    }
+
+    .panel-body {
+      padding: 16px 20px;
+      max-height: 350px;
+      overflow-y: auto;
+    }
+
+    /* Service List */
+    .service-item {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 10px 12px;
+      border-radius: 8px;
+      margin-bottom: 6px;
+      background: var(--bg-secondary);
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .service-item:hover {
+      background: var(--bg-hover);
+    }
+
+    .service-item .name {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 13px;
+    }
+
+    .service-item .count {
+      background: var(--critical-bg);
+      color: var(--critical);
+      padding: 4px 10px;
+      border-radius: 12px;
+      font-size: 12px;
+      font-weight: 600;
+      font-family: 'JetBrains Mono', monospace;
+    }
+
+    /* Bar Chart */
+    .bar-chart {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .bar-row {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .bar-label {
+      width: 120px;
+      font-size: 13px;
+      color: var(--text-secondary);
+      text-align: right;
+      flex-shrink: 0;
+    }
+
+    .bar-track {
+      flex: 1;
+      height: 24px;
+      background: var(--bg-secondary);
+      border-radius: 6px;
+      overflow: hidden;
+    }
+
+    .bar-fill {
+      height: 100%;
+      border-radius: 6px;
+      transition: width 0.5s ease;
+      display: flex;
+      align-items: center;
+      padding-left: 8px;
+      font-size: 12px;
+      font-weight: 600;
+      font-family: 'JetBrains Mono', monospace;
+    }
+
+    .bar-fill.pass { background: var(--pass); color: var(--bg-primary); }
+    .bar-fill.fail { background: var(--critical); color: white; }
+
+    /* Findings Table */
+    .findings-section {
+      background: var(--bg-card);
+      border-radius: 12px;
+      border: 1px solid var(--border);
+      margin-bottom: 24px;
+    }
+
+    .findings-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 16px 20px;
+      border-bottom: 1px solid var(--border);
+      flex-wrap: wrap;
+      gap: 12px;
+    }
+
+    .findings-header h3 {
+      font-size: 16px;
+      font-weight: 600;
+    }
+
+    .filter-controls {
+      display: flex;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+
+    .filter-select {
+      padding: 8px 12px;
+      border-radius: 6px;
+      border: 1px solid var(--border);
+      background: var(--bg-secondary);
+      color: var(--text-primary);
+      font-size: 13px;
+      font-family: inherit;
+      cursor: pointer;
+    }
+
+    .filter-select:focus {
+      outline: none;
+      border-color: var(--accent);
+    }
+
+    .search-input {
+      padding: 8px 12px;
+      border-radius: 6px;
+      border: 1px solid var(--border);
+      background: var(--bg-secondary);
+      color: var(--text-primary);
+      font-size: 13px;
+      font-family: inherit;
+      width: 200px;
+    }
+
+    .search-input:focus {
+      outline: none;
+      border-color: var(--accent);
+    }
+
+    .findings-table {
+      width: 100%;
+      overflow-x: auto;
+    }
+
+    .findings-table table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+
+    .findings-table th,
+    .findings-table td {
+      padding: 12px 16px;
+      text-align: left;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .findings-table th {
+      font-size: 12px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      color: var(--text-muted);
+      background: var(--bg-secondary);
+      position: sticky;
+      top: 0;
+    }
+
+    .findings-table td {
+      font-size: 13px;
+      vertical-align: top;
+    }
+
+    .findings-table tr:hover {
+      background: var(--bg-hover);
+    }
+
+    .findings-table .check-name {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 12px;
+      color: var(--accent);
+    }
+
+    .findings-table .message {
+      max-width: 400px;
+      color: var(--text-secondary);
+    }
+
+    .severity-badge {
+      display: inline-block;
+      padding: 4px 10px;
+      border-radius: 4px;
+      font-size: 11px;
+      font-weight: 600;
+      text-transform: uppercase;
+    }
+
+    .severity-badge.critical { background: var(--critical-bg); color: var(--critical); }
+    .severity-badge.high { background: var(--high-bg); color: var(--high); }
+    .severity-badge.medium { background: var(--medium-bg); color: var(--medium); }
+    .severity-badge.low { background: var(--low-bg); color: var(--low); }
+    .severity-badge.info { background: var(--info-bg); color: var(--info); }
+
+    .table-scroll {
+      max-height: 600px;
+      overflow-y: auto;
+    }
+
+    /* Action Items */
+    .action-items {
+      background: var(--bg-card);
+      border-radius: 12px;
+      border: 1px solid var(--border);
+    }
+
+    .action-header {
+      padding: 16px 20px;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .action-header h3 {
+      font-size: 16px;
+      font-weight: 600;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .action-list {
+      padding: 16px 20px;
+    }
+
+    .action-item {
+      padding: 16px;
+      background: var(--bg-secondary);
+      border-radius: 10px;
+      margin-bottom: 12px;
+      border-left: 4px solid;
+    }
+
+    .action-item.critical { border-left-color: var(--critical); }
+    .action-item.high { border-left-color: var(--high); }
+    .action-item.medium { border-left-color: var(--medium); }
+    .action-item.low { border-left-color: var(--low); }
+
+    .action-item .action-title {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 12px;
+      margin-bottom: 8px;
+    }
+
+    .action-item .check-name {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 13px;
+      font-weight: 500;
+    }
+
+    .action-item .occurrence {
+      font-size: 12px;
+      color: var(--text-muted);
+      white-space: nowrap;
+    }
+
+    .action-item .description {
+      font-size: 13px;
+      color: var(--text-secondary);
+      margin-bottom: 12px;
+    }
+
+    .action-item .remediation {
+      font-size: 13px;
+      padding: 12px;
+      background: var(--bg-card);
+      border-radius: 6px;
+      color: var(--text-primary);
+    }
+
+    .action-item .remediation strong {
+      color: var(--accent);
+      font-weight: 600;
+    }
+
+    .action-item .cli-cmd {
+      margin-top: 8px;
+      padding: 8px 12px;
+      background: var(--bg-primary);
+      border-radius: 4px;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 12px;
+      color: var(--pass);
+      overflow-x: auto;
+    }
+
+    /* Loading State */
+    .loading {
+      display: none;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 60px;
+    }
+
+    .loading.active {
+      display: flex;
+    }
+
+    .spinner {
+      width: 48px;
+      height: 48px;
+      border: 3px solid var(--border);
+      border-top-color: var(--accent);
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+    }
+
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+
+    .loading p {
+      margin-top: 16px;
+      color: var(--text-secondary);
+    }
+
+    /* Progress Ring */
+    .progress-ring {
+      width: 140px;
+      height: 140px;
+      margin: 0 auto;
+    }
+
+    .progress-ring svg {
+      transform: rotate(-90deg);
+    }
+
+    .progress-ring .bg {
+      fill: none;
+      stroke: var(--bg-secondary);
+      stroke-width: 12;
+    }
+
+    .progress-ring .progress {
+      fill: none;
+      stroke: var(--pass);
+      stroke-width: 12;
+      stroke-linecap: round;
+      transition: stroke-dashoffset 0.5s;
+    }
+
+    .progress-ring .label {
+      text-anchor: middle;
+      fill: var(--text-primary);
+      font-size: 24px;
+      font-weight: 700;
+      font-family: 'JetBrains Mono', monospace;
+    }
+
+    .progress-ring .sub-label {
+      text-anchor: middle;
+      fill: var(--text-secondary);
+      font-size: 12px;
+    }
+
+    /* Scrollbar */
+    ::-webkit-scrollbar {
+      width: 8px;
+      height: 8px;
+    }
+
+    ::-webkit-scrollbar-track {
+      background: var(--bg-secondary);
+    }
+
+    ::-webkit-scrollbar-thumb {
+      background: var(--border);
+      border-radius: 4px;
+    }
+
+    ::-webkit-scrollbar-thumb:hover {
+      background: var(--text-muted);
+    }
+
+    /* Toast */
+    .toast {
+      position: fixed;
+      bottom: 24px;
+      right: 24px;
+      padding: 12px 20px;
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      font-size: 14px;
+      transform: translateY(100px);
+      opacity: 0;
+      transition: all 0.3s;
+      z-index: 1000;
+    }
+
+    .toast.show {
+      transform: translateY(0);
+      opacity: 1;
+    }
+
+    .toast.success {
+      border-color: var(--pass);
+    }
+
+    .toast.error {
+      border-color: var(--critical);
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <!-- Header -->
+    <header class="header">
+      <div class="logo">
+        <div class="logo-icon">🛡️</div>
+        <div class="logo-text">
+          <h1>Prowler Analyzer</h1>
+          <span>AWS Security Assessment Dashboard</span>
+        </div>
+      </div>
+      <div class="header-actions">
+        <button class="btn btn-secondary" id="newScanBtn" style="display:none;" onclick="resetDashboard()">
+          📂 New File
+        </button>
+        <button class="btn btn-primary" id="exportBtn" style="display:none;" onclick="exportCSV()">
+          📥 Export CSV
+        </button>
+      </div>
+    </header>
+
+    <!-- Upload Section -->
+    <section class="upload-section" id="uploadSection">
+      <div class="upload-zone" id="uploadZone">
+        <div class="upload-icon">📁</div>
+        <h2>Upload Prowler Output</h2>
+        <p>Drag and drop your JSON file here, or click to browse</p>
+        <button class="btn btn-primary">Select File</button>
+        <br><br>
+        <small>Supports Prowler OCSF JSON format • Max 50MB</small>
+      </div>
+      <input type="file" id="fileInput" accept=".json">
+    </section>
+
+    <!-- Loading State -->
+    <section class="loading" id="loadingSection">
+      <div class="spinner"></div>
+      <p>Analyzing security findings...</p>
+    </section>
+
+    <!-- Dashboard -->
+    <section class="dashboard" id="dashboard">
+      <!-- Account Bar -->
+      <div class="account-bar">
+        <div class="account-info">
+          <span class="label">Account:</span>
+          <span class="value" id="accountName">-</span>
+        </div>
+        <div class="account-info">
+          <span class="label">ID:</span>
+          <span class="value" id="accountId">-</span>
+        </div>
+        <div class="account-info">
+          <span class="label">Scan Date:</span>
+          <span class="value" id="scanDate">-</span>
+        </div>
+        <div class="account-info">
+          <span class="label">Regions:</span>
+          <span class="value" id="regionCount">-</span>
+        </div>
+      </div>
+
+      <!-- Stats Grid -->
+      <div class="stats-grid">
+        <div class="stat-card">
+          <div class="stat-label">Total Checks</div>
+          <div class="stat-value" id="totalChecks">0</div>
+        </div>
+        <div class="stat-card pass">
+          <div class="stat-label">Passed</div>
+          <div class="stat-value" id="passedChecks">0</div>
+          <div class="stat-sub" id="passRate">0%</div>
+        </div>
+        <div class="stat-card fail">
+          <div class="stat-label">Failed</div>
+          <div class="stat-value" id="failedChecks">0</div>
+          <div class="stat-sub" id="failRate">0%</div>
+        </div>
+        <div class="stat-card critical">
+          <div class="stat-label">Critical+High</div>
+          <div class="stat-value" id="criticalHigh">0</div>
+          <div class="stat-sub">Immediate attention</div>
+        </div>
+      </div>
+
+      <!-- Severity Cards -->
+      <div class="severity-grid">
+        <div class="severity-card critical" data-severity="Critical" onclick="filterBySeverity('Critical')">
+          <div class="sev-count" id="sevCritical">0</div>
+          <div class="sev-label">Critical</div>
+        </div>
+        <div class="severity-card high" data-severity="High" onclick="filterBySeverity('High')">
+          <div class="sev-count" id="sevHigh">0</div>
+          <div class="sev-label">High</div>
+        </div>
+        <div class="severity-card medium" data-severity="Medium" onclick="filterBySeverity('Medium')">
+          <div class="sev-count" id="sevMedium">0</div>
+          <div class="sev-label">Medium</div>
+        </div>
+        <div class="severity-card low" data-severity="Low" onclick="filterBySeverity('Low')">
+          <div class="sev-count" id="sevLow">0</div>
+          <div class="sev-label">Low</div>
+        </div>
+        <div class="severity-card info" data-severity="Informational" onclick="filterBySeverity('Informational')">
+          <div class="sev-count" id="sevInfo">0</div>
+          <div class="sev-label">Info</div>
+        </div>
+      </div>
+
+      <!-- Panel Grid -->
+      <div class="panel-grid">
+        <!-- Services Panel -->
+        <div class="panel">
+          <div class="panel-header">
+            <h3>🔧 Failures by Service</h3>
+          </div>
+          <div class="panel-body" id="servicesList"></div>
+        </div>
+
+        <!-- Pass/Fail Chart -->
+        <div class="panel">
+          <div class="panel-header">
+            <h3>📊 Compliance Overview</h3>
+          </div>
+          <div class="panel-body">
+            <div class="progress-ring" id="progressRing">
+              <svg viewBox="0 0 140 140">
+                <circle class="bg" cx="70" cy="70" r="58"/>
+                <circle class="progress" cx="70" cy="70" r="58" stroke-dasharray="364" stroke-dashoffset="364"/>
+                <text class="label" x="70" y="70" dy="0.35em" transform="rotate(90 70 70)">0%</text>
+                <text class="sub-label" x="70" y="90" dy="0.35em" transform="rotate(90 70 70)">Pass Rate</text>
+              </svg>
+            </div>
+            <div class="bar-chart" style="margin-top: 24px;">
+              <div class="bar-row">
+                <div class="bar-label">Passed</div>
+                <div class="bar-track">
+                  <div class="bar-fill pass" id="passBar" style="width: 0%"></div>
+                </div>
+              </div>
+              <div class="bar-row">
+                <div class="bar-label">Failed</div>
+                <div class="bar-track">
+                  <div class="bar-fill fail" id="failBar" style="width: 0%"></div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Action Items -->
+      <div class="action-items">
+        <div class="action-header">
+          <h3>⚡ Priority Remediation Actions</h3>
+          <span id="actionCount">0 items</span>
+        </div>
+        <div class="action-list" id="actionList"></div>
+      </div>
+
+      <!-- Findings Table -->
+      <div class="findings-section" style="margin-top: 24px;">
+        <div class="findings-header">
+          <h3>📋 All Failed Findings</h3>
+          <div class="filter-controls">
+            <input type="text" class="search-input" id="searchInput" placeholder="Search findings..." oninput="filterFindings()">
+            <select class="filter-select" id="severityFilter" onchange="filterFindings()">
+              <option value="">All Severities</option>
+              <option value="Critical">Critical</option>
+              <option value="High">High</option>
+              <option value="Medium">Medium</option>
+              <option value="Low">Low</option>
+              <option value="Informational">Informational</option>
+            </select>
+            <select class="filter-select" id="serviceFilter" onchange="filterFindings()">
+              <option value="">All Services</option>
+            </select>
+          </div>
+        </div>
+        <div class="findings-table">
+          <div class="table-scroll">
+            <table>
+              <thead>
+                <tr>
+                  <th>Severity</th>
+                  <th>Check</th>
+                  <th>Service</th>
+                  <th>Region</th>
+                  <th>Message</th>
+                </tr>
+              </thead>
+              <tbody id="findingsBody"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <div class="toast" id="toast"></div>
+
+  <script>
+    // Global state
+    let rawFindings = [];
+    let failedFindings = [];
+    let currentFilter = { severity: '', service: '', search: '' };
+
+    // DOM Elements
+    const uploadSection = document.getElementById('uploadSection');
+    const loadingSection = document.getElementById('loadingSection');
+    const dashboard = document.getElementById('dashboard');
+    const uploadZone = document.getElementById('uploadZone');
+    const fileInput = document.getElementById('fileInput');
+
+    // File upload handlers
+    uploadZone.addEventListener('click', () => fileInput.click());
+    fileInput.addEventListener('change', handleFileSelect);
+    
+    uploadZone.addEventListener('dragover', (e) => {
+      e.preventDefault();
+      uploadZone.classList.add('dragover');
+    });
+
+    uploadZone.addEventListener('dragleave', () => {
+      uploadZone.classList.remove('dragover');
+    });
+
+    uploadZone.addEventListener('drop', (e) => {
+      e.preventDefault();
+      uploadZone.classList.remove('dragover');
+      const file = e.dataTransfer.files[0];
+      if (file) processFile(file);
+    });
+
+    function handleFileSelect(e) {
+      const file = e.target.files[0];
+      if (file) processFile(file);
+    }
+
+    function processFile(file) {
+      if (!file.name.endsWith('.json')) {
+        showToast('Please upload a JSON file', 'error');
+        return;
+      }
+
+      if (file.size > 50 * 1024 * 1024) {
+        showToast('File too large. Max 50MB', 'error');
+        return;
+      }
+
+      uploadSection.style.display = 'none';
+      loadingSection.classList.add('active');
+
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        try {
+          rawFindings = JSON.parse(e.target.result);
+          analyzeAndDisplay();
+        } catch (err) {
+          showToast('Invalid JSON file', 'error');
+          resetDashboard();
+        }
+      };
+      reader.readAsText(file);
+    }
+
+    function analyzeAndDisplay() {
+      setTimeout(() => {
+        const summary = analyzeFindings(rawFindings);
+        failedFindings = rawFindings.filter(f => f.status_code === 'FAIL');
+        
+        displayDashboard(summary);
+        
+        loadingSection.classList.remove('active');
+        dashboard.classList.add('active');
+        document.getElementById('newScanBtn').style.display = 'inline-flex';
+        document.getElementById('exportBtn').style.display = 'inline-flex';
+        
+        showToast('Analysis complete!', 'success');
+      }, 500);
+    }
+
+    function analyzeFindings(findings) {
+      const summary = {
+        total: findings.length,
+        passed: 0,
+        failed: 0,
+        manual: 0,
+        bySeverity: { Critical: 0, High: 0, Medium: 0, Low: 0, Informational: 0 },
+        byService: {},
+        byCheck: {},
+        regions: new Set(),
+        accountId: '',
+        accountName: '',
+        scanDate: ''
+      };
+
+      findings.forEach(finding => {
+        const status = finding.status_code || 'UNKNOWN';
+        if (status === 'PASS') summary.passed++;
+        else if (status === 'FAIL') summary.failed++;
+        else if (status === 'MANUAL') summary.manual++;
+
+        if (!summary.accountId && finding.cloud?.account?.uid) {
+          summary.accountId = finding.cloud.account.uid;
+          summary.accountName = finding.cloud.account.name || '';
+        }
+
+        if (!summary.scanDate && finding.time_dt) {
+          summary.scanDate = finding.time_dt;
+        }
+
+        if (status === 'FAIL') {
+          const severity = finding.severity || 'Informational';
+          summary.bySeverity[severity] = (summary.bySeverity[severity] || 0) + 1;
+
+          const service = finding.resources?.[0]?.group?.name || 'unknown';
+          summary.byService[service] = (summary.byService[service] || 0) + 1;
+
+          const check = finding.metadata?.event_code || 'unknown';
+          if (!summary.byCheck[check]) {
+            summary.byCheck[check] = {
+              count: 0,
+              severity: severity,
+              message: finding.message || '',
+              remediation: finding.remediation?.desc || '',
+              references: finding.remediation?.references || [],
+              riskDetails: finding.risk_details || ''
+            };
+          }
+          summary.byCheck[check].count++;
+        }
+
+        if (finding.cloud?.region) {
+          summary.regions.add(finding.cloud.region);
+        }
+      });
+
+      summary.regions = Array.from(summary.regions).sort();
+      return summary;
+    }
+
+    function displayDashboard(summary) {
+      // Account info
+      document.getElementById('accountName').textContent = summary.accountName || 'N/A';
+      document.getElementById('accountId').textContent = summary.accountId || 'N/A';
+      document.getElementById('scanDate').textContent = summary.scanDate ? 
+        new Date(summary.scanDate).toLocaleString() : 'N/A';
+      document.getElementById('regionCount').textContent = summary.regions.length;
+
+      // Stats
+      document.getElementById('totalChecks').textContent = summary.total.toLocaleString();
+      document.getElementById('passedChecks').textContent = summary.passed.toLocaleString();
+      document.getElementById('failedChecks').textContent = summary.failed.toLocaleString();
+      document.getElementById('criticalHigh').textContent = 
+        (summary.bySeverity.Critical + summary.bySeverity.High).toLocaleString();
+
+      const passRate = ((summary.passed / summary.total) * 100).toFixed(1);
+      const failRate = ((summary.failed / summary.total) * 100).toFixed(1);
+      document.getElementById('passRate').textContent = passRate + '% pass rate';
+      document.getElementById('failRate').textContent = failRate + '% fail rate';
+
+      // Severity cards
+      document.getElementById('sevCritical').textContent = summary.bySeverity.Critical || 0;
+      document.getElementById('sevHigh').textContent = summary.bySeverity.High || 0;
+      document.getElementById('sevMedium').textContent = summary.bySeverity.Medium || 0;
+      document.getElementById('sevLow').textContent = summary.bySeverity.Low || 0;
+      document.getElementById('sevInfo').textContent = summary.bySeverity.Informational || 0;
+
+      // Progress ring
+      const circumference = 2 * Math.PI * 58;
+      const offset = circumference - (passRate / 100) * circumference;
+      const progressCircle = document.querySelector('.progress-ring .progress');
+      const progressLabel = document.querySelector('.progress-ring .label');
+      progressCircle.style.strokeDashoffset = offset;
+      progressLabel.textContent = passRate + '%';
+
+      // Bar chart
+      document.getElementById('passBar').style.width = passRate + '%';
+      document.getElementById('passBar').textContent = summary.passed.toLocaleString();
+      document.getElementById('failBar').style.width = failRate + '%';
+      document.getElementById('failBar').textContent = summary.failed.toLocaleString();
+
+      // Services list
+      const servicesList = document.getElementById('servicesList');
+      const sortedServices = Object.entries(summary.byService)
+        .sort((a, b) => b[1] - a[1]);
+      
+      servicesList.innerHTML = sortedServices.map(([name, count]) => `
+        <div class="service-item" onclick="filterByService('${name}')">
+          <span class="name">${name}</span>
+          <span class="count">${count}</span>
+        </div>
+      `).join('');
+
+      // Service filter dropdown
+      const serviceFilter = document.getElementById('serviceFilter');
+      serviceFilter.innerHTML = '<option value="">All Services</option>' +
+        sortedServices.map(([name]) => `<option value="${name}">${name}</option>`).join('');
+
+      // Action items
+      displayActionItems(summary.byCheck);
+
+      // Findings table
+      displayFindings();
+    }
+
+    function displayActionItems(byCheck) {
+      const actionList = document.getElementById('actionList');
+      const sorted = Object.entries(byCheck)
+        .map(([check, data]) => ({ check, ...data }))
+        .sort((a, b) => {
+          const severityOrder = { Critical: 0, High: 1, Medium: 2, Low: 3, Informational: 4 };
+          if (severityOrder[a.severity] !== severityOrder[b.severity]) {
+            return severityOrder[a.severity] - severityOrder[b.severity];
+          }
+          return b.count - a.count;
+        });
+
+      // Show top 15 prioritized items
+      const top = sorted.slice(0, 15);
+      document.getElementById('actionCount').textContent = `${sorted.length} unique checks failed`;
+
+      actionList.innerHTML = top.map(item => {
+        const cliCmd = item.references.find(r => r.startsWith('aws ')) || '';
+        return `
+          <div class="action-item ${item.severity.toLowerCase()}">
+            <div class="action-title">
+              <span class="check-name">${item.check}</span>
+              <span class="severity-badge ${item.severity.toLowerCase()}">${item.severity}</span>
+              <span class="occurrence">${item.count} occurrence${item.count > 1 ? 's' : ''}</span>
+            </div>
+            <div class="description">${truncate(item.message, 200)}</div>
+            <div class="remediation">
+              <strong>Remediation:</strong> ${item.remediation || 'Review and address this finding.'}
+              ${cliCmd ? `<div class="cli-cmd">${cliCmd}</div>` : ''}
+            </div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    function displayFindings() {
+      const tbody = document.getElementById('findingsBody');
+      let filtered = failedFindings;
+
+      // Apply filters
+      if (currentFilter.severity) {
+        filtered = filtered.filter(f => f.severity === currentFilter.severity);
+      }
+      if (currentFilter.service) {
+        filtered = filtered.filter(f => 
+          (f.resources?.[0]?.group?.name || 'unknown') === currentFilter.service
+        );
+      }
+      if (currentFilter.search) {
+        const search = currentFilter.search.toLowerCase();
+        filtered = filtered.filter(f => 
+          (f.message || '').toLowerCase().includes(search) ||
+          (f.metadata?.event_code || '').toLowerCase().includes(search)
+        );
+      }
+
+      // Sort by severity
+      const severityOrder = { Critical: 0, High: 1, Medium: 2, Low: 3, Informational: 4 };
+      filtered.sort((a, b) => 
+        (severityOrder[a.severity] || 5) - (severityOrder[b.severity] || 5)
+      );
+
+      // Limit display for performance
+      const display = filtered.slice(0, 500);
+      
+      tbody.innerHTML = display.map(f => `
+        <tr>
+          <td><span class="severity-badge ${(f.severity || 'info').toLowerCase()}">${f.severity}</span></td>
+          <td><span class="check-name">${f.metadata?.event_code || 'N/A'}</span></td>
+          <td>${f.resources?.[0]?.group?.name || 'N/A'}</td>
+          <td>${f.cloud?.region || 'N/A'}</td>
+          <td class="message">${truncate(f.message || '', 150)}</td>
+        </tr>
+      `).join('');
+
+      if (filtered.length > 500) {
+        tbody.innerHTML += `
+          <tr>
+            <td colspan="5" style="text-align: center; color: var(--text-muted);">
+              Showing 500 of ${filtered.length} findings. Use filters to narrow results.
+            </td>
+          </tr>
+        `;
+      }
+    }
+
+    function filterBySeverity(severity) {
+      document.querySelectorAll('.severity-card').forEach(card => {
+        card.classList.toggle('active', card.dataset.severity === severity);
+      });
+      
+      if (currentFilter.severity === severity) {
+        currentFilter.severity = '';
+        document.querySelectorAll('.severity-card').forEach(card => card.classList.remove('active'));
+      } else {
+        currentFilter.severity = severity;
+      }
+      
+      document.getElementById('severityFilter').value = currentFilter.severity;
+      displayFindings();
+    }
+
+    function filterByService(service) {
+      currentFilter.service = service;
+      document.getElementById('serviceFilter').value = service;
+      displayFindings();
+    }
+
+    function filterFindings() {
+      currentFilter.severity = document.getElementById('severityFilter').value;
+      currentFilter.service = document.getElementById('serviceFilter').value;
+      currentFilter.search = document.getElementById('searchInput').value;
+      displayFindings();
+    }
+
+    function exportCSV() {
+      const headers = ['Status', 'Severity', 'Check', 'Service', 'Region', 'Message', 'Resource', 'Remediation'];
+      const rows = failedFindings.map(f => [
+        f.status_code,
+        f.severity,
+        f.metadata?.event_code || '',
+        f.resources?.[0]?.group?.name || '',
+        f.cloud?.region || '',
+        (f.message || '').replace(/"/g, '""'),
+        f.resources?.[0]?.uid || '',
+        (f.remediation?.desc || '').replace(/"/g, '""')
+      ]);
+
+      const csv = [headers, ...rows]
+        .map(row => row.map(cell => `"${cell}"`).join(','))
+        .join('\n');
+
+      const blob = new Blob([csv], { type: 'text/csv' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `prowler-findings-${new Date().toISOString().split('T')[0]}.csv`;
+      a.click();
+      URL.revokeObjectURL(url);
+      
+      showToast('CSV exported successfully!', 'success');
+    }
+
+    function resetDashboard() {
+      rawFindings = [];
+      failedFindings = [];
+      currentFilter = { severity: '', service: '', search: '' };
+      
+      dashboard.classList.remove('active');
+      loadingSection.classList.remove('active');
+      uploadSection.style.display = 'flex';
+      document.getElementById('newScanBtn').style.display = 'none';
+      document.getElementById('exportBtn').style.display = 'none';
+      document.getElementById('fileInput').value = '';
+    }
+
+    function truncate(str, len) {
+      return str.length > len ? str.slice(0, len) + '...' : str;
+    }
+
+    function showToast(message, type = 'success') {
+      const toast = document.getElementById('toast');
+      toast.textContent = message;
+      toast.className = 'toast ' + type;
+      toast.classList.add('show');
+      setTimeout(() => toast.classList.remove('show'), 3000);
+    }
+  </script>
+</body>
+</html>
