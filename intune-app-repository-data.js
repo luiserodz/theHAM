@@ -460,7 +460,7 @@ const applications = [
     name: "OpenVPN",
     publisher: "OpenVPN",
     category: "Network",
-    msiUrl: "https://openvpn.net/community-downloads/",
+    msiUrl: "https://openvpn.net/downloads/openvpn-connect-v3-windows.msi",
   },
   {
     name: "NordLayer VPN",
