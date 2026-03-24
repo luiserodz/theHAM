@@ -228,8 +228,8 @@ const applications = [
     name: "Zoom",
     publisher: "Zoom Video Communications",
     category: "Communication",
-    msiUrl: "https://cdn.zoom.us/prod/6.5.3.7509/x64/ZoomInstallerFull.msi",
-    armUrl: "https://cdn.zoom.us/prod/6.5.3.7509/arm64/ZoomInstallerFull.msi",
+    msiUrl: "https://zoom.us/client/latest/ZoomInstallerFull.msi?archType=x64",
+    armUrl: "https://zoom.us/client/latest/ZoomInstallerFull.msi?archType=winarm64",
   },
   {
     name: "Cisco Webex Meetings",
